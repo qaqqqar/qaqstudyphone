@@ -1,0 +1,5234 @@
+/* ===== QAQ Reset ===== */
+
+:root {
+    --qaq-page-duration: 0.18s;  /* 从0.22s缩短到0.18s，更灵敏 */
+    --qaq-page-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+html {                       /* ← 新增整块 */
+    overflow: hidden;
+    max-width: 100%;
+}
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #f6e9c9;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+        "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;        /* ← 新增，防止body层出现横向滚动 */
+    max-width: 100vw;        /* ← 新增 */
+}
+
+/* ===== QAQ 手机框 ===== */
+/* ===== QAQ 手机框 ===== */
+.qaq-phone-frame {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background: linear-gradient(
+        160deg,
+        #f6e9c9 0%,
+        #faebd7 25%,
+        #fce8e2 50%,
+        #fed2e0 75%,
+        #f6e9c9 100%
+    );
+    border-radius: 0;
+    overflow: hidden;        /* 已有，保留 */
+    overflow-x: hidden;      /* ← 新增 */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;                /* ← 新增，替代 width:100vw 防止滚动条撑宽 */
+    bottom: 0;               /* ← 新增 */
+    display: flex;
+    flex-direction: column;
+    box-shadow: none;
+    max-width: 100%;         /* ← 新增 */
+}
+
+/* ===== QAQ 状态栏 ===== */
+.qaq-status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 30px 6px;
+    flex-shrink: 0;
+}
+
+.qaq-time-display {
+    font-size: 15px;
+    font-weight: 600;
+    color: #333;
+    letter-spacing: 0.5px;
+}
+
+.qaq-status-icons {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+/* ===== QAQ 主内容 ===== */
+.qaq-main-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 16px 80px;
+    scrollbar-width: none;
+}
+
+.qaq-main-content::-webkit-scrollbar {
+    display: none;
+}
+
+/* ===== QAQ 小组件 ===== */
+.qaq-widget {
+    margin-top: 10px;
+    background: rgba(255, 255, 255, 0.52);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 16px;
+    padding: 10px 12px;
+    margin-bottom: 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    animation: qaq-fadeIn 0.5s ease;
+    -webkit-backface-visibility: hidden;    /* ← 加这行 */
+    backface-visibility: hidden;            /* ← 加这行 */
+}
+
+/* 头部 */
+.qaq-widget-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.qaq-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: transform 0.25s ease;
+    box-shadow: 0 2px 6px rgba(254, 210, 224, 0.4);
+}
+
+.qaq-avatar:hover {
+    transform: scale(1.06);
+}
+
+.qaq-avatar svg,
+.qaq-avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.qaq-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.qaq-nickname {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+}
+
+.qaq-signature {
+    font-size: 10px;
+    color: #999;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 文本内容 */
+.qaq-widget-text {
+    padding: 0 2px;
+}
+
+.qaq-widget-text p {
+    font-size: 12px;
+    color: #555;
+    line-height: 1.5;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* 三张图片 */
+.qaq-widget-images {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    padding: 0 10px;
+}
+
+.qaq-img-square {
+    flex: 1;
+    height: 110px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: none;
+    border: none;
+}
+
+.qaq-img-square svg,
+.qaq-img-square img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* 评论输入 */
+.qaq-comment-bar {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.qaq-comment-input {
+    flex: 1;
+    height: 30px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 15px;
+    padding: 0 12px;
+    font-size: 11px;
+    color: #444;
+    background: rgba(255, 255, 255, 0.6);
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+.qaq-comment-input:focus {
+    border-color: #deb3be;
+    box-shadow: 0 0 0 3px rgba(254, 210, 224, 0.2);
+}
+
+.qaq-comment-input::placeholder {
+    color: #bbb;
+}
+
+.qaq-send-btn {
+    height: 30px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 15px;
+    background: linear-gradient(135deg, #f6e9c9, #fed2e0);
+    color: #8a6050;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: opacity 0.25s, transform 0.2s;
+    white-space: nowrap;
+}
+
+.qaq-send-btn:hover {
+    opacity: 0.85;
+}
+
+.qaq-send-btn:active {
+    transform: scale(0.94);
+}
+
+/* 互动按钮 */
+.qaq-widget-actions {
+    display: flex;
+    gap: 20px;
+    padding: 4px 2px 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.qaq-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: transform 0.2s;
+    user-select: none;
+}
+
+.qaq-action-btn svg {
+    width: 15px;
+    height: 15px;
+}
+
+.qaq-action-btn span {
+    font-size: 11px;
+    color: #aaa;
+}
+
+.qaq-action-btn:active {
+    transform: scale(0.88);
+}
+
+/* 点赞激活 */
+.qaq-action-btn.qaq-liked svg {
+    stroke: #e05565;
+}
+.qaq-action-btn.qaq-liked svg path {
+    fill: #e05565;
+}
+.qaq-action-btn.qaq-liked span {
+    color: #e05565;
+}
+
+/* 收藏激活 */
+.qaq-action-btn.qaq-collected svg {
+    stroke: #d4a020;
+}
+.qaq-action-btn.qaq-collected svg path {
+    fill: #d4a020;
+}
+.qaq-action-btn.qaq-collected span {
+    color: #d4a020;
+}
+
+/* 转发激活 */
+.qaq-action-btn.qaq-shared svg {
+    stroke: #5b9bd5;
+}
+.qaq-action-btn.qaq-shared svg path,
+.qaq-action-btn.qaq-shared svg polyline,
+.qaq-action-btn.qaq-shared svg line {
+    stroke: #5b9bd5;
+}
+.qaq-action-btn.qaq-shared span {
+    color: #5b9bd5;
+}
+
+/* ===== QAQ APP 区域（左侧小组件 + 右侧网格） ===== */
+.qaq-app-area {
+    display: flex;
+    gap: 12px;
+    padding: 4px 2px 24px;
+}
+
+/* 左侧今日计划小组件 */
+.qaq-plan-widget {
+    width: 240px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.52);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 16px;
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: qaq-fadeIn 0.5s ease;
+    -webkit-backface-visibility: hidden;    /* ← 加这行 */
+    backface-visibility: hidden;            /* ← 加这行 */
+}
+
+.qaq-plan-widget:active {
+    transform: scale(0.96);
+}
+
+.qaq-plan-widget:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.qaq-plan-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.qaq-plan-header svg {
+    flex-shrink: 0;
+}
+
+.qaq-plan-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #555;
+}
+
+.qaq-plan-date {
+    font-size: 9px;
+    color: #bbb;
+}
+
+.qaq-plan-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+
+.qaq-plan-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    font-size: 10px;
+    color: #777;
+    line-height: 1.4;
+    word-break: break-all;
+}
+
+.qaq-plan-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #deb3be;
+    flex-shrink: 0;
+    margin-top: 3px;
+}
+
+.qaq-plan-dot.qaq-dot-done {
+    background: #b5d6a7;
+}
+
+.qaq-plan-item.qaq-item-done {
+    color: #bbb;
+    text-decoration: line-through;
+}
+
+.qaq-plan-progress {
+    margin-top: auto;
+}
+
+.qaq-plan-progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.qaq-plan-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f6e9c9, #fed2e0);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.qaq-plan-progress-text {
+    font-size: 9px;
+    color: #bbb;
+    text-align: right;
+    margin-top: 3px;
+}
+
+/* 右侧APP网格 */
+.qaq-app-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px 6px;
+}
+
+.qaq-app-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.qaq-app-item:active {
+    transform: scale(0.9);
+}
+
+.qaq-app-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.45);
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    transition: transform 0.25s, box-shadow 0.25s;
+}
+
+.qaq-app-icon:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.qaq-app-name {
+    font-size: 11px;
+    color: #555;
+    font-weight: 500;
+    text-align: center;
+}
+
+/* ===== QAQ 入场动画 ===== */
+.qaq-app-item {
+    animation: qaq-fadeUp 0.45s ease both;
+}
+
+.qaq-app-item:nth-child(1) { animation-delay: 0.04s; }
+.qaq-app-item:nth-child(2) { animation-delay: 0.08s; }
+.qaq-app-item:nth-child(3) { animation-delay: 0.12s; }
+.qaq-app-item:nth-child(4) { animation-delay: 0.16s; }
+.qaq-app-item:nth-child(5) { animation-delay: 0.20s; }
+.qaq-app-item:nth-child(6) { animation-delay: 0.24s; }
+.qaq-app-item:nth-child(7) { animation-delay: 0.28s; }
+.qaq-app-item:nth-child(8) { animation-delay: 0.32s; }
+.qaq-app-item:nth-child(9) { animation-delay: 0.36s; }
+
+@keyframes qaq-fadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes qaq-fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== QAQ 底部导航 ===== */
+.qaq-bottom-nav {
+    position: absolute;
+    bottom: 16px;
+    left: 18px;
+    right: 18px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 8px 8px 12px;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 22px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    z-index: 40;
+}
+
+.qaq-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    color: #aaa;
+    transition: color 0.25s, transform 0.2s;
+    padding: 6px 14px;
+    user-select: none;
+    border-radius: 16px;
+    /* 去掉原来的边框线 */
+    background: none;
+    border: none;
+}
+
+.qaq-nav-item:active {
+    transform: scale(0.9);
+}
+
+.qaq-nav-item span {
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.qaq-nav-item.qaq-nav-active {
+    color: #c47068;
+    background: rgba(254, 210, 224, 0.25);
+}
+
+/* ===== QAQ Toast ===== */
+.qaq-toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.85);
+    background: rgba(40, 40, 40, 0.82);
+    backdrop-filter: blur(12px);
+    color: #fff;
+    padding: 10px 26px;
+    border-radius: 20px;
+    font-size: 13px;
+    z-index: 9999;
+    opacity: 0;
+    transition: all 0.25s ease;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.qaq-toast.qaq-show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+/* ===== QAQ 涟漪 ===== */
+.qaq-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(254, 210, 224, 0.35);
+    transform: scale(0);
+    animation: qaq-ripple-go 0.55s ease-out;
+    pointer-events: none;
+}
+
+@keyframes qaq-ripple-go {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+
+
+/* ===== QAQ 编辑相关 ===== */
+.qaq-editable {
+    cursor: pointer;
+    transition: background 0.2s;
+    border-radius: 4px;
+}
+
+.qaq-editable:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.qaq-clickable-img {
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.qaq-clickable-img:hover {
+    opacity: 0.8;
+}
+
+/* ===== 弹窗遮罩 ===== */
+.qaq-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden; /* ← 新增：彻底隐藏不渲染，根除闪开现象 */
+    transition: opacity 0.25s ease, visibility 0s linear 0.25s; /* ← 新增：让 visibility 推迟到透明度变为0后再隐藏 */
+    will-change: opacity;
+    pointer-events: none;
+}
+
+.qaq-modal-overlay.qaq-modal-show {
+    opacity: 1;
+    visibility: visible; /* ← 新增：呼出弹窗时恢复可见 */
+    transition: opacity 0.25s ease, visibility 0s; /* ← 新增：显示时立刻可见 */
+    pointer-events: auto;
+}
+
+/* ===== 弹窗主体 ===== */
+.qaq-modal {
+    background: #fff;
+    border-radius: 16px;
+    width: 300px;
+    max-width: 85%;
+    max-height: 80vh;
+    padding: 20px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15);
+    transform: scale(0.9) translateY(10px);
+    transition: transform 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.qaq-modal::-webkit-scrollbar {
+    display: none;
+}
+
+.qaq-modal-overlay.qaq-modal-show .qaq-modal {
+    transform: scale(1) translateY(0);
+}
+
+.qaq-modal-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #333;
+    text-align: center;
+}
+
+.qaq-modal-input {
+    width: 100%;
+    height: 38px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 0 12px;
+    font-size: 13px;
+    color: #333;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.qaq-modal-input:focus {
+    border-color: #deb3be;
+}
+
+.qaq-modal-textarea {
+    width: 100%;
+    height: 80px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: #333;
+    outline: none;
+    font-family: inherit;
+    resize: none;
+    line-height: 1.5;
+    transition: border-color 0.2s;
+}
+
+.qaq-modal-textarea:focus {
+    border-color: #deb3be;
+}
+
+.qaq-modal-btns {
+    display: flex;
+    gap: 10px;
+}
+
+.qaq-modal-btn {
+    flex: 1;
+    height: 38px;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+}
+
+.qaq-modal-btn:active {
+    transform: scale(0.96);
+}
+
+.qaq-modal-btn-cancel {
+    background: #f0f0f0;
+    color: #666;
+}
+
+.qaq-modal-btn-confirm {
+    background: linear-gradient(135deg, #f6e9c9, #fed2e0);
+    color: #8a6050;
+}
+
+.qaq-modal-upload-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.qaq-modal-upload-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #f8f8f8;
+    border: 1px solid #eee;
+    cursor: pointer;
+    font-size: 13px;
+    color: #555;
+    font-family: inherit;
+    transition: background 0.2s;
+}
+
+.qaq-modal-upload-btn:hover {
+    background: #f0f0f0;
+}
+
+.qaq-modal-upload-btn svg {
+    flex-shrink: 0;
+}
+
+.qaq-modal-url-area {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.qaq-modal-url-area.qaq-url-show {
+    display: flex;
+}
+
+.qaq-file-input {
+    display: none;
+}
+
+/* ===== QAQ 设置页面 ===== */
+
+.qaq-settings-header {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px 12px;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.qaq-back-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.qaq-back-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.qaq-settings-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: #333;
+}
+
+.qaq-settings-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 30px;
+    scrollbar-width: none;
+}
+
+.qaq-settings-list::-webkit-scrollbar {
+    display: none;
+}
+
+.qaq-settings-group {
+    margin-bottom: 16px;
+}
+
+.qaq-settings-group-title {
+    font-size: 11px;
+    color: #999;
+    padding: 0 4px 6px;
+    letter-spacing: 1px;
+}
+
+.qaq-settings-group-card {
+    background: rgba(255, 255, 255, 0.65);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+/* 仅在页面完全展开后才启用模糊 */
+.qaq-page-show .qaq-settings-group-card {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.qaq-settings-item {
+    display: flex;
+    align-items: center;
+    padding: 14px;
+    gap: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.qaq-settings-item:last-child {
+    border-bottom: none;
+}
+
+.qaq-settings-item:active {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.qaq-settings-item-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qaq-settings-item-text {
+    flex: 1;
+    font-size: 14px;
+    color: #333;
+}
+
+.qaq-settings-item-arrow {
+    flex-shrink: 0;
+    opacity: 0.3;
+}
+
+.qaq-toggle {
+    width: 44px;
+    height: 24px;
+    background: #ddd;
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.25s;
+    flex-shrink: 0;
+}
+
+.qaq-toggle.qaq-toggle-on {
+    background: #c9a08a;
+}
+
+.qaq-toggle-knob {
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: left 0.25s;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.qaq-toggle.qaq-toggle-on .qaq-toggle-knob {
+    left: 22px;
+}
+
+.qaq-settings-item-danger .qaq-settings-item-text {
+    color: #d9534f;
+}
+
+.qaq-settings-item-danger .qaq-settings-item-icon svg {
+    stroke: #d9534f;
+}
+
+.qaq-settings-sub {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(160deg, #f6e9c9 0%, #faebd7 25%, #fce8e2 50%, #fed2e0 75%, #f6e9c9 100%);
+    z-index: 55;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: transform;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    pointer-events: none;
+}
+
+.qaq-settings-sub.qaq-page-show {
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
+
+
+.qaq-settings-sub-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 30px;
+    scrollbar-width: none;
+}
+
+.qaq-settings-sub-content::-webkit-scrollbar {
+    display: none;
+}
+
+.qaq-notice-text {
+    background: rgba(255, 255, 255, 0.65);
+    border-radius: 14px;
+    padding: 16px;
+    font-size: 13px;
+    color: #555;
+    line-height: 1.8;
+}
+
+.qaq-page-show .qaq-notice-text {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.qaq-api-form {
+    background: rgba(255, 255, 255, 0.65);
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.qaq-page-show .qaq-api-form {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.qaq-api-label {
+    font-size: 12px;
+    color: #888;
+}
+
+.qaq-api-input {
+    width: 100%;
+    height: 38px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+    padding: 0 12px;
+    font-size: 13px;
+    color: #333;
+    background: rgba(255, 255, 255, 0.6);
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.qaq-api-input:focus {
+    border-color: #deb3be;
+}
+
+.qaq-api-save-btn {
+    height: 38px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #f6e9c9, #fed2e0);
+    color: #8a6050;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+}
+
+.qaq-api-save-btn:active {
+    transform: scale(0.97);
+}
+
+
+
+/* ===== QAQ 全屏模式下小组件等比缩放 ===== */
+
+/* 图片区域：高度从固定值改为宽度比例 */
+.qaq-phone-frame.qaq-fullscreen .qaq-img-square {
+    height: auto;
+    aspect-ratio: 1 / 1;
+}
+
+/* 头像等比放大 */
+.qaq-phone-frame.qaq-fullscreen .qaq-avatar {
+    width: 44px;
+    height: 44px;
+}
+
+/* 昵称字号放大 */
+.qaq-phone-frame.qaq-fullscreen .qaq-nickname {
+    font-size: 15px;
+}
+
+/* 签名字号放大 */
+.qaq-phone-frame.qaq-fullscreen .qaq-signature {
+    font-size: 12px;
+}
+
+/* 正文字号放大 */
+.qaq-phone-frame.qaq-fullscreen .qaq-widget-text p {
+    font-size: 14px;
+}
+
+/* 小组件内间距放大 */
+.qaq-phone-frame.qaq-fullscreen .qaq-widget {
+    padding: 14px 16px;
+    gap: 10px;
+}
+
+/* 评论输入框放大 */
+.qaq-phone-frame.qaq-fullscreen .qaq-comment-input {
+    height: 36px;
+    font-size: 13px;
+}
+
+/* 发送按钮放大 */
+.qaq-phone-frame.qaq-fullscreen .qaq-send-btn {
+    height: 36px;
+    font-size: 13px;
+    padding: 0 18px;
+}
+
+/* 互动按钮字号 */
+.qaq-phone-frame.qaq-fullscreen .qaq-action-btn span {
+    font-size: 13px;
+}
+
+.qaq-phone-frame.qaq-fullscreen .qaq-action-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* ===== 冷雾主题（白底黑字） ===== */
+.qaq-theme-cool .qaq-time-display {
+    color: #222;
+}
+
+.qaq-theme-cool .qaq-nickname {
+    color: #222;
+}
+
+.qaq-theme-cool .qaq-signature {
+    color: #888;
+}
+
+.qaq-theme-cool .qaq-widget-text p {
+    color: #333;
+}
+
+.qaq-theme-cool .qaq-widget {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.qaq-theme-cool .qaq-plan-widget {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.qaq-theme-cool .qaq-app-icon {
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.qaq-theme-cool .qaq-bottom-nav {
+    background: rgba(255, 255, 255, 0.75);
+}
+
+.qaq-theme-cool .qaq-send-btn {
+    background: linear-gradient(135deg, #d0d8e8, #bfc9dd);
+    color: #3a4a60;
+}
+
+.qaq-theme-cool .qaq-plan-progress-fill {
+    background: linear-gradient(90deg, #b8c8e0, #a0b4d0);
+}
+
+.qaq-theme-cool .qaq-plan-dot {
+    background: #8ea4c4;
+}
+
+.qaq-theme-cool .qaq-plan-dot.qaq-dot-done {
+    background: #7bab6e;
+}
+
+.qaq-theme-cool .qaq-settings-page,
+.qaq-theme-cool .qaq-settings-sub {
+    background: linear-gradient(160deg, #ebeef3 0%, #f0f2f5 25%, #f3f4f7 50%, #eef0f4 75%, #ebeef3 100%);
+}
+
+.qaq-theme-cool .qaq-settings-title {
+    color: #222;
+}
+
+.qaq-theme-cool .qaq-settings-item-text {
+    color: #222;
+}
+
+.qaq-theme-cool .qaq-settings-group-card {
+    background: rgba(255, 255, 255, 0.65);
+}
+
+.qaq-theme-cool .qaq-nav-item.qaq-nav-active {
+    color: #4a6a9a;
+    background: rgba(160, 180, 210, 0.2);
+}
+
+/* ===== 夜幕主题（黑底白字） ===== */
+.qaq-theme-dark .qaq-time-display {
+    color: #e0e0e0;
+}
+
+.qaq-theme-dark .qaq-status-icons svg rect,
+.qaq-theme-dark .qaq-status-icons svg path {
+    fill: #ccc;
+}
+
+.qaq-theme-dark .qaq-status-icons svg rect[fill="#5ab364"] {
+    fill: #5ab364;
+}
+
+.qaq-theme-dark .qaq-status-icons svg rect[stroke="#333"] {
+    stroke: #ccc;
+}
+
+.qaq-theme-dark .qaq-nickname {
+    color: #e8e8e8;
+}
+
+.qaq-theme-dark .qaq-signature {
+    color: #888;
+}
+
+.qaq-theme-dark .qaq-widget-text p {
+    color: #bbb;
+}
+
+.qaq-theme-dark .qaq-widget {
+    background: rgba(40, 40, 40, 0.7);
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-plan-widget {
+    background: rgba(40, 40, 40, 0.7);
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-plan-title {
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-plan-date {
+    color: #777;
+}
+
+.qaq-theme-dark .qaq-plan-item {
+    color: #aaa;
+}
+
+.qaq-theme-dark .qaq-plan-item.qaq-item-done {
+    color: #666;
+}
+
+.qaq-theme-dark .qaq-plan-dot {
+    background: #806068;
+}
+
+.qaq-theme-dark .qaq-plan-dot.qaq-dot-done {
+    background: #5a7a50;
+}
+
+.qaq-theme-dark .qaq-plan-progress-bar {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.qaq-theme-dark .qaq-plan-progress-fill {
+    background: linear-gradient(90deg, #6a5040, #805060);
+}
+
+.qaq-theme-dark .qaq-plan-progress-text {
+    color: #666;
+}
+
+.qaq-theme-dark .qaq-app-icon {
+    background: rgba(50, 50, 50, 0.6);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.qaq-theme-dark .qaq-app-icon svg {
+    stroke: #aaa;
+}
+
+.qaq-theme-dark .qaq-app-name {
+    color: #ccc;
+}
+
+.qaq-theme-dark .qaq-comment-input {
+    background: rgba(50, 50, 50, 0.6);
+    border-color: rgba(80, 80, 80, 0.4);
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-comment-input::placeholder {
+    color: #666;
+}
+
+.qaq-theme-dark .qaq-comment-input:focus {
+    border-color: #6a5060;
+    box-shadow: 0 0 0 3px rgba(100, 60, 80, 0.2);
+}
+
+.qaq-theme-dark .qaq-send-btn {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a);
+    color: #d0b8a8;
+}
+
+.qaq-theme-dark .qaq-action-btn span {
+    color: #666;
+}
+
+.qaq-theme-dark .qaq-action-btn svg {
+    stroke: #666;
+}
+
+.qaq-theme-dark .qaq-widget-actions {
+    border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.qaq-theme-dark .qaq-bottom-nav {
+    background: rgba(30, 30, 30, 0.8);
+    border-color: rgba(60, 60, 60, 0.4);
+}
+
+.qaq-theme-dark .qaq-nav-item {
+    color: #777;
+}
+
+.qaq-theme-dark .qaq-nav-item.qaq-nav-active {
+    color: #c47068;
+    background: rgba(120, 60, 60, 0.2);
+}
+
+.qaq-theme-dark .qaq-settings-page,
+.qaq-theme-dark .qaq-settings-sub {
+    background: linear-gradient(160deg, #121212 0%, #1a1a1a 25%, #161616 50%, #1c1c1c 75%, #121212 100%);
+}
+
+.qaq-theme-dark .qaq-settings-title {
+    color: #e0e0e0;
+}
+
+.qaq-theme-dark .qaq-settings-group-title {
+    color: #666;
+}
+
+.qaq-theme-dark .qaq-settings-group-card {
+    background: rgba(40, 40, 40, 0.6);
+}
+
+.qaq-theme-dark .qaq-settings-item {
+    border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
+.qaq-theme-dark .qaq-settings-item:active {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.qaq-theme-dark .qaq-settings-item-text {
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-settings-item-icon svg {
+    stroke: #888;
+}
+
+.qaq-theme-dark .qaq-settings-item-arrow {
+    opacity: 0.4;
+}
+
+.qaq-theme-dark .qaq-settings-item-arrow svg {
+    stroke: #888;
+}
+
+.qaq-theme-dark .qaq-back-btn svg {
+    stroke: #ddd;
+}
+
+.qaq-theme-dark .qaq-settings-item-danger .qaq-settings-item-text {
+    color: #e05555;
+}
+
+.qaq-theme-dark .qaq-settings-item-danger .qaq-settings-item-icon svg {
+    stroke: #e05555;
+}
+
+.qaq-theme-dark .qaq-toggle {
+    background: #444;
+}
+
+.qaq-theme-dark .qaq-toggle.qaq-toggle-on {
+    background: #8a6a5a;
+}
+
+.qaq-theme-dark .qaq-notice-text {
+    background: rgba(40, 40, 40, 0.6);
+    color: #bbb;
+}
+
+.qaq-theme-dark .qaq-api-form {
+    background: rgba(40, 40, 40, 0.6);
+}
+
+.qaq-theme-dark .qaq-api-label {
+    color: #777;
+}
+
+.qaq-theme-dark .qaq-api-input {
+    background: rgba(50, 50, 50, 0.6);
+    border-color: rgba(80, 80, 80, 0.4);
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-api-input::placeholder {
+    color: #555;
+}
+
+.qaq-theme-dark .qaq-api-input:focus {
+    border-color: #6a5060;
+}
+
+.qaq-theme-dark .qaq-api-save-btn {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a);
+    color: #d0b8a8;
+}
+
+.qaq-theme-dark .qaq-modal .qaq-modal-title {
+    color: #e0e0e0;
+}
+
+.qaq-theme-dark .qaq-modal {
+    background: #2a2a2a;
+}
+
+.qaq-theme-dark .qaq-modal-input,
+.qaq-theme-dark .qaq-modal-textarea {
+    background: #333;
+    border-color: #444;
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-modal-btn-cancel {
+    background: #3a3a3a;
+    color: #aaa;
+}
+
+.qaq-theme-dark .qaq-modal-btn-confirm {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a);
+    color: #d0b8a8;
+}
+
+.qaq-theme-dark .qaq-modal-upload-btn {
+    background: #333;
+    border-color: #444;
+    color: #bbb;
+}
+
+.qaq-theme-dark .qaq-plan-form-input {
+    background: #333;
+    border-color: #444;
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-plan-form-input::placeholder {
+    color: #555;
+}
+
+.qaq-theme-dark .qaq-plan-form-textarea {
+    background: #333;
+    border-color: #444;
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-plan-form-textarea::placeholder {
+    color: #555;
+}
+
+.qaq-theme-dark .qaq-plan-form-label {
+    color: #777;
+}
+
+.qaq-theme-dark .qaq-plan-color-option.qaq-color-selected {
+    border-color: #bbb;
+}
+
+.qaq-theme-dark .qaq-toast {
+    background: rgba(60, 60, 60, 0.9);
+}
+
+.qaq-theme-dark .qaq-plan-header svg {
+    stroke: #b07068;
+}
+
+/* ===== 今日计划页面 ===== */
+
+.qaq-plan-page-header {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px 12px;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.qaq-plan-page-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: #333;
+    flex: 1;
+}
+
+.qaq-plan-add-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, #f6e9c9, #fed2e0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s;
+    flex-shrink: 0;
+}
+
+.qaq-plan-add-btn:active {
+    transform: scale(0.88);
+}
+
+.qaq-plan-page-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 30px;
+    scrollbar-width: none;
+}
+
+.qaq-plan-page-content::-webkit-scrollbar {
+    display: none;
+}
+
+/* 日期选择器 */
+.qaq-plan-date-selector {
+    display: flex;
+    gap: 8px;
+    padding: 0 0 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.qaq-plan-date-selector::-webkit-scrollbar {
+    display: none;
+}
+
+.qaq-plan-date-chip {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    color: #777;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    min-width: 58px;
+}
+
+.qaq-plan-date-chip:active {
+    transform: scale(0.95);
+}
+
+.qaq-plan-date-chip.qaq-date-active {
+    background: linear-gradient(135deg, #f6e9c9, #fed2e0);
+    color: #8a6050;
+    font-weight: 600;
+    border-color: transparent;
+}
+
+.qaq-plan-date-chip-day {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-bottom: 2px;
+}
+
+.qaq-plan-date-chip-num {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* 空状态 */
+.qaq-plan-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #bbb;
+    font-size: 13px;
+}
+
+.qaq-plan-empty svg {
+    margin-bottom: 12px;
+    opacity: 0.4;
+}
+
+/* 计划卡片列表 */
+.qaq-plan-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.qaq-plan-card {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    animation: qaq-fadeUp 0.3s ease both;
+    transition: opacity 0.25s;
+}
+
+.qaq-plan-card.qaq-plan-card-done {
+    opacity: 0.55;
+}
+
+.qaq-plan-card-color {
+    width: 4px;
+    border-radius: 2px;
+    min-height: 40px;
+    flex-shrink: 0;
+    align-self: stretch;
+}
+
+.qaq-plan-card-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.qaq-plan-card-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 3px;
+    word-break: break-word;
+}
+
+.qaq-plan-card.qaq-plan-card-done .qaq-plan-card-name {
+    text-decoration: line-through;
+    color: #999;
+}
+
+.qaq-plan-card-desc {
+    font-size: 11px;
+    color: #999;
+    line-height: 1.4;
+    margin-bottom: 6px;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.qaq-plan-card-meta {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.qaq-plan-card-time {
+    font-size: 10px;
+    color: #aaa;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.qaq-plan-card-duration {
+    font-size: 10px;
+    color: #aaa;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.qaq-plan-card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+    align-self: center;
+}
+
+.qaq-plan-card-check {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid #ddd;
+    background: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.qaq-plan-card-check:active {
+    transform: scale(0.85);
+}
+
+.qaq-plan-card.qaq-plan-card-done .qaq-plan-card-check {
+    border-color: #7bab6e;
+    background: #7bab6e;
+}
+
+.qaq-plan-card-del {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(200, 60, 60, 0.08);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.qaq-plan-card-del:active {
+    transform: scale(0.85);
+}
+
+/* 新建计划弹窗里的表单 */
+.qaq-plan-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.qaq-plan-form-label {
+    font-size: 11px;
+    color: #888;
+    margin-bottom: -6px;
+}
+
+.qaq-plan-form-row {
+    display: flex;
+    gap: 8px;
+}
+
+.qaq-plan-form-input {
+    width: 100%;
+    height: 38px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 0 12px;
+    font-size: 13px;
+    color: #333;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s;
+    background: #fff;
+}
+
+.qaq-plan-form-input:focus {
+    border-color: #deb3be;
+}
+
+.qaq-plan-form-textarea {
+    width: 100%;
+    height: 60px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: #333;
+    outline: none;
+    font-family: inherit;
+    resize: none;
+    line-height: 1.5;
+    transition: border-color 0.2s;
+    background: #fff;
+}
+
+.qaq-plan-form-textarea:focus {
+    border-color: #deb3be;
+}
+
+/* 颜色选择 */
+.qaq-plan-color-picker {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.qaq-plan-color-option {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: border-color 0.2s, transform 0.15s;
+}
+
+.qaq-plan-color-option:active {
+    transform: scale(0.88);
+}
+
+.qaq-plan-color-option.qaq-color-selected {
+    border-color: #555;
+}
+
+/* 小组件内部可滑动 */
+.qaq-plan-list-scroll {
+    max-height: 110px;
+    overflow-y: auto;
+    scrollbar-width: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.qaq-plan-list-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+/* ===== 夜幕主题下的今日计划页面 ===== */
+.qaq-theme-dark .qaq-plan-page {
+    background: linear-gradient(160deg, #121212 0%, #1a1a1a 25%, #161616 50%, #1c1c1c 75%, #121212 100%);
+}
+
+.qaq-theme-dark .qaq-plan-page-title {
+    color: #e0e0e0;
+}
+
+.qaq-theme-dark .qaq-plan-page .qaq-back-btn svg {
+    stroke: #ddd;
+}
+
+.qaq-theme-dark .qaq-plan-add-btn {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a);
+}
+
+.qaq-theme-dark .qaq-plan-add-btn svg {
+    stroke: #d0b8a8;
+}
+
+.qaq-theme-dark .qaq-plan-date-chip {
+    background: rgba(40, 40, 40, 0.6);
+    border-color: rgba(60, 60, 60, 0.4);
+    color: #888;
+}
+
+.qaq-theme-dark .qaq-plan-date-chip.qaq-date-active {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a);
+    color: #d0b8a8;
+}
+
+.qaq-theme-dark .qaq-plan-card {
+    background: rgba(40, 40, 40, 0.7);
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-plan-card-name {
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-plan-card.qaq-plan-card-done .qaq-plan-card-name {
+    color: #666;
+}
+
+.qaq-theme-dark .qaq-plan-card-desc {
+    color: #777;
+}
+
+.qaq-theme-dark .qaq-plan-card-time,
+.qaq-theme-dark .qaq-plan-card-duration {
+    color: #666;
+}
+
+.qaq-theme-dark .qaq-plan-card-check {
+    border-color: #555;
+}
+
+.qaq-theme-dark .qaq-plan-card.qaq-plan-card-done .qaq-plan-card-check {
+    border-color: #5a7a50;
+    background: #5a7a50;
+}
+
+.qaq-theme-dark .qaq-plan-card-del {
+    background: rgba(200, 60, 60, 0.15);
+}
+
+.qaq-theme-dark .qaq-plan-empty {
+    color: #555;
+}
+
+/* ===== 冷雾主题下的今日计划页面 ===== */
+.qaq-theme-cool .qaq-plan-page {
+    background: linear-gradient(160deg, #ebeef3 0%, #f0f2f5 25%, #f3f4f7 50%, #eef0f4 75%, #ebeef3 100%);
+}
+
+.qaq-theme-cool .qaq-plan-page-title {
+    color: #222;
+}
+
+.qaq-theme-cool .qaq-plan-add-btn {
+    background: linear-gradient(135deg, #d0d8e8, #bfc9dd);
+}
+
+.qaq-theme-cool .qaq-plan-date-chip.qaq-date-active {
+    background: linear-gradient(135deg, #d0d8e8, #bfc9dd);
+    color: #3a4a60;
+}
+
+.qaq-theme-cool .qaq-plan-card {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.qaq-theme-cool .qaq-plan-card-name {
+    color: #222;
+}
+
+/* ===== 统一页面层管理：只做 transform 动画，更丝滑 ===== */
+
+.qaq-settings-page { z-index: 50; }
+.qaq-settings-sub  { z-index: 55; }
+.qaq-plan-page     { z-index: 60; }
+.qaq-wordbank-page { z-index: 62; }
+.qaq-wordbook-detail-page { z-index: 63; }
+.qaq-plan-theme-page { z-index: 65; }
+
+.qaq-settings-page,
+.qaq-settings-sub,
+.qaq-plan-page,
+.qaq-wordbank-page,
+.qaq-wordbook-detail-page,
+.qaq-plan-theme-page {
+    position: absolute;
+    inset: 0;
+    transform: translate3d(100%, 0, 0);
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        transform var(--qaq-page-duration) var(--qaq-page-ease),
+        visibility 0s linear var(--qaq-page-duration);
+    will-change: transform;
+    contain: layout paint style;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    clip-path: inset(0);
+    -webkit-clip-path: inset(0);
+    overscroll-behavior: none;
+}
+
+.qaq-settings-page.qaq-page-show,
+.qaq-settings-sub.qaq-page-show,
+.qaq-plan-page.qaq-page-show,
+.qaq-wordbank-page.qaq-page-show,
+.qaq-wordbook-detail-page.qaq-page-show,
+.qaq-plan-theme-page.qaq-page-show {
+    transform: translate3d(0, 0, 0);
+    visibility: visible;
+    pointer-events: auto;
+    transition:
+        transform var(--qaq-page-duration) var(--qaq-page-ease),
+        visibility 0s;
+}
+
+
+
+/* ===== 修复安卓滑入动画导致父页面左移 ===== */
+
+/* ===== QAQ 计划分类折叠栏 ===== */
+
+/* --- 计划页面里的分类大折叠栏 --- */
+.qaq-category-group {
+    margin-bottom: 12px;
+}
+
+.qaq-category-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s, border-radius 0.25s;
+}
+
+.qaq-category-header:active {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.qaq-category-arrow {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    transition: transform 0.25s ease;
+}
+
+.qaq-category-header.qaq-collapsed .qaq-category-arrow {
+    transform: rotate(-90deg);
+}
+
+.qaq-category-name {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+}
+
+.qaq-category-count {
+    font-size: 11px;
+    color: #aaa;
+    flex-shrink: 0;
+}
+
+.qaq-category-color-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.qaq-category-body {
+    overflow: hidden;
+    max-height: 2000px;
+    transition: max-height 0.35s ease, opacity 0.25s ease, margin 0.25s ease;
+    opacity: 1;
+    margin-top: 6px;
+}
+
+.qaq-category-body.qaq-cat-hidden {
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+}
+
+.qaq-category-body .qaq-plan-card {
+    margin-bottom: 8px;
+}
+
+.qaq-category-body .qaq-plan-card:last-child {
+    margin-bottom: 0;
+}
+
+/* --- 小组件里的迷你折叠栏 --- */
+.qaq-mini-cat-group {
+    margin-bottom: 2px;
+}
+
+.qaq-mini-cat-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+.qaq-mini-cat-arrow {
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.qaq-mini-cat-header.qaq-collapsed .qaq-mini-cat-arrow {
+    transform: rotate(-90deg);
+}
+
+.qaq-mini-cat-name {
+    font-size: 9px;
+    font-weight: 600;
+    color: #999;
+    flex: 1;
+}
+
+.qaq-mini-cat-count {
+    font-size: 8px;
+    color: #bbb;
+}
+
+.qaq-mini-cat-body {
+    overflow: hidden;
+    max-height: 500px;
+    transition: max-height 0.25s ease, opacity 0.2s ease;
+    opacity: 1;
+}
+
+.qaq-mini-cat-body.qaq-cat-hidden {
+    max-height: 0;
+    opacity: 0;
+}
+
+/* --- 新建计划弹窗里的分类选择器 --- */
+.qaq-plan-cat-picker {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.qaq-plan-cat-chip {
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 12px;
+    color: #777;
+    background: #f0f0f0;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.qaq-plan-cat-chip:active {
+    transform: scale(0.93);
+}
+
+.qaq-plan-cat-chip.qaq-cat-selected {
+    background: linear-gradient(135deg, #f6e9c9, #fed2e0);
+    color: #8a6050;
+    border-color: rgba(200, 150, 130, 0.3);
+    font-weight: 600;
+}
+
+.qaq-plan-cat-chip-add {
+    background: none;
+    border: 2px dashed #ccc;
+    color: #aaa;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.qaq-plan-cat-chip-add:hover {
+    border-color: #aaa;
+    color: #888;
+}
+
+/* --- 弹窗里的分类管理列表 --- */
+.qaq-cat-manage-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 0;
+    gap: 10px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.qaq-cat-manage-item:last-child {
+    border-bottom: none;
+}
+
+.qaq-cat-manage-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.qaq-cat-manage-name {
+    flex: 1;
+    font-size: 14px;
+    color: #333;
+}
+
+.qaq-cat-manage-edit {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.04);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    font-size: 12px;
+    color: #999;
+}
+
+.qaq-cat-manage-edit:active {
+    transform: scale(0.85);
+}
+
+.qaq-cat-manage-del {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(200, 60, 60, 0.08);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    font-size: 13px;
+    color: #c44;
+}
+
+.qaq-cat-manage-del:active {
+    transform: scale(0.85);
+}
+
+.qaq-cat-manage-add {
+    display: flex;
+    align-items: center;
+    padding: 12px 0;
+    gap: 6px;
+    cursor: pointer;
+    color: #aaa;
+    font-size: 13px;
+}
+
+.qaq-cat-manage-add:active {
+    color: #888;
+}
+
+/* ===== 夜幕主题下分类样式 ===== */
+.qaq-theme-dark .qaq-category-header {
+    background: rgba(40, 40, 40, 0.7);
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-category-header:active {
+    background: rgba(50, 50, 50, 0.8);
+}
+
+.qaq-theme-dark .qaq-category-name {
+    color: #ccc;
+}
+
+.qaq-theme-dark .qaq-category-count {
+    color: #666;
+}
+
+.qaq-theme-dark .qaq-category-arrow svg {
+    stroke: #888;
+}
+
+.qaq-theme-dark .qaq-mini-cat-name {
+    color: #777;
+}
+
+.qaq-theme-dark .qaq-mini-cat-count {
+    color: #555;
+}
+
+.qaq-theme-dark .qaq-plan-cat-chip {
+    background: #333;
+    color: #999;
+}
+
+.qaq-theme-dark .qaq-plan-cat-chip.qaq-cat-selected {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a);
+    color: #d0b8a8;
+    border-color: rgba(100, 70, 60, 0.4);
+}
+
+.qaq-theme-dark .qaq-plan-cat-chip-add {
+    background: none;
+    border-color: #555;
+    color: #666;
+}
+
+.qaq-theme-dark .qaq-cat-manage-name {
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-cat-manage-del {
+    background: rgba(200, 60, 60, 0.15);
+}
+
+.qaq-theme-dark .qaq-cat-manage-edit {
+    background: rgba(255, 255, 255, 0.06);
+    color: #777;
+}
+
+.qaq-theme-dark .qaq-plan-add-btn svg {
+    stroke: #d0b8a8;
+}
+
+/* ===== 冷雾主题下分类样式 ===== */
+.qaq-theme-cool .qaq-category-header {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.qaq-theme-cool .qaq-category-name {
+    color: #444;
+}
+
+.qaq-theme-cool .qaq-plan-cat-chip.qaq-cat-selected {
+    background: linear-gradient(135deg, #d0d8e8, #bfc9dd);
+    color: #3a4a60;
+    border-color: rgba(100, 130, 180, 0.3);
+}
+
+/* ===== 内联输入行（替代浏览器 prompt） ===== */
+.qaq-inline-input-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 0;
+    animation: qaq-fadeUp 0.2s ease;
+}
+
+.qaq-inline-input-row input {
+    width: 100%;
+    height: 36px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 0 12px;
+    font-size: 13px;
+    color: #333;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s;
+    background: #fff;
+}
+
+.qaq-inline-input-row input:focus {
+    border-color: #deb3be;
+}
+
+/* ↓ 去掉了 .qaq-inline-input-row 父级限定 */
+.qaq-inline-btns {
+    display: flex;
+    gap: 8px;
+}
+
+.qaq-inline-ok {
+    flex: 1;
+    height: 34px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #f6e9c9, #fed2e0);
+    color: #8a6050;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+}
+
+.qaq-inline-ok:active {
+    transform: scale(0.95);
+}
+
+.qaq-inline-cancel {
+    flex: 1;
+    height: 34px;
+    border: none;
+    border-radius: 10px;
+    background: #f0f0f0;
+    color: #888;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+}
+
+.qaq-inline-cancel:active {
+    transform: scale(0.93);
+}
+
+/* 夜幕下 */
+.qaq-theme-dark .qaq-inline-input-row input,
+.qaq-theme-dark .qaq-cat-edit-block input {
+    background: #333;
+    border-color: #444;
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-inline-input-row input::placeholder,
+.qaq-theme-dark .qaq-cat-edit-block input::placeholder {
+    color: #555;
+}
+
+.qaq-theme-dark .qaq-inline-ok {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a);
+    color: #d0b8a8;
+}
+
+.qaq-theme-dark .qaq-inline-cancel {
+    background: #3a3a3a;
+    color: #888;
+}
+
+/* ===== QAQ 自定义时间选择器 ===== */
+.qaq-time-picker-wrapper {
+    position: relative;
+}
+
+.qaq-time-picker-btn {
+    width: 100%;
+    height: 38px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 0 12px;
+    font-size: 13px;
+    color: #333;
+    background: #fff;
+    outline: none;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: border-color 0.2s;
+    margin-top: 6px;
+    user-select: none;
+}
+
+.qaq-time-picker-btn:active {
+    border-color: #deb3be;
+}
+
+.qaq-time-picker-btn .qaq-time-placeholder {
+    color: #bbb;
+}
+
+.qaq-time-picker-btn .qaq-time-value {
+    color: #333;
+}
+
+.qaq-time-picker-btn .qaq-time-icon {
+    opacity: 0.4;
+    flex-shrink: 0;
+}
+
+/* 时间选择器面板 */
+.qaq-time-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    pointer-events: none;
+}
+
+.qaq-time-panel.qaq-time-panel-show {
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.qaq-time-panel-mask {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 199;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0s linear 0.25s;
+    pointer-events: none;
+}
+
+.qaq-time-panel-mask.qaq-time-mask-show {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.25s ease, visibility 0s;
+    pointer-events: auto;
+}
+
+.qaq-time-panel-body {
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    padding: 0;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.qaq-time-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.qaq-time-panel-cancel,
+.qaq-time-panel-confirm {
+    font-size: 14px;
+    font-family: inherit;
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: opacity 0.2s;
+}
+
+.qaq-time-panel-cancel {
+    color: #999;
+}
+
+.qaq-time-panel-confirm {
+    color: #c47068;
+    font-weight: 600;
+}
+
+.qaq-time-panel-cancel:active,
+.qaq-time-panel-confirm:active {
+    opacity: 0.6;
+}
+
+.qaq-time-panel-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #333;
+}
+
+.qaq-time-columns {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 高亮选中行 */
+.qaq-time-columns::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 20px;
+    right: 20px;
+    height: 40px;
+    transform: translateY(-50%);
+    background: rgba(254, 210, 224, 0.15);
+    border-radius: 10px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.qaq-time-col {
+    flex: 1;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: y mandatory;
+    position: relative;
+}
+
+.qaq-time-col::-webkit-scrollbar {
+    display: none;
+}
+
+.qaq-time-col-spacer {
+    height: 80px;
+}
+
+.qaq-time-col-item {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #ccc;
+    scroll-snap-align: center;
+    transition: color 0.15s, font-size 0.15s;
+    user-select: none;
+    cursor: pointer;
+}
+
+.qaq-time-col-item.qaq-time-selected {
+    color: #333;
+    font-size: 22px;
+    font-weight: 600;
+}
+
+.qaq-time-separator {
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+    padding: 0 4px;
+    flex-shrink: 0;
+    z-index: 2;
+}
+
+/* 清除时间按钮 */
+.qaq-time-panel-clear {
+    display: block;
+    width: calc(100% - 40px);
+    margin: 0 auto 16px;
+    padding: 10px;
+    border: 1px dashed #ddd;
+    border-radius: 10px;
+    background: none;
+    color: #aaa;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.qaq-time-panel-clear:active {
+    color: #888;
+}
+
+/* ===== QAQ 自定义颜色选择器 ===== */
+.qaq-color-custom-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: border-color 0.2s, transform 0.15s;
+    background: conic-gradient(
+        #e05565, #e88d4f, #e8c34f, #7bab6e,
+        #5b9bd5, #8b6cc1, #e05565
+    );
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qaq-color-custom-btn:active {
+    transform: scale(0.88);
+}
+
+.qaq-color-custom-btn.qaq-color-selected {
+    border-color: #555;
+}
+
+.qaq-color-custom-btn::after {
+    content: '+';
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* 颜色面板 */
+.qaq-color-panel {
+    margin-top: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 12px;
+    padding: 14px;
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    animation: qaq-fadeUp 0.2s ease;
+}
+
+.qaq-color-panel.qaq-color-panel-show {
+    display: flex;
+}
+
+/* 色相条 */
+.qaq-color-hue-wrap {
+    position: relative;
+    height: 24px;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    background: linear-gradient(
+        to right,
+        #ff0000, #ff8800, #ffff00, #00ff00,
+        #00ffff, #0088ff, #8800ff, #ff0088, #ff0000
+    );
+}
+
+.qaq-color-hue-thumb {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    transition: left 0.05s;
+}
+
+/* 饱和度/亮度面板 */
+.qaq-color-sv-wrap {
+    position: relative;
+    height: 120px;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.qaq-color-sv-white {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, #fff, transparent);
+}
+
+.qaq-color-sv-black {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, transparent, #000);
+}
+
+.qaq-color-sv-thumb {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    transition: left 0.05s, top 0.05s;
+}
+
+/* 预览和HEX输入 */
+/* 找到这段替换 */
+.qaq-color-preview-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.qaq-color-preview-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.qaq-color-preview-btns {
+    display: flex;
+    gap: 8px;
+}
+
+.qaq-color-preview-btns .qaq-color-confirm-btn {
+    flex: 1;
+}
+
+.qaq-color-preview-btns .qaq-color-cancel-btn {
+    flex: 1;
+    height: 34px;
+    border: none;
+    border-radius: 8px;
+    background: #f0f0f0;
+    color: #888;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+}
+
+.qaq-color-preview-btns .qaq-color-cancel-btn:active {
+    transform: scale(0.93);
+}
+
+/* 夜幕 */
+.qaq-theme-dark .qaq-color-preview-btns .qaq-color-cancel-btn {
+    background: #3a3a3a;
+    color: #888;
+}
+
+.qaq-color-preview-swatch {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    flex-shrink: 0;
+    transition: background 0.1s;
+}
+
+.qaq-color-hex-input {
+    flex: 1;
+    height: 34px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 0 10px;
+    font-size: 13px;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    color: #333;
+    outline: none;
+    transition: border-color 0.2s;
+    text-transform: uppercase;
+}
+
+.qaq-color-hex-input:focus {
+    border-color: #deb3be;
+}
+
+.qaq-color-confirm-btn {
+    height: 34px;
+    padding: 0 16px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #f6e9c9, #fed2e0);
+    color: #8a6050;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.2s, transform 0.15s;
+}
+
+.qaq-color-confirm-btn:active {
+    transform: scale(0.93);
+}
+
+/* 快捷色板 */
+.qaq-color-swatches {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.qaq-color-swatch-item {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.15s, border-color 0.2s;
+}
+
+.qaq-color-swatch-item:active {
+    transform: scale(0.85);
+}
+
+.qaq-color-swatch-item.qaq-swatch-active {
+    border-color: #555;
+}
+
+/* ===== 夜幕下时间选择器 ===== */
+.qaq-theme-dark .qaq-time-picker-btn {
+    background: #333;
+    border-color: #444;
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-time-picker-btn .qaq-time-placeholder {
+    color: #555;
+}
+
+.qaq-theme-dark .qaq-time-picker-btn .qaq-time-value {
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-time-panel-body {
+    background: #2a2a2a;
+}
+
+.qaq-theme-dark .qaq-time-panel-header {
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.qaq-theme-dark .qaq-time-panel-title {
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-time-panel-cancel {
+    color: #777;
+}
+
+.qaq-theme-dark .qaq-time-panel-confirm {
+    color: #d0a090;
+}
+
+.qaq-theme-dark .qaq-time-columns::before {
+    background: rgba(100, 60, 60, 0.15);
+}
+
+.qaq-theme-dark .qaq-time-col-item {
+    color: #555;
+}
+
+.qaq-theme-dark .qaq-time-col-item.qaq-time-selected {
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-time-separator {
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-time-panel-clear {
+    border-color: #444;
+    color: #666;
+}
+
+/* ===== 夜幕下颜色面板 ===== */
+.qaq-theme-dark .qaq-color-panel {
+    background: rgba(40, 40, 40, 0.9);
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-color-hex-input {
+    background: #333;
+    border-color: #444;
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-color-confirm-btn {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a);
+    color: #d0b8a8;
+}
+
+.qaq-theme-dark .qaq-color-custom-btn.qaq-color-selected {
+    border-color: #bbb;
+}
+
+.qaq-theme-dark .qaq-color-swatch-item.qaq-swatch-active {
+    border-color: #bbb;
+}
+
+.qaq-theme-dark .qaq-color-preview-swatch {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ===== 分类颜色选择行（与标签颜色统一尺寸） ===== */
+.qaq-cat-color-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 4px 0;
+}
+
+.qaq-cat-color-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: transform 0.15s, border-color 0.2s;
+    flex-shrink: 0;
+}
+
+.qaq-cat-color-dot:active {
+    transform: scale(0.85);
+}
+
+.qaq-cat-color-dot.qaq-cat-color-active {
+    border-color: #555;
+}
+
+.qaq-cat-color-custom {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    background: conic-gradient(
+        #e05565, #e88d4f, #e8c34f, #7bab6e,
+        #5b9bd5, #8b6cc1, #e05565
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.15s, border-color 0.2s;
+}
+
+.qaq-cat-color-custom:active {
+    transform: scale(0.85);
+}
+
+.qaq-cat-color-custom.qaq-cat-color-active {
+    border-color: #555;
+}
+
+.qaq-cat-color-custom::after {
+    content: '+';
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.qaq-cat-color-panel {
+    margin-top: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 12px;
+    padding: 14px;
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    animation: qaq-fadeUp 0.2s ease;
+}
+
+.qaq-cat-color-panel.qaq-cat-color-panel-show {
+    display: flex;
+}
+
+/* 分类编辑区块 */
+.qaq-cat-edit-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 0;
+    animation: qaq-fadeUp 0.2s ease;
+}
+
+.qaq-cat-edit-block .qaq-plan-form-label {
+    font-size: 11px;
+    color: #888;
+    margin: 0;
+}
+
+/* 夜幕 */
+.qaq-theme-dark .qaq-cat-color-panel {
+    background: rgba(40, 40, 40, 0.9);
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+/* ===== 计划卡片 - 想法 ===== */
+.qaq-plan-card-thought {
+    font-size: 11px;
+    color: #8a7a6a;
+    line-height: 1.4;
+    margin-top: 4px;
+    padding: 6px 8px;
+    background: rgba(246, 233, 201, 0.3);
+    border-left: 2px solid rgba(200, 160, 120, 0.4);
+    border-radius: 0 6px 6px 0;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-style: italic;
+}
+
+.qaq-theme-dark .qaq-plan-card-thought {
+    color: #a09080;
+    background: rgba(80, 60, 50, 0.25);
+    border-left-color: rgba(150, 100, 80, 0.3);
+}
+
+.qaq-theme-cool .qaq-plan-card-thought {
+    color: #6a7a8a;
+    background: rgba(200, 210, 230, 0.25);
+    border-left-color: rgba(120, 150, 190, 0.3);
+}
+
+/* ===== 计划页面主题系统 ===== */
+
+.qaq-plan-theme-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 30px;
+    scrollbar-width: none;
+}
+
+.qaq-plan-theme-content::-webkit-scrollbar {
+    display: none;
+}
+
+/* 主题设置分组 */
+.qaq-theme-section {
+    margin-bottom: 16px;
+}
+
+.qaq-theme-section-title {
+    font-size: 11px;
+    color: #999;
+    padding: 0 4px 8px;
+    letter-spacing: 1px;
+    font-weight: 500;
+}
+
+.qaq-theme-section-card {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* 壁纸预览 */
+.qaq-theme-wallpaper-preview {
+    width: 100%;
+    height: 120px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border: 1px dashed rgba(0, 0, 0, 0.1);
+}
+
+.qaq-theme-wallpaper-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.qaq-theme-wallpaper-preview .qaq-wp-placeholder {
+    font-size: 12px;
+    color: #bbb;
+    text-align: center;
+}
+
+.qaq-theme-wallpaper-preview .qaq-wp-placeholder svg {
+    display: block;
+    margin: 0 auto 6px;
+    opacity: 0.3;
+}
+
+/* 壁纸操作按钮行 */
+.qaq-theme-wp-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.qaq-theme-wp-btn {
+    flex: 1;
+    height: 34px;
+    border: none;
+    border-radius: 10px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.qaq-theme-wp-btn:active {
+    transform: scale(0.95);
+}
+
+.qaq-theme-wp-btn-upload {
+    background: linear-gradient(135deg, #f6e9c9, #fed2e0);
+    color: #8a6050;
+    font-weight: 600;
+}
+
+.qaq-theme-wp-btn-clear {
+    background: #f0f0f0;
+    color: #888;
+}
+
+/* 色系选择 */
+.qaq-theme-accent-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.qaq-theme-accent-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: transform 0.15s, border-color 0.2s;
+    position: relative;
+}
+
+.qaq-theme-accent-dot:active {
+    transform: scale(0.85);
+}
+
+.qaq-theme-accent-dot.qaq-accent-active {
+    border-color: #555;
+}
+
+.qaq-theme-accent-dot.qaq-accent-active::after {
+    content: '✓';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* 透明度滑块 */
+.qaq-theme-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.qaq-theme-slider-label {
+    font-size: 12px;
+    color: #888;
+    white-space: nowrap;
+    min-width: 60px;
+}
+
+.qaq-theme-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(0, 0, 0, 0.1);
+    outline: none;
+}
+
+.qaq-theme-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f6e9c9, #fed2e0);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+.qaq-theme-slider-val {
+    font-size: 12px;
+    color: #888;
+    min-width: 32px;
+    text-align: right;
+}
+
+/* 小组件壁纸预览 */
+.qaq-theme-widget-preview {
+    width: 100%;
+    height: 80px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border: 1px dashed rgba(0, 0, 0, 0.1);
+}
+
+.qaq-theme-widget-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* 重置按钮 */
+.qaq-theme-reset-btn {
+    width: 100%;
+    height: 38px;
+    border: 1px dashed #ddd;
+    border-radius: 10px;
+    background: none;
+    color: #aaa;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: color 0.2s;
+    margin-top: 8px;
+}
+
+.qaq-theme-reset-btn:active {
+    color: #888;
+}
+
+/* ===== 夜幕主题下的主题设置页 ===== */
+.qaq-theme-dark .qaq-plan-theme-page {
+    background: linear-gradient(160deg, #121212 0%, #1a1a1a 25%, #161616 50%, #1c1c1c 75%, #121212 100%);
+}
+
+.qaq-theme-dark .qaq-theme-section-card {
+    background: rgba(40, 40, 40, 0.7);
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-theme-section-title {
+    color: #666;
+}
+
+.qaq-theme-dark .qaq-theme-wallpaper-preview {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.qaq-theme-dark .qaq-theme-wallpaper-preview .qaq-wp-placeholder {
+    color: #555;
+}
+
+.qaq-theme-dark .qaq-theme-wp-btn-upload {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a);
+    color: #d0b8a8;
+}
+
+.qaq-theme-dark .qaq-theme-wp-btn-clear {
+    background: #3a3a3a;
+    color: #888;
+}
+
+.qaq-theme-dark .qaq-theme-accent-dot.qaq-accent-active {
+    border-color: #bbb;
+}
+
+.qaq-theme-dark .qaq-theme-slider {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.qaq-theme-dark .qaq-theme-slider::-webkit-slider-thumb {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a);
+}
+
+.qaq-theme-dark .qaq-theme-slider-label,
+.qaq-theme-dark .qaq-theme-slider-val {
+    color: #666;
+}
+
+.qaq-theme-dark .qaq-theme-reset-btn {
+    border-color: #444;
+    color: #666;
+}
+
+.qaq-theme-dark .qaq-theme-widget-preview {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ===== 冷雾主题下的主题设置页 ===== */
+.qaq-theme-cool .qaq-plan-theme-page {
+    background: linear-gradient(160deg, #ebeef3 0%, #f0f2f5 25%, #f3f4f7 50%, #eef0f4 75%, #ebeef3 100%);
+}
+
+.qaq-theme-cool .qaq-theme-section-card {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.qaq-theme-cool .qaq-theme-wp-btn-upload {
+    background: linear-gradient(135deg, #d0d8e8, #bfc9dd);
+    color: #3a4a60;
+}
+
+/* ===== 计划页面壁纸层 ===== */
+.qaq-plan-page-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.qaq-plan-page-bg-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.qaq-plan-page > .qaq-plan-page-header,
+.qaq-plan-page > .qaq-plan-page-content {
+    position: relative;
+    z-index: 1;
+}
+
+/* 卡片自定义背景 */
+.qaq-plan-card-custom-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 14px;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.qaq-plan-card-custom-bg img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.qaq-plan-card.qaq-has-custom-bg {
+    position: relative;
+}
+
+.qaq-plan-card.qaq-has-custom-bg > .qaq-plan-card-color,
+.qaq-plan-card.qaq-has-custom-bg > .qaq-plan-card-body,
+.qaq-plan-card.qaq-has-custom-bg > .qaq-plan-card-actions {
+    position: relative;
+    z-index: 1;
+}
+
+/* ===== 小组件自定义背景 ===== */
+.qaq-plan-widget-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 16px;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.qaq-plan-widget-bg img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.qaq-plan-widget.qaq-has-widget-bg {
+    position: relative;
+}
+
+.qaq-plan-widget.qaq-has-widget-bg > .qaq-plan-header,
+.qaq-plan-widget.qaq-has-widget-bg > .qaq-plan-date,
+.qaq-plan-widget.qaq-has-widget-bg > .qaq-plan-list,
+.qaq-plan-widget.qaq-has-widget-bg > .qaq-plan-progress {
+    position: relative;
+    z-index: 1;
+}
+
+/* ===== 主题预览区遮罩层 ===== */
+.qaq-preview-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    transition: background 0.15s ease;
+}
+
+/* ===== 词库页面 ===== */
+
+.qaq-wordbank-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 30px;
+    scrollbar-width: none;
+}
+
+.qaq-wordbank-content::-webkit-scrollbar {
+    display: none;
+}
+
+.qaq-wordbank-search-wrap {
+    margin-bottom: 10px;
+}
+
+.qaq-wordbank-stats {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 10px;
+    padding: 0 4px;
+}
+
+
+
+/* ===== 词库导入预览 ===== */
+.qaq-wordbank-preview-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.qaq-wordbank-preview-desc {
+    font-size: 12px;
+    color: #888;
+    line-height: 1.6;
+    text-align: center;
+}
+
+.qaq-wordbank-preview-list {
+    max-height: 240px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    scrollbar-width: none;
+}
+
+.qaq-wordbank-preview-list::-webkit-scrollbar {
+    display: none;
+}
+
+.qaq-wordbank-preview-item {
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.qaq-wordbank-preview-item-top {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.qaq-wordbank-preview-word {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.qaq-wordbank-preview-meaning {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.5;
+}
+
+.qaq-wordbank-preview-meta {
+    font-size: 10px;
+    color: #bbb;
+}
+
+.qaq-wordbank-preview-note {
+    font-size: 11px;
+    color: #aaa;
+    text-align: center;
+    line-height: 1.5;
+}
+
+/* 夜幕 */
+.qaq-theme-dark .qaq-wordbank-preview-desc {
+    color: #777;
+}
+
+.qaq-theme-dark .qaq-wordbank-preview-item {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.qaq-theme-dark .qaq-wordbank-preview-word {
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-wordbank-preview-meaning {
+    color: #aaa;
+}
+
+.qaq-theme-dark .qaq-wordbank-preview-meta,
+.qaq-theme-dark .qaq-wordbank-preview-note {
+    color: #666;
+}
+/* ===== 词库内导航 ===== */
+.qaq-wordbank-subnav {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.qaq-wordbank-tab {
+    flex: 1;
+    height: 34px;
+    border: none;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.5);
+    color: #777;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.qaq-wordbank-tab.qaq-wordbank-tab-active {
+    background: linear-gradient(135deg, #f6e9c9, #fed2e0);
+    color: #8a6050;
+    font-weight: 600;
+}
+
+.qaq-wordbank-panel {
+    min-height: 0;
+}
+
+/* ===== 词库首页 ===== */
+.qaq-wordbook-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.qaq-wordbook-card {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.qaq-wordbook-card-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.qaq-wordbook-card-meta {
+    font-size: 11px;
+    color: #999;
+    line-height: 1.5;
+}
+
+.qaq-wordbook-card-count {
+    font-size: 10px;
+    color: #bbb;
+}
+
+/* ===== 词库详情页 ===== */
+
+.qaq-wordbook-detail-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 30px;
+    scrollbar-width: none;
+}
+
+.qaq-wordbook-detail-content::-webkit-scrollbar {
+    display: none;
+}
+
+.qaq-wordbook-detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.qaq-word-entry-card {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.qaq-word-entry-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.qaq-word-entry-word {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+    word-break: break-word;
+}
+
+.qaq-word-entry-meaning {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.6;
+    word-break: break-word;
+}
+
+.qaq-word-entry-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.qaq-word-entry-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qaq-word-entry-btn-edit {
+    background: rgba(0, 0, 0, 0.04);
+    color: #999;
+}
+
+.qaq-word-entry-btn-del {
+    background: rgba(200, 60, 60, 0.08);
+    color: #c44;
+}
+
+/* 夜幕 */
+.qaq-theme-dark .qaq-wordbook-detail-page {
+    background: linear-gradient(160deg, #121212 0%, #1a1a1a 25%, #161616 50%, #1c1c1c 75%, #121212 100%);
+}
+
+.qaq-theme-dark .qaq-wordbook-card,
+.qaq-theme-dark .qaq-word-entry-card {
+    background: rgba(40, 40, 40, 0.7);
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-wordbook-card-name,
+.qaq-theme-dark .qaq-word-entry-word {
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-wordbook-card-meta,
+.qaq-theme-dark .qaq-word-entry-meaning {
+    color: #888;
+}
+
+.qaq-theme-dark .qaq-wordbook-card-count {
+    color: #666;
+}
+
+.qaq-theme-dark .qaq-wordbank-tab {
+    background: rgba(255, 255, 255, 0.05);
+    color: #888;
+}
+
+.qaq-theme-dark .qaq-wordbank-tab.qaq-wordbank-tab-active {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a);
+    color: #d0b8a8;
+}
+
+/* 冷雾 */
+.qaq-theme-cool .qaq-wordbook-detail-page {
+    background: linear-gradient(160deg, #ebeef3 0%, #f0f2f5 25%, #f3f4f7 50%, #eef0f4 75%, #ebeef3 100%);
+}
+
+.qaq-theme-cool .qaq-wordbank-tab.qaq-wordbank-tab-active {
+    background: linear-gradient(135deg, #d0d8e8, #bfc9dd);
+    color: #3a4a60;
+}
+
+/* ===== 冷雾主题下词库主页 ===== */
+.qaq-theme-cool .qaq-wordbank-page {
+    background: linear-gradient(
+        160deg,
+        #ebeef3 0%,
+        #f0f2f5 25%,
+        #f3f4f7 50%,
+        #eef0f4 75%,
+        #ebeef3 100%
+    );
+}
+
+.qaq-theme-cool .qaq-wordbook-card,
+.qaq-theme-cool .qaq-word-entry-card {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.qaq-theme-cool .qaq-wordbook-card-name,
+.qaq-theme-cool .qaq-word-entry-word {
+    color: #222;
+}
+
+.qaq-theme-cool .qaq-wordbook-card-meta,
+.qaq-theme-cool .qaq-word-entry-meaning,
+.qaq-theme-cool .qaq-wordbank-stats {
+    color: #666;
+}
+
+/* ===== 词库导入进度层 ===== */
+.qaq-import-progress {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    background: rgba(0, 0, 0, 0.28);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.22s ease, visibility 0s linear 0.22s;
+    pointer-events: none;
+}
+
+.qaq-import-progress.qaq-import-show {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.22s ease, visibility 0s;
+    pointer-events: auto;
+}
+
+.qaq-import-progress-card {
+    width: 280px;
+    max-width: 84%;
+    background: rgba(255, 255, 255, 0.88);
+    border-radius: 16px;
+    padding: 18px 16px 16px;
+    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.12);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+}
+
+.qaq-import-progress-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #333;
+}
+
+.qaq-import-progress-desc {
+    font-size: 12px;
+    color: #888;
+    line-height: 1.5;
+}
+
+.qaq-import-progress-bar {
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.qaq-import-progress-fill {
+    width: 0%;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #f6e9c9, #fed2e0);
+    transition: width 0.18s ease;
+}
+
+.qaq-import-progress-text {
+    font-size: 12px;
+    color: #999;
+}
+
+/* 夜幕 */
+.qaq-theme-dark .qaq-import-progress-card {
+    background: rgba(42, 42, 42, 0.96);
+}
+
+.qaq-theme-dark .qaq-import-progress-title {
+    color: #e0e0e0;
+}
+
+.qaq-theme-dark .qaq-import-progress-desc,
+.qaq-theme-dark .qaq-import-progress-text {
+    color: #888;
+}
+
+.qaq-theme-dark .qaq-import-progress-bar {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.qaq-theme-dark .qaq-import-progress-fill {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a);
+}
+
+/* 冷雾 */
+.qaq-theme-cool .qaq-import-progress-fill {
+    background: linear-gradient(135deg, #d0d8e8, #bfc9dd);
+}
+
+.qaq-import-progress-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.qaq-import-progress-btn {
+    flex: 1;
+    height: 34px;
+    border: none;
+    border-radius: 10px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+}
+
+.qaq-import-progress-btn:active {
+    transform: scale(0.96);
+}
+
+.qaq-import-progress-btn-cancel {
+    background: #f0f0f0;
+    color: #777;
+}
+
+.qaq-import-progress-btn-retry {
+    background: linear-gradient(135deg, #f6e9c9, #fed2e0);
+    color: #8a6050;
+    font-weight: 600;
+}
+
+/* 夜幕 */
+.qaq-theme-dark .qaq-import-progress-btn-cancel {
+    background: #3a3a3a;
+    color: #aaa;
+}
+
+.qaq-theme-dark .qaq-import-progress-btn-retry {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a);
+    color: #d0b8a8;
+}
+
+/* 冷雾 */
+.qaq-theme-cool .qaq-import-progress-btn-retry {
+    background: linear-gradient(135deg, #d0d8e8, #bfc9dd);
+    color: #3a4a60;
+}
+
+.qaq-import-ghost-btn {
+    appearance: none;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: #fff;
+    color: #555;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .18s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.qaq-import-ghost-btn:hover {
+    background: #f8f8f8;
+    color: #333;
+}
+
+.qaq-import-ghost-btn:active {
+    transform: scale(0.98);
+}
+
+/* ===== 冷雾主题下弹窗/确认按钮 ===== */
+.qaq-theme-cool .qaq-modal-btn-confirm {
+    background: linear-gradient(135deg, #d0d8e8, #bfc9dd);
+    color: #3a4a60;
+}
+
+.qaq-theme-cool .qaq-inline-ok {
+    background: linear-gradient(135deg, #d0d8e8, #bfc9dd);
+    color: #3a4a60;
+}
+
+.qaq-theme-cool .qaq-color-confirm-btn {
+    background: linear-gradient(135deg, #d0d8e8, #bfc9dd);
+    color: #3a4a60;
+}
+
+.qaq-wordbank-header-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.qaq-app-item,
+.qaq-app-icon,
+.qaq-plan-widget,
+.qaq-img-square,
+.qaq-avatar {
+    touch-action: manipulation;
+}
+
+.qaq-theme-cool .qaq-plan-add-btn svg {
+    stroke: #3a4a60;
+}
+
+.qaq-theme-cool #qaq-wordbook-more-btn svg circle,
+.qaq-theme-cool #qaq-wordbank-import-btn svg,
+.qaq-theme-cool #qaq-wordbank-export-btn svg {
+    stroke: #3a4a60;
+}
+
+/* ===== 词库批量选择 ===== */
+.qaq-wordbank-batchbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.qaq-wordbook-card,
+.qaq-word-entry-card {
+    position: relative;
+}
+
+.qaq-select-check {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #d0d0d0;
+    background: #fff;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    margin-top: 2px;
+}
+
+.qaq-select-check.qaq-select-check-on {
+    background: #c47068;
+    border-color: #c47068;
+}
+
+.qaq-select-check.qaq-select-check-on::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    width: 5px;
+    height: 10px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.qaq-wordbook-card.qaq-card-selected,
+.qaq-word-entry-card.qaq-card-selected {
+    box-shadow: 0 0 0 2px rgba(196, 112, 104, 0.18);
+    border-color: rgba(196, 112, 104, 0.35);
+}
+
+.qaq-wordbook-card-top,
+.qaq-word-entry-card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+/* 夜幕 */
+.qaq-theme-dark .qaq-select-check {
+    background: #2f2f2f;
+    border-color: #555;
+}
+
+.qaq-theme-dark .qaq-select-check.qaq-select-check-on {
+    background: #8a6a5a;
+    border-color: #8a6a5a;
+}
+
+.qaq-theme-dark .qaq-wordbook-card.qaq-card-selected,
+.qaq-theme-dark .qaq-word-entry-card.qaq-card-selected {
+    box-shadow: 0 0 0 2px rgba(138, 106, 90, 0.22);
+    border-color: rgba(138, 106, 90, 0.4);
+}
+
+/* ===== 页面切换期间降级模糊，提升安卓流畅度 ===== */
+.qaq-phone-frame.qaq-page-switching .qaq-widget,
+.qaq-phone-frame.qaq-page-switching .qaq-plan-widget,
+.qaq-phone-frame.qaq-page-switching .qaq-bottom-nav,
+.qaq-phone-frame.qaq-page-switching .qaq-settings-group-card,
+.qaq-phone-frame.qaq-page-switching .qaq-notice-text,
+.qaq-phone-frame.qaq-page-switching .qaq-api-form,
+.qaq-phone-frame.qaq-page-switching .qaq-plan-card,
+.qaq-phone-frame.qaq-page-switching .qaq-category-header,
+.qaq-phone-frame.qaq-page-switching .qaq-wordbook-card,
+.qaq-phone-frame.qaq-page-switching .qaq-word-entry-card,
+.qaq-phone-frame.qaq-page-switching .qaq-theme-section-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* 切换时顺手减轻阴影绘制 */
+.qaq-phone-frame.qaq-page-switching .qaq-widget,
+.qaq-phone-frame.qaq-page-switching .qaq-plan-widget,
+.qaq-phone-frame.qaq-page-switching .qaq-bottom-nav,
+.qaq-phone-frame.qaq-page-switching .qaq-app-icon,
+.qaq-phone-frame.qaq-page-switching .qaq-wordbook-card,
+.qaq-phone-frame.qaq-page-switching .qaq-word-entry-card,
+.qaq-phone-frame.qaq-page-switching .qaq-plan-card {
+    box-shadow: none !important;
+}
+
+/* ===== 夜幕主题下词库主页 ===== */
+.qaq-theme-dark .qaq-wordbank-page {
+    background: linear-gradient(
+        160deg,
+        #121212 0%,
+        #1a1a1a 25%,
+        #161616 50%,
+        #1c1c1c 75%,
+        #121212 100%
+    );
+}
+
+.qaq-theme-dark .qaq-wordbank-page .qaq-settings-title {
+    color: #e0e0e0;
+}
+
+.qaq-theme-dark .qaq-wordbank-page .qaq-back-btn svg {
+    stroke: #ddd;
+}
+
+.qaq-theme-dark .qaq-wordbank-page .qaq-wordbank-stats {
+    color: #777;
+}
+
+.qaq-theme-dark .qaq-wordbank-page .qaq-wordbank-empty {
+    color: #555;
+}
+
+/* ===== 词库主题页层级 ===== */
+.qaq-wordbank-theme-page { z-index: 64; }
+
+/* 统一页面切换管理里补上 */
+.qaq-wordbank-theme-page {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(160deg, #f6e9c9 0%, #faebd7 25%, #fce8e2 50%, #fed2e0 75%, #f6e9c9 100%);
+    display: flex;
+    flex-direction: column;
+    transform: translate3d(100%, 0, 0);
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        transform var(--qaq-page-duration) var(--qaq-page-ease),
+        visibility 0s linear var(--qaq-page-duration);
+    will-change: transform;
+    contain: layout paint style;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    clip-path: inset(0);
+    -webkit-clip-path: inset(0);
+    overscroll-behavior: none;
+}
+
+.qaq-wordbank-theme-page.qaq-page-show {
+    transform: translate3d(0, 0, 0);
+    visibility: visible;
+    pointer-events: auto;
+    transition:
+        transform var(--qaq-page-duration) var(--qaq-page-ease),
+        visibility 0s;
+}
+
+/* ===== 词库页面背景层 ===== */
+.qaq-wordbank-page-bg,
+.qaq-wordbook-detail-page-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.qaq-wordbank-page-bg-overlay,
+.qaq-wordbook-detail-page-bg-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.qaq-wordbank-page > .qaq-settings-header,
+.qaq-wordbank-page > .qaq-wordbank-content,
+.qaq-wordbook-detail-page > .qaq-settings-header,
+.qaq-wordbook-detail-page > .qaq-wordbook-detail-content {
+    position: relative;
+    z-index: 1;
+}
+
+/* ===== 词库卡片自定义背景 ===== */
+.qaq-wordbook-card,
+.qaq-word-entry-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.qaq-wordbank-card-custom-bg {
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.qaq-wordbank-card-custom-bg img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.qaq-wordbook-card.qaq-has-custom-bg > *,
+.qaq-word-entry-card.qaq-has-custom-bg > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* ===== 夜幕 / 冷雾下词库主题页 ===== */
+.qaq-theme-dark .qaq-wordbank-theme-page {
+    background: linear-gradient(160deg, #121212 0%, #1a1a1a 25%, #161616 50%, #1c1c1c 75%, #121212 100%);
+}
+
+.qaq-theme-cool .qaq-wordbank-theme-page {
+    background: linear-gradient(160deg, #ebeef3 0%, #f0f2f5 25%, #f3f4f7 50%, #eef0f4 75%, #ebeef3 100%);
+}
+
+/* ===== 背单词页面 ===== */
+.qaq-word-review-page {
+    position: absolute;
+    inset: 0;
+    z-index: 66;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(160deg, #f6e9c9 0%, #faebd7 25%, #fce8e2 50%, #fed2e0 75%, #f6e9c9 100%);
+    transform: translate3d(100%, 0, 0);
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        transform var(--qaq-page-duration) var(--qaq-page-ease),
+        visibility 0s linear var(--qaq-page-duration);
+    will-change: transform;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    clip-path: inset(0);
+    -webkit-clip-path: inset(0);
+}
+
+.qaq-word-review-page.qaq-page-show {
+    transform: translate3d(0, 0, 0);
+    visibility: visible;
+    pointer-events: auto;
+    transition:
+        transform var(--qaq-page-duration) var(--qaq-page-ease),
+        visibility 0s;
+}
+
+.qaq-word-review-content {
+    flex: 1;
+    padding: 10px 16px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.qaq-word-review-progress {
+    font-size: 12px;
+    color: #999;
+    text-align: center;
+    margin-top: 4px;
+}
+
+.qaq-word-review-card {
+    flex: 1;
+    min-height: 320px;
+    background: rgba(255, 255, 255, 0.58);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255,255,255,0.65);
+    border-radius: 20px;
+    padding: 28px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    text-align: center;
+}
+
+.qaq-word-review-word {
+    font-size: 30px;
+    font-weight: 700;
+    color: #333;
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+.qaq-word-review-phonetic {
+    font-size: 16px;
+    color: #a27b72;
+    cursor: pointer;
+    user-select: none;
+}
+
+.qaq-word-review-example-wrap {
+    width: 100%;
+    max-width: 340px;
+}
+
+.qaq-word-review-example {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.7;
+    cursor: pointer;
+}
+
+.qaq-word-review-example-cn {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #999;
+    line-height: 1.6;
+}
+
+.qaq-word-review-meaning {
+    margin-top: 6px;
+    font-size: 15px;
+    color: #555;
+    line-height: 1.7;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.45);
+}
+
+.qaq-word-review-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.qaq-word-review-btn {
+    flex: 1;
+    height: 42px;
+    border: none;
+    border-radius: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.2s;
+}
+
+.qaq-word-review-btn:active {
+    transform: scale(0.96);
+}
+
+.qaq-review-btn-unknown {
+    background: linear-gradient(135deg, #f8d7da, #f3b8bf);
+    color: #8e4f58;
+}
+
+.qaq-review-btn-vague {
+    background: linear-gradient(135deg, #f6e9c9, #f3d7aa);
+    color: #8a6a3f;
+}
+
+.qaq-review-btn-known {
+    background: linear-gradient(135deg, #d7f0db, #b8dfbf);
+    color: #4f7c58;
+}
+
+.qaq-word-review-next-wrap {
+    display: flex;
+}
+
+.qaq-word-review-next-btn {
+    width: 100%;
+    height: 44px;
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f6e9c9, #fed2e0);
+    color: #8a6050;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.qaq-word-review-next-btn:active {
+    transform: scale(0.97);
+}
+
+/* 夜幕 */
+.qaq-theme-dark .qaq-word-review-page {
+    background: linear-gradient(160deg, #121212 0%, #1a1a1a 25%, #161616 50%, #1c1c1c 75%, #121212 100%);
+}
+
+.qaq-theme-dark .qaq-word-review-card {
+    background: rgba(40,40,40,0.72);
+    border-color: rgba(60,60,60,0.5);
+}
+
+.qaq-theme-dark .qaq-word-review-word {
+    color: #e5e5e5;
+}
+
+.qaq-theme-dark .qaq-word-review-phonetic {
+    color: #c59b8f;
+}
+
+.qaq-theme-dark .qaq-word-review-example {
+    color: #aaa;
+}
+
+.qaq-theme-dark .qaq-word-review-example-cn,
+.qaq-theme-dark .qaq-word-review-progress {
+    color: #777;
+}
+
+.qaq-theme-dark .qaq-word-review-meaning {
+    color: #ccc;
+    background: rgba(255,255,255,0.05);
+}
+
+/* 冷雾 */
+.qaq-theme-cool .qaq-word-review-page {
+    background: linear-gradient(160deg, #ebeef3 0%, #f0f2f5 25%, #f3f4f7 50%, #eef0f4 75%, #ebeef3 100%);
+}
+
+/* ===== 背单词首页卡片禁用态 ===== */
+#qaq-review-continue-card.qaq-disabled,
+#qaq-review-repeat-card.qaq-disabled {
+    opacity: 0.55;
+}
+
+#qaq-review-continue-card.qaq-disabled:active,
+#qaq-review-repeat-card.qaq-disabled:active {
+    transform: none;
+}
+
+/* ===== 背单词小说生成页 ===== */
+.qaq-review-story-page {
+    position: absolute;
+    inset: 0;
+    z-index: 67;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(160deg, #f6e9c9 0%, #faebd7 25%, #fce8e2 50%, #fed2e0 75%, #f6e9c9 100%);
+    transform: translate3d(100%, 0, 0);
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        transform var(--qaq-page-duration) var(--qaq-page-ease),
+        visibility 0s linear var(--qaq-page-duration);
+    will-change: transform;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    clip-path: inset(0);
+    -webkit-clip-path: inset(0);
+}
+
+.qaq-review-story-page.qaq-page-show {
+    transform: translate3d(0, 0, 0);
+    visibility: visible;
+    pointer-events: auto;
+    transition:
+        transform var(--qaq-page-duration) var(--qaq-page-ease),
+        visibility 0s;
+}
+
+.qaq-review-story-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 30px;
+    scrollbar-width: none;
+}
+
+.qaq-review-story-content::-webkit-scrollbar {
+    display: none;
+}
+
+.qaq-review-story-wordlist,
+.qaq-review-story-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.qaq-review-story-chip {
+    padding: 6px 12px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.7);
+    border: 1px solid rgba(0,0,0,0.06);
+    font-size: 12px;
+    color: #666;
+    user-select: none;
+}
+
+.qaq-review-story-tag {
+    padding: 6px 12px;
+    border-radius: 16px;
+    background: #f4f4f4;
+    border: 2px solid transparent;
+    font-size: 12px;
+    color: #777;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.qaq-review-story-tag.qaq-tag-active {
+    background: linear-gradient(135deg, #f6e9c9, #fed2e0);
+    color: #8a6050;
+    border-color: rgba(200,150,130,0.25);
+    font-weight: 600;
+}
+
+.qaq-review-story-custom-row {
+    display: flex;
+    gap: 8px;
+}
+
+.qaq-review-story-output {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 13px;
+    color: #555;
+    line-height: 1.8;
+    min-height: 120px;
+}
+
+/* 夜幕 */
+.qaq-theme-dark .qaq-review-story-page {
+    background: linear-gradient(160deg, #121212 0%, #1a1a1a 25%, #161616 50%, #1c1c1c 75%, #121212 100%);
+}
+
+.qaq-theme-dark .qaq-review-story-chip {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.06);
+    color: #bbb;
+}
+
+.qaq-theme-dark .qaq-review-story-tag {
+    background: #333;
+    color: #999;
+}
+
+.qaq-theme-dark .qaq-review-story-tag.qaq-tag-active {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a);
+    color: #d0b8a8;
+    border-color: rgba(100,70,60,0.35);
+}
+
+.qaq-theme-dark .qaq-review-story-output {
+    color: #ccc;
+}
+
+/* 冷雾 */
+.qaq-theme-cool .qaq-review-story-page {
+    background: linear-gradient(160deg, #ebeef3 0%, #f0f2f5 25%, #f3f4f7 50%, #eef0f4 75%, #ebeef3 100%);
+}
+/* ===== 背单词小说标签库增强 ===== */
+#qaq-review-story-tag-stats {
+    font-size: 11px;
+    color: #999;
+    white-space: nowrap;
+}
+
+.qaq-review-story-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-height: 20px;
+}
+
+.qaq-review-story-custom-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.qaq-review-story-custom-row .qaq-api-input {
+    flex: 1;
+}
+
+.qaq-review-story-tag {
+    position: relative;
+}
+
+.qaq-review-story-tag.qaq-tag-custom {
+    padding-right: 28px;
+}
+
+.qaq-review-story-tag-del {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    line-height: 1;
+    background: rgba(0, 0, 0, 0.08);
+    color: #999;
+    cursor: pointer;
+}
+
+.qaq-review-story-tag-del:active {
+    transform: translateY(-50%) scale(0.9);
+}
+
+/* 夜幕 */
+.qaq-theme-dark #qaq-review-story-tag-stats {
+    color: #666;
+}
+
+.qaq-theme-dark #qaq-review-story-custom-empty {
+    color: #666 !important;
+}
+
+.qaq-theme-dark .qaq-review-story-tag-del {
+    background: rgba(255,255,255,0.08);
+    color: #888;
+}
+
+/* 冷雾 */
+.qaq-theme-cool #qaq-review-story-tag-stats {
+    color: #777;
+}
+/* ===== 小说标签分组 ===== */
+.qaq-review-story-tag-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.qaq-review-story-tag-group:last-child {
+    margin-bottom: 0;
+}
+
+.qaq-review-story-tag-group-title {
+    font-size: 11px;
+    color: #999;
+    font-weight: 600;
+    padding-left: 2px;
+}
+
+/* 夜幕 */
+.qaq-theme-dark .qaq-review-story-tag-group-title {
+    color: #777;
+}
+
+/* 冷雾 */
+.qaq-theme-cool .qaq-review-story-tag-group-title {
+    color: #7d8794;
+}
+
+/* ===== 小说结果工具栏 ===== */
+#qaq-review-story-meta {
+    white-space: nowrap;
+}
+
+
+
+/* 夜幕 */
+.qaq-theme-dark #qaq-review-story-meta {
+    color: #777 !important;
+}
+
+/* 冷雾 */
+.qaq-theme-cool #qaq-review-story-meta {
+    color: #7d8794 !important;
+}
+
+/* ===== 小说历史记录 ===== */
+.qaq-review-story-history-item {
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.qaq-review-story-history-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.qaq-review-story-history-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    min-width: 0;
+    word-break: break-word;
+}
+
+.qaq-review-story-history-time {
+    font-size: 10px;
+    color: #aaa;
+    flex-shrink: 0;
+}
+
+.qaq-review-story-history-meta2 {
+    font-size: 11px;
+    color: #888;
+    line-height: 1.6;
+}
+
+.qaq-review-story-history-preview {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.qaq-review-story-history-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* 夜幕 */
+.qaq-theme-dark .qaq-review-story-history-item {
+    background: rgba(255,255,255,0.05);
+}
+
+.qaq-theme-dark .qaq-review-story-history-title {
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-review-story-history-time,
+.qaq-theme-dark #qaq-review-story-history-meta {
+    color: #777 !important;
+}
+
+.qaq-theme-dark .qaq-review-story-history-meta2 {
+    color: #888;
+}
+
+.qaq-theme-dark .qaq-review-story-history-preview {
+    color: #bbb;
+}
+
+/* 冷雾 */
+.qaq-theme-cool #qaq-review-story-history-meta {
+    color: #7d8794 !important;
+}
+/* ===== 修复背单词按钮点击区域 ===== */
+#qaq-review-actions,
+#qaq-review-next-wrap {
+    position: relative;
+    z-index: 20;
+    pointer-events: auto;
+}
+
+#qaq-review-actions .qaq-word-review-btn,
+#qaq-review-next-btn {
+    position: relative;
+    z-index: 21;
+    pointer-events: auto;
+    touch-action: manipulation;
+}
+
+#qaq-word-review-card {
+    position: relative;
+    z-index: 1;
+}
+/* ===== 小说页增强 ===== */
+.qaq-review-story-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #333;
+    line-height: 1.5;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.qaq-review-story-output {
+    margin-top: 4px;
+    font-size: 13px;
+    color: #555;
+    line-height: 1.9;
+    word-break: break-word;
+    min-height: 120px;
+    white-space: normal;
+}
+
+.qaq-review-story-paragraph {
+    margin-bottom: 14px;
+    cursor: pointer;
+    user-select: text;
+    transition: background 0.2s;
+    border-radius: 10px;
+    padding: 6px 8px;
+}
+
+.qaq-review-story-paragraph:active,
+.qaq-review-story-paragraph:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.qaq-review-story-sentence {
+    cursor: pointer;
+    transition: background 0.18s;
+    border-radius: 4px;
+    padding: 1px 2px;
+}
+
+.qaq-review-story-sentence:hover {
+    background: rgba(254, 210, 224, 0.18);
+}
+
+.qaq-review-story-sentence-cn {
+    display: none;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #999;
+    line-height: 1.7;
+    padding-left: 4px;
+    border-left: 2px solid rgba(196, 112, 104, 0.2);
+}
+
+.qaq-review-story-translate-on .qaq-review-story-sentence-cn {
+    display: block;
+}
+
+.qaq-review-story-word {
+    position: relative;
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 0 1px;
+    transition: background 0.15s;
+}
+
+.qaq-review-story-word:hover {
+    background: rgba(254, 210, 224, 0.18);
+}
+
+
+
+.qaq-story-history-fav {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(212, 160, 32, 0.1);
+    color: #d4a020;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.qaq-story-history-fav.qaq-active {
+    background: rgba(212, 160, 32, 0.18);
+    color: #c89214;
+}
+
+.qaq-story-history-top-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.qaq-story-history-actions-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* 冷雾主题按钮修复 */
+.qaq-theme-cool .qaq-import-ghost-btn {
+    border: 1px solid rgba(100,130,180,0.16);
+    background: rgba(255,255,255,0.9);
+    color: #4a5b72;
+}
+
+.qaq-theme-cool .qaq-import-ghost-btn:hover {
+    background: #f4f7fb;
+    color: #2f4159;
+}
+
+.qaq-theme-cool .qaq-review-story-tag.qaq-tag-active {
+    background: linear-gradient(135deg, #d0d8e8, #bfc9dd);
+    color: #3a4a60;
+    border-color: rgba(100, 130, 180, 0.3);
+}
+
+.qaq-theme-cool .qaq-api-save-btn,
+.qaq-theme-cool #qaq-review-story-generate-btn {
+    background: linear-gradient(135deg, #d0d8e8, #bfc9dd);
+    color: #3a4a60;
+}
+
+.qaq-theme-cool .qaq-review-story-title {
+    color: #223042;
+}
+
+.qaq-theme-cool .qaq-review-story-output {
+    color: #445266;
+}
+
+.qaq-theme-cool .qaq-review-story-sentence-cn {
+    color: #6d7b90;
+    border-left-color: rgba(100,130,180,0.22);
+}
+
+/* 夜幕 */
+.qaq-theme-dark .qaq-review-story-title {
+    color: #e5e5e5;
+}
+
+.qaq-theme-dark .qaq-review-story-paragraph:hover,
+.qaq-theme-dark .qaq-review-story-paragraph:active {
+    background: rgba(255,255,255,0.04);
+}
+
+.qaq-theme-dark .qaq-review-story-sentence:hover {
+    background: rgba(120, 80, 90, 0.18);
+}
+
+
+
+.qaq-theme-dark .qaq-story-history-fav {
+    background: rgba(212,160,32,0.16);
+    color: #d8b04a;
+}
+
+.qaq-word-popover {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    pointer-events: none;
+}
+
+.qaq-word-popover-card {
+    position: absolute;
+    min-width: 180px;
+    max-width: 260px;
+    background: rgba(255,255,255,0.96);
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 14px;
+    padding: 12px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.14);
+    pointer-events: auto;
+}
+
+.qaq-word-popover-word {
+    font-size: 15px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.qaq-word-popover-phonetic {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 6px;
+}
+
+.qaq-word-popover-meaning {
+    font-size: 13px;
+    color: #555;
+    line-height: 1.6;
+}
+
+.qaq-word-popover-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.qaq-theme-dark .qaq-word-popover-card {
+    background: rgba(42,42,42,0.96);
+    border-color: rgba(255,255,255,0.06);
+}
+
+.qaq-theme-dark .qaq-word-popover-word {
+    color: #eee;
+}
+
+.qaq-theme-dark .qaq-word-popover-phonetic {
+    color: #999;
+}
+
+.qaq-theme-dark .qaq-word-popover-meaning {
+    color: #ccc;
+}
+
+/* ✅ 修复后 */
+.qaq-theme-cool .qaq-word-popover-card {
+    background: rgba(245, 247, 250, 0.96);
+    border-color: rgba(100, 130, 180, 0.12);
+}
+.qaq-theme-cool #qaq-review-story-history-btn svg {
+    stroke: #3a4a60;
+}
+.qaq-theme-cool #qaq-review-story-read-btn,
+.qaq-theme-cool #qaq-review-story-stop-read-btn,
+.qaq-theme-cool #qaq-review-story-translate-toggle-btn {
+    color: #3a4a60;
+}
+/* ===== 统一页面层管理 ===== */
+.qaq-settings-page { z-index: 50; }
+.qaq-settings-sub  { z-index: 55; }
+.qaq-plan-page     { z-index: 60; }
+.qaq-wordbank-page { z-index: 62; }
+.qaq-wordbook-detail-page { z-index: 63; }
+.qaq-wordbank-theme-page  { z-index: 64; }
+.qaq-plan-theme-page      { z-index: 65; }
+.qaq-word-review-page     { z-index: 66; }
+.qaq-review-story-page    { z-index: 67; }
+
+.qaq-settings-page,
+.qaq-settings-sub,
+.qaq-plan-page,
+.qaq-wordbank-page,
+.qaq-wordbook-detail-page,
+.qaq-wordbank-theme-page,
+.qaq-plan-theme-page,
+.qaq-word-review-page,
+.qaq-review-story-page {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    transform: translate3d(100%, 0, 0);
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        transform var(--qaq-page-duration) var(--qaq-page-ease),
+        visibility 0s linear var(--qaq-page-duration);
+    will-change: transform;
+    contain: layout paint style;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    clip-path: inset(0);
+    -webkit-clip-path: inset(0);
+    overscroll-behavior: none;
+}
+
+.qaq-settings-page.qaq-page-show,
+.qaq-settings-sub.qaq-page-show,
+.qaq-plan-page.qaq-page-show,
+.qaq-wordbank-page.qaq-page-show,
+.qaq-wordbook-detail-page.qaq-page-show,
+.qaq-wordbank-theme-page.qaq-page-show,
+.qaq-plan-theme-page.qaq-page-show,
+.qaq-word-review-page.qaq-page-show,
+.qaq-review-story-page.qaq-page-show {
+    transform: translate3d(0, 0, 0);
+    visibility: visible;
+    pointer-events: auto;
+    transition:
+        transform var(--qaq-page-duration) var(--qaq-page-ease),
+        visibility 0s;
+}
+
+/* 各页面背景（只需声明背景，不再重复过渡属性） */
+.qaq-settings-page,
+.qaq-settings-sub {
+    background: linear-gradient(160deg, #f6e9c9 0%, #faebd7 25%, #fce8e2 50%, #fed2e0 75%, #f6e9c9 100%);
+}
+
+.qaq-plan-page,
+.qaq-wordbank-page,
+.qaq-wordbook-detail-page,
+.qaq-plan-theme-page,
+.qaq-review-story-page {
+    background: linear-gradient(160deg, #f6e9c9 0%, #faebd7 25%, #fce8e2 50%, #fed2e0 75%, #f6e9c9 100%);
+}
+
+.qaq-wordbank-theme-page {
+    background: linear-gradient(160deg, #f6e9c9 0%, #faebd7 25%, #fce8e2 50%, #fed2e0 75%, #f6e9c9 100%);
+}
+
+/* ===== 自定义选择器按钮 ===== */
+.qaq-custom-select-btn {
+    width: 100%;
+    height: 38px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 0 12px;
+    font-size: 13px;
+    color: #333;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    user-select: none;
+}
+
+.qaq-custom-select-btn:active {
+    border-color: #deb3be;
+}
+
+/* 选项列表 */
+.qaq-custom-select-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.qaq-custom-select-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #555;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.qaq-custom-select-option:active {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.qaq-custom-select-option.qaq-custom-select-active {
+    background: rgba(254, 210, 224, 0.15);
+    color: #333;
+    font-weight: 600;
+}
+
+/* 夜幕 */
+.qaq-theme-dark .qaq-custom-select-btn {
+    background: #333;
+    border-color: #444;
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-custom-select-option {
+    color: #ccc;
+}
+
+.qaq-theme-dark .qaq-custom-select-option.qaq-custom-select-active {
+    background: rgba(100, 70, 60, 0.2);
+    color: #e0e0e0;
+}
+
+.qaq-theme-dark .qaq-custom-select-option:active {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* 冷雾 */
+.qaq-theme-cool .qaq-custom-select-btn {
+    border-color: rgba(100, 130, 180, 0.2);
+}
+
+.qaq-theme-cool .qaq-custom-select-option.qaq-custom-select-active {
+    background: rgba(160, 180, 210, 0.15);
+    color: #3a4a60;
+}
+
+/* ===== 滚动区域性能优化：去掉滚动容器内的 backdrop-filter ===== */
+
+/* 小说页：滚动区域内的卡片去掉模糊 */
+.qaq-review-story-content .qaq-theme-section-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(255, 255, 255, 0.82);
+}
+
+.qaq-theme-dark .qaq-review-story-content .qaq-theme-section-card {
+    background: rgba(40, 40, 40, 0.85);
+}
+
+.qaq-theme-cool .qaq-review-story-content .qaq-theme-section-card {
+    background: rgba(255, 255, 255, 0.88);
+}
+
+/* 词库页：滚动区域内的卡片去掉模糊 */
+.qaq-wordbank-content .qaq-wordbook-card,
+.qaq-wordbank-content .qaq-word-entry-card,
+.qaq-wordbook-detail-content .qaq-wordbook-card,
+.qaq-wordbook-detail-content .qaq-word-entry-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(255, 255, 255, 0.82);
+}
+
+.qaq-theme-dark .qaq-wordbank-content .qaq-wordbook-card,
+.qaq-theme-dark .qaq-wordbank-content .qaq-word-entry-card,
+.qaq-theme-dark .qaq-wordbook-detail-content .qaq-wordbook-card,
+.qaq-theme-dark .qaq-wordbook-detail-content .qaq-word-entry-card {
+    background: rgba(40, 40, 40, 0.85);
+}
+
+.qaq-theme-cool .qaq-wordbank-content .qaq-wordbook-card,
+.qaq-theme-cool .qaq-wordbank-content .qaq-word-entry-card,
+.qaq-theme-cool .qaq-wordbook-detail-content .qaq-wordbook-card,
+.qaq-theme-cool .qaq-wordbook-detail-content .qaq-word-entry-card {
+    background: rgba(255, 255, 255, 0.88);
+}
+
+/* 计划页：滚动区域内的卡片和分类头去掉模糊 */
+.qaq-plan-page-content .qaq-plan-card,
+.qaq-plan-page-content .qaq-category-header {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+.qaq-plan-page-content .qaq-plan-card {
+    background: rgba(255, 255, 255, 0.82);
+}
+
+.qaq-plan-page-content .qaq-category-header {
+    background: rgba(255, 255, 255, 0.78);
+}
+
+.qaq-theme-dark .qaq-plan-page-content .qaq-plan-card {
+    background: rgba(40, 40, 40, 0.85);
+}
+
+.qaq-theme-dark .qaq-plan-page-content .qaq-category-header {
+    background: rgba(40, 40, 40, 0.8);
+}
+
+/* 设置页列表也去掉模糊（滚动时） */
+.qaq-settings-list .qaq-settings-group-card,
+.qaq-settings-sub-content .qaq-notice-text,
+.qaq-settings-sub-content .qaq-api-form {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* 主题设置页：滚动内容去掉模糊 */
+.qaq-plan-theme-content .qaq-theme-section-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(255, 255, 255, 0.82);
+}
+
+.qaq-theme-dark .qaq-plan-theme-content .qaq-theme-section-card {
+    background: rgba(40, 40, 40, 0.85);
+}
+
+.qaq-theme-cool .qaq-plan-theme-content .qaq-theme-section-card {
+    background: rgba(255, 255, 255, 0.88);
+}

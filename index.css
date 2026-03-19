@@ -62,11 +62,11 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--qaq-statusbar-h) 6vw 1.5vw;
+    padding: var(--qaq-statusbar-h) 6vw 3vw;
     flex-shrink: 0;
     position: relative;
     z-index: 90;
-    min-height: calc(var(--qaq-statusbar-h) + 2.5vw);
+    min-height: calc(var(--qaq-statusbar-h) + 4vw);
 }
 
 .qaq-time-display {
@@ -4830,7 +4830,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    padding-top: var(--qaq-statusbar-h);
+    padding-top: calc(var(--qaq-statusbar-h) + 3vw);
     display: flex;
     flex-direction: column;
     transform: translate3d(100%, 0, 0);

@@ -2,29 +2,54 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>QAQ - 外语学习</title>
+
+    <!-- ★★★ PWA 新增 START ★★★ -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#f6e9c9">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="QAQ">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="QAQ">
+    <meta name="msapplication-TileColor" content="#f6e9c9">
+    <meta name="msapplication-navbutton-color" content="#f6e9c9">
+
+    <!-- iOS 图标 -->
+    <link rel="apple-touch-icon" href="icons/icon-152.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
+
+    <!-- iOS 启动画面（可选，提升体验） -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- 防止浏览器自动识别电话号码 -->
+    <meta name="format-detection" content="telephone=no">
+    <!-- ★★★ PWA 新增 END ★★★ -->
+
     <link rel="stylesheet" href="index.css">
 </head>
 <body>
     <div class="qaq-phone-frame">
         <!-- 状态栏 -->
-        <div class="qaq-status-bar">
-            <span class="qaq-time-display">10:39</span>
-            <div class="qaq-status-icons">
-                <svg width="16" height="12" viewBox="0 0 16 12">
-                    <rect x="0" y="8" width="3" height="4" rx="0.5" fill="#333"/>
-                    <rect x="4.5" y="5" width="3" height="7" rx="0.5" fill="#333"/>
-                    <rect x="9" y="2" width="3" height="10" rx="0.5" fill="#333"/>
-                    <rect x="13" y="0" width="3" height="12" rx="0.5" fill="#333"/>
-                </svg>
-                <svg width="26" height="12" viewBox="0 0 26 12">
-                    <rect x="0" y="0" width="22" height="12" rx="2" stroke="#333" stroke-width="1.5" fill="none"/>
-                    <rect x="23" y="3" width="3" height="6" rx="1" fill="#333"/>
-                    <rect x="2" y="2" width="16" height="8" rx="1" fill="#5ab364"/>
-                </svg>
-            </div>
-        </div>
+        <!-- 状态栏：加了 id、token 显示位、电池填充 id -->
+<div class="qaq-status-bar" id="qaq-status-bar">
+    <span class="qaq-time-display">00:00</span>
+    <div class="qaq-status-icons">
+        <span class="qaq-token-display" id="qaq-token-display" style="display:none;">0</span>
+        <svg width="16" height="12" viewBox="0 0 16 12">
+            <rect x="0" y="8" width="3" height="4" rx="0.5" fill="#333"/>
+            <rect x="4.5" y="5" width="3" height="7" rx="0.5" fill="#333"/>
+            <rect x="9" y="2" width="3" height="10" rx="0.5" fill="#333"/>
+            <rect x="13" y="0" width="3" height="12" rx="0.5" fill="#333"/>
+        </svg>
+        <svg width="26" height="12" viewBox="0 0 26 12">
+            <rect x="0" y="0" width="22" height="12" rx="2" stroke="#333" stroke-width="1.5" fill="none"/>
+            <rect x="23" y="3" width="3" height="6" rx="1" fill="#333"/>
+            <rect id="qaq-battery-fill" x="2" y="2" width="16" height="8" rx="1" fill="#5ab364"/>
+        </svg>
+    </div>
+</div>
 
         <!-- 主内容 -->
         <div class="qaq-main-content">
@@ -85,13 +110,13 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.6">
                             <path d="M12 21C12 21 3 15 3 8.5C3 5.46 5.46 3 8.5 3C10.24 3 11.91 3.81 13 5.09C14.09 3.81 15.76 3 17.5 3C20.54 3 23 5.46 23 8.5C23 15 14 21 14 21" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
-                        <span class="qaq-editable" data-edit="like-count">128</span>
+                        <span class="qaq-editable" data-edit="like-count">519</span>
                     </div>
                     <div class="qaq-action-btn" data-action="collect">
                         <svg viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.6">
                             <path d="M5 3h14a1 1 0 011 1v17.586a.5.5 0 01-.853.354L12 14.793l-7.147 7.147A.5.5 0 014 21.586V4a1 1 0 011-1z" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
-                        <span class="qaq-editable" data-edit="collect-count">32</span>
+                        <span class="qaq-editable" data-edit="collect-count">12</span>
                     </div>
                     <div class="qaq-action-btn" data-action="share">
                         <svg viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.6">
@@ -99,7 +124,7 @@
                             <polyline points="16,6 12,2 8,6" stroke-linecap="round" stroke-linejoin="round"/>
                             <line x1="12" y1="2" x2="12" y2="15" stroke-linecap="round"/>
                         </svg>
-                        <span class="qaq-editable" data-edit="share-count">5</span>
+                        <span class="qaq-editable" data-edit="share-count">13</span>
                     </div>
                 </div>
             </div>
@@ -332,6 +357,19 @@
                                 <polyline points="9,6 15,12 9,18" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                         </div>
+                        <div class="qaq-settings-item" id="qaq-set-statusbar">
+    <div class="qaq-settings-item-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5">
+            <rect x="2" y="3" width="20" height="4" rx="1.5"/>
+            <line x1="6" y1="5" x2="8" y2="5" stroke-linecap="round"/>
+            <rect x="2" y="9" width="20" height="12" rx="2" opacity="0.3"/>
+        </svg>
+    </div>
+    <div class="qaq-settings-item-text">状态栏设置</div>
+    <svg class="qaq-settings-item-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2">
+        <polyline points="9,6 15,12 9,18" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+</div>
                     </div>
                 </div>
                 <div class="qaq-settings-group">
@@ -500,7 +538,46 @@
                 <div class="qaq-settings-group-card" id="qaq-app-manage-list"></div>
             </div>
         </div>
-
+<!-- ===== 状态栏设置子页面 ===== -->
+<div class="qaq-settings-sub" id="qaq-sub-statusbar">
+    <div class="qaq-settings-header">
+        <div class="qaq-back-btn" data-back="statusbar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
+                <polyline points="15,18 9,12 15,6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="qaq-settings-title">状态栏设置</div>
+    </div>
+    <div class="qaq-settings-sub-content">
+        <div class="qaq-settings-group-card" id="qaq-statusbar-options">
+            <div class="qaq-settings-item">
+                <div class="qaq-settings-item-text">显示状态栏</div>
+                <div class="qaq-toggle qaq-toggle-on" id="qaq-sb-visible-toggle">
+                    <div class="qaq-toggle-knob"></div>
+                </div>
+            </div>
+            <div class="qaq-settings-item">
+                <div class="qaq-settings-item-text">电量跟随手机</div>
+                <div class="qaq-toggle" id="qaq-sb-battery-toggle">
+                    <div class="qaq-toggle-knob"></div>
+                </div>
+            </div>
+            <div class="qaq-settings-item">
+                <div class="qaq-settings-item-text">显示 Token 消耗</div>
+                <div class="qaq-toggle" id="qaq-sb-token-toggle">
+                    <div class="qaq-toggle-knob"></div>
+                </div>
+            </div>
+            <div class="qaq-settings-item" id="qaq-sb-token-reset">
+                <div class="qaq-settings-item-text" style="color:#d9534f;">重置 Token 计数</div>
+            </div>
+        </div>
+        <div style="padding:12px 4px;font-size:11px;color:#999;line-height:1.6;">
+            <p>• 电量跟随需要浏览器支持 Battery API</p>
+            <p>• Token 为估算值，基于请求和响应文本长度</p>
+        </div>
+    </div>
+</div>
         <!-- ===== 今日计划页面 ===== -->
         <div class="qaq-plan-page" id="qaq-plan-page">
             <div class="qaq-plan-page-bg" id="qaq-plan-page-bg"></div>
@@ -1019,5 +1096,44 @@
             'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
     </script>
     <script src="index.js"></script>
+    
+ <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('./sw.js')
+                .then(function (reg) {
+                    console.log('[QAQ] SW registered, scope:', reg.scope);
+
+                    // 检测更新
+                    reg.addEventListener('updatefound', function () {
+                        var newWorker = reg.installing;
+                        if (!newWorker) return;
+
+                        newWorker.addEventListener('statechange', function () {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // 有新版本可用
+                                if (typeof qaqToast === 'function') {
+                                    qaqToast('发现新版本，刷新页面即可更新');
+                                }
+                                // 自动激活新版本
+                                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                            }
+                        });
+                    });
+                })
+                .catch(function (err) {
+                    console.error('[QAQ] SW registration failed:', err);
+                });
+
+            // 新 SW 激活后自动刷新页面
+            var refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', function () {
+                if (refreshing) return;
+                refreshing = true;
+                window.location.reload();
+            });
+        });
+    }
+    </script>
 </body>
 </html>

@@ -11,6 +11,143 @@
     }
     qaqUpdateClock();
     setInterval(qaqUpdateClock, 15000);
+    
+    /* ===== 状态栏设置 ===== */
+function qaqGetStatusBarSettings() {
+    var s = localStorage.getItem('qaq-statusbar-settings');
+    return s ? JSON.parse(s) : { visible: true, batteryFollow: false, showToken: false };
+}
+
+function qaqSaveStatusBarSettings(s) {
+    localStorage.setItem('qaq-statusbar-settings', JSON.stringify(s));
+}
+
+var qaqTokenTotal = parseInt(localStorage.getItem('qaq-token-total') || '0', 10);
+
+function qaqAddTokens(n) {
+    if (!n || n <= 0) return;
+    qaqTokenTotal += n;
+    localStorage.setItem('qaq-token-total', String(qaqTokenTotal));
+    qaqApplyStatusBar();
+}
+
+function qaqEstimateTokens(text) {
+    return Math.ceil(String(text || '').length / 3);
+}
+
+function qaqApplyStatusBar() {
+    var s = qaqGetStatusBarSettings();
+    var bar = document.getElementById('qaq-status-bar');
+    if (!bar) return;
+    bar.style.display = s.visible ? '' : 'none';
+
+    var tokenEl = document.getElementById('qaq-token-display');
+    if (tokenEl) {
+        if (s.showToken) {
+            tokenEl.style.display = '';
+            tokenEl.textContent = qaqTokenTotal > 9999
+                ? (qaqTokenTotal / 1000).toFixed(1) + 'k'
+                : qaqTokenTotal;
+        } else {
+            tokenEl.style.display = 'none';
+        }
+    }
+}
+
+var qaqBatteryRef = null;
+
+function qaqInitBattery() {
+    var s = qaqGetStatusBarSettings();
+    if (!s.batteryFollow) return;
+    if (!navigator.getBattery) return;
+
+    navigator.getBattery().then(function (battery) {
+        qaqBatteryRef = battery;
+        function update() {
+            var ss = qaqGetStatusBarSettings();
+            if (!ss.batteryFollow) return;
+            var pct = Math.round(battery.level * 100);
+            var fillEl = document.getElementById('qaq-battery-fill');
+            if (fillEl) {
+                fillEl.setAttribute('width', Math.max(1, Math.round(pct / 100 * 16)));
+                fillEl.setAttribute('fill', pct <= 20 ? '#e05565' : (battery.charging ? '#4aaa6a' : '#5ab364'));
+            }
+        }
+        update();
+        battery.addEventListener('levelchange', update);
+        battery.addEventListener('chargingchange', update);
+    }).catch(function () {});
+}
+
+function qaqStopBattery() {
+    // 简单重置，刷新后重新判断
+    var fillEl = document.getElementById('qaq-battery-fill');
+    if (fillEl) {
+        fillEl.setAttribute('width', '16');
+        fillEl.setAttribute('fill', '#5ab364');
+    }
+}
+
+function qaqRenderStatusBarToggles() {
+    var s = qaqGetStatusBarSettings();
+    var v = document.getElementById('qaq-sb-visible-toggle');
+    var b = document.getElementById('qaq-sb-battery-toggle');
+    var t = document.getElementById('qaq-sb-token-toggle');
+    if (v) v.classList.toggle('qaq-toggle-on', s.visible);
+    if (b) b.classList.toggle('qaq-toggle-on', s.batteryFollow);
+    if (t) t.classList.toggle('qaq-toggle-on', s.showToken);
+}
+
+// 状态栏设置页打开
+document.getElementById('qaq-set-statusbar').addEventListener('click', function () {
+    qaqRenderStatusBarToggles();
+    qaqSwitchTo(document.getElementById('qaq-sub-statusbar'));
+});
+
+document.getElementById('qaq-sb-visible-toggle').parentElement.addEventListener('click', function () {
+    var s = qaqGetStatusBarSettings();
+    s.visible = !s.visible;
+    qaqSaveStatusBarSettings(s);
+    qaqRenderStatusBarToggles();
+    qaqApplyStatusBar();
+    qaqToast(s.visible ? '状态栏已显示' : '状态栏已隐藏');
+});
+
+document.getElementById('qaq-sb-battery-toggle').parentElement.addEventListener('click', function () {
+    var s = qaqGetStatusBarSettings();
+    s.batteryFollow = !s.batteryFollow;
+    qaqSaveStatusBarSettings(s);
+    qaqRenderStatusBarToggles();
+    if (s.batteryFollow) {
+        qaqInitBattery();
+        qaqToast(navigator.getBattery ? '电量跟随已开启' : '当前浏览器不支持 Battery API');
+    } else {
+        qaqStopBattery();
+        qaqToast('电量跟随已关闭');
+    }
+});
+
+document.getElementById('qaq-sb-token-toggle').parentElement.addEventListener('click', function () {
+    var s = qaqGetStatusBarSettings();
+    s.showToken = !s.showToken;
+    qaqSaveStatusBarSettings(s);
+    qaqRenderStatusBarToggles();
+    qaqApplyStatusBar();
+    qaqToast(s.showToken ? 'Token 显示已开启' : 'Token 显示已关闭');
+});
+
+document.getElementById('qaq-sb-token-reset').addEventListener('click', function () {
+    qaqConfirm('重置 Token', '确认将 Token 计数清零？', function () {
+        qaqTokenTotal = 0;
+        localStorage.setItem('qaq-token-total', '0');
+        qaqApplyStatusBar();
+        qaqToast('Token 已清零');
+    });
+});
+
+// 初始化
+qaqApplyStatusBar();
+qaqInitBattery();
 
     /* ===== Toast ===== */
     var qaqToastTimeout = null;
@@ -40,12 +177,6 @@ var qaqImportCtrl = {
     busy: false
 };
 
-function qaqResetImportCtrl() {
-    qaqImportCtrl.cancelled = false;
-    qaqImportCtrl.loadingTask = null;
-    qaqImportCtrl.activeReader = null;
-    qaqImportCtrl.busy = false;
-}
 
 function qaqIsImportCancelled() {
     return !!qaqImportCtrl.cancelled;
@@ -430,86 +561,7 @@ document.getElementById('qaq-review-story-output').addEventListener('click', fun
     }
 });
 
-// 添加新函数：从所有词库中查找单词
-function qaqFindWordFromAllBooks(rawWord, callback) {
-    var key = String(rawWord || '').toLowerCase().replace(/^[^a-zA-Z]+|[^a-zA-Z]+$/g, '');
-    if (!key) return callback(null);
-    
-    var books = qaqGetWordbooks();
-    for (var i = 0; i < books.length; i++) {
-        var words = books[i].words || [];
-        for (var j = 0; j < words.length; j++) {
-            var w = String(words[j].word || '').toLowerCase();
-            if (key === w || 
-                key === w + 's' || 
-                key === w + 'ed' || 
-                key === w + 'ing' ||
-                key === w.replace(/y$/, 'ies')) {
-                return callback({
-                    id: words[j].id,
-                    word: words[j].word,
-                    meaning: words[j].meaning || '暂无释义',
-                    phonetic: words[j].phonetic || '',
-                    example: words[j].example || '',
-                    exampleCn: words[j].exampleCn || '',
-                    bookId: books[i].id,
-                    bookName: books[i].name
-                });
-            }
-        }
-    }
-    callback(null);
-}
 
-// 添加新函数：通过 API 获取单词释义
-async function qaqFetchWordMeaningFromAPI(rawWord, rect) {
-    var cfg = qaqGetReviewApiConfig();
-    if (!cfg.key || !cfg.model) {
-        return qaqToast('请先配置 API 以查询生词');
-    }
-    
-    qaqToast('正在查询释义...');
-    
-    try {
-        var prompt = 
-            '请为这个英语单词提供释义，只返回 JSON，不要其他解释。\n' +
-            '单词：' + rawWord + '\n\n' +
-            '返回格式：\n' +
-            '{\n' +
-            '  "word": "单词原形",\n' +
-            '  "phonetic": "音标",\n' +
-            '  "meaning": "中文释义"\n' +
-            '}\n\n' +
-            '要求：释义简洁准确，适合四六级学习';
-        
-        var content = '';
-        if (cfg.provider === 'openai' || cfg.provider === 'minimax-openai') {
-            content = await qaqReviewGenerateByOpenAICompatible(cfg, prompt);
-        } else if (cfg.provider === 'minimax-native') {
-            content = await qaqReviewGenerateByMiniMaxNative(cfg, prompt);
-        } else {
-            throw new Error('不支持的 provider');
-        }
-        
-        var parsed = qaqExtractJsonBlock(content);
-        if (!parsed || !parsed.meaning) {
-            throw new Error('无法解析返回内容');
-        }
-        
-        var wordInfo = {
-            word: parsed.word || rawWord,
-            meaning: parsed.meaning || '暂无释义',
-            phonetic: parsed.phonetic || '',
-            example: '',
-            exampleCn: ''
-        };
-        
-        qaqOpenWordPopover(wordInfo, rect);
-    } catch (err) {
-        console.error(err);
-        qaqToast('查询失败：' + (err.message || '未知错误'));
-    }
-}
 
 document.addEventListener('click', function (e) {
     var pop = document.getElementById('qaq-word-popover');
@@ -582,8 +634,9 @@ function qaqCloseModal() {
     setTimeout(function () {
         if (!overlay.classList.contains('qaq-modal-show')) {
             overlay.style.display = 'none';
+            modalBody.innerHTML = '';  // ★ 释放弹窗内DOM
         }
-    }, 260);
+    }, 220);
 }
 
     overlay.addEventListener('click', function (e) {
@@ -788,9 +841,7 @@ function qaqCloseModal() {
     var qaqSwitchTimer = null;
 
 function qaqGetCurrentPage() {
-    return document.querySelector(
-        '.qaq-settings-page.qaq-page-show, .qaq-settings-sub.qaq-page-show, .qaq-plan-page.qaq-page-show, .qaq-wordbank-page.qaq-page-show, .qaq-wordbook-detail-page.qaq-page-show, .qaq-plan-theme-page.qaq-page-show, .qaq-wordbank-theme-page.qaq-page-show, .qaq-word-review-page.qaq-page-show, .qaq-review-story-page.qaq-page-show'
-    );
+    return document.querySelector('[class*="qaq-"].qaq-page-show');
 }
 
 function qaqSetPageSwitching(on) {
@@ -1291,11 +1342,6 @@ function qaqSaveReviewStoryFavorites(list) {
     localStorage.setItem('qaq-review-story-favorites', JSON.stringify(list || []));
 }
 
-function qaqIsStoryFavorite(createdAt) {
-    return qaqGetReviewStoryFavorites().some(function (item) {
-        return item.createdAt === createdAt;
-    });
-}
 
 function qaqToggleStoryFavorite(story) {
     var list = qaqGetReviewStoryFavorites();
@@ -1343,40 +1389,9 @@ function qaqEscapeHtml(str) {
         .replace(/'/g, '&#39;');
 }
 
-function qaqSplitStoryParagraphs(text) {
-    return String(text || '')
-        .split(/\n{2,}/)
-        .map(function (p) { return p.trim(); })
-        .filter(Boolean);
-}
-
-function qaqSplitSentences(text) {
-    var arr = String(text || '').match(/[^.!?。\n]+[.!?。]?/g) || [];
-    return arr.map(function (s) { return s.trim(); }).filter(Boolean);
-}
 
 function qaqNormalizeWordToken(token) {
     return String(token || '').toLowerCase().replace(/^[^a-zA-Z]+|[^a-zA-Z]+$/g, '');
-}
-
-function qaqBuildStoryWordMeaningMap() {
-    var words = qaqGetReviewStorySourceWords();
-    var map = {};
-    words.forEach(function (item) {
-        var key = qaqNormalizeWordToken(item.word);
-        if (key) map[key] = item.meaning || '暂无释义';
-    });
-    return map;
-}
-
-function qaqWrapWordsWithMeaning(text, wordMap) {
-    return String(text || '').replace(/\b([A-Za-z][A-Za-z'-]*)\b/g, function (m, raw) {
-        var key = qaqNormalizeWordToken(raw);
-        if (wordMap[key]) {
-            return '<span class="qaq-review-story-word" data-word="' + qaqEscapeHtml(raw) + '" data-meaning="' + qaqEscapeHtml(wordMap[key]) + '">' + raw + '</span>';
-        }
-        return raw;
-    });
 }
 
 
@@ -1905,36 +1920,6 @@ async function qaqBatchFetchWordMeanings(allWords, sourceWords, cfg) {
     return meanings;
 }
 
-// 同步从所有词库中查找单词
-function qaqFindWordFromAllBooksSync(rawWord) {
-    var key = String(rawWord || '').toLowerCase().replace(/^[^a-zA-Z]+|[^a-zA-Z]+$/g, '');
-    if (!key) return null;
-
-    var books = qaqGetWordbooks();
-    for (var i = 0; i < books.length; i++) {
-        var words = books[i].words || [];
-        for (var j = 0; j < words.length; j++) {
-            var w = String(words[j].word || '').toLowerCase();
-            if (key === w ||
-                key === w + 's' ||
-                key === w + 'ed' ||
-                key === w + 'ing' ||
-                key === w.replace(/y$/, 'ies')) {
-                return {
-                    id: words[j].id,
-                    word: words[j].word,
-                    meaning: words[j].meaning || '暂无释义',
-                    phonetic: words[j].phonetic || '',
-                    example: words[j].example || '',
-                    exampleCn: words[j].exampleCn || '',
-                    bookId: books[i].id,
-                    bookName: books[i].name
-                };
-            }
-        }
-    }
-    return null;
-}
 
 document.getElementById('qaq-review-story-back').addEventListener('click', function () {
     if (qaqReviewStoryAbortCtrl) {
@@ -2300,7 +2285,7 @@ function qaqRenderWordbookHome(keyword) {
 
         listEl.appendChild(div);
     });
-    setTimeout(qaqApplyWordbankCardTheme, 0);
+    qaqApplyWordbankCardThemeDebounced();
 }
 
 function qaqEditWordbookMeta(bookId) {
@@ -2483,7 +2468,7 @@ function qaqRenderWordbookDetail(bookId, keyword) {
             });
         });
     }
-    setTimeout(qaqApplyWordbankCardTheme, 0);
+    qaqApplyWordbankCardThemeDebounced();
 }
 
 /* ===== 词库首页：选择模式 ===== */
@@ -2599,8 +2584,11 @@ document.getElementById('qaq-word-entry-batch-delete-btn').addEventListener('cli
         qaqSelectedWordIds = [];
         qaqWordEntrySelectMode = false;
 
-        qaqRenderWordbookDetail(qaqCurrentWordbookId, document.getElementById('qaq-wordbook-detail-search').value);
-        qaqRenderWordbookHome(document.getElementById('qaq-wordbook-search').value);
+        // ★ 延迟渲染
+        setTimeout(function () {
+            qaqRenderWordbookDetail(qaqCurrentWordbookId, document.getElementById('qaq-wordbook-detail-search').value);
+            qaqRenderWordbookHome(document.getElementById('qaq-wordbook-search').value);
+        }, 230);
         qaqToast('已删除 ' + count + ' 条词条');
     });
 });
@@ -2631,18 +2619,21 @@ function qaqEditWordEntry(bookId, wordId) {
 
     document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
     document.getElementById('qaq-modal-confirm').onclick = function () {
-        var newWord = document.getElementById('qaq-word-entry-word').value.trim();
-        var newMeaning = document.getElementById('qaq-word-entry-meaning').value.trim();
-        if (!newWord || !newMeaning) return qaqToast('请填写完整');
+    var newWord = document.getElementById('qaq-word-entry-word').value.trim();
+    var newMeaning = document.getElementById('qaq-word-entry-meaning').value.trim();
+    if (!newWord || !newMeaning) return qaqToast('请填写完整');
 
-        item.word = newWord;
-        item.meaning = newMeaning;
-        qaqSaveWordbooks(books);
-        qaqCloseModal();
-        qaqRenderWordbookDetail(bookId, document.getElementById('qaq-wordbook-detail-search').value);
+    item.word = newWord;
+    item.meaning = newMeaning;
+    qaqSaveWordbooks(books);
+    qaqCloseModal();
+    qaqRenderWordbookDetail(bookId, document.getElementById('qaq-wordbook-detail-search').value);
+    // ★ 首页延迟渲染，不阻塞弹窗关闭动画
+    setTimeout(function () {
         qaqRenderWordbookHome(document.getElementById('qaq-wordbook-search').value);
-        qaqToast('已保存');
-    };
+    }, 280);
+    qaqToast('已保存');
+};
 }
 
 function qaqDeleteWordEntry(bookId, wordId) {
@@ -2655,8 +2646,8 @@ function qaqDeleteWordEntry(bookId, wordId) {
         if (idx > -1) {
             book.words.splice(idx, 1);
             qaqSaveWordbooks(books);
+            // ★ 只渲染当前详情页，首页延迟渲染
             qaqRenderWordbookDetail(bookId, document.getElementById('qaq-wordbook-detail-search').value);
-            qaqRenderWordbookHome(document.getElementById('qaq-wordbook-search').value);
             qaqToast('已删除');
         }
     });
@@ -2682,29 +2673,32 @@ function qaqAddWordEntryToCurrentBook() {
 
     document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
     document.getElementById('qaq-modal-confirm').onclick = function () {
-        var newWord = document.getElementById('qaq-word-entry-word').value.trim();
-        var newMeaning = document.getElementById('qaq-word-entry-meaning').value.trim();
-        if (!newWord || !newMeaning) return qaqToast('请填写完整');
+    var newWord = document.getElementById('qaq-word-entry-word').value.trim();
+    var newMeaning = document.getElementById('qaq-word-entry-meaning').value.trim();
+    if (!newWord || !newMeaning) return qaqToast('请填写完整');
 
-        var books = qaqGetWordbooks();
-        var book = books.find(function (b) { return b.id === qaqCurrentWordbookId; });
-        if (!book) return;
+    var books = qaqGetWordbooks();
+    var book = books.find(function (b) { return b.id === qaqCurrentWordbookId; });
+    if (!book) return;
 
-        book.words.unshift({
-            id: qaqWordId(),
-            word: newWord,
-            meaning: newMeaning,
-            phonetic: '',
-            example: '',
-            exampleCn: ''
-        });
+    book.words.unshift({
+        id: qaqWordId(),
+        word: newWord,
+        meaning: newMeaning,
+        phonetic: '',
+        example: '',
+        exampleCn: ''
+    });
 
-        qaqSaveWordbooks(books);
-        qaqCloseModal();
-        qaqRenderWordbookDetail(qaqCurrentWordbookId, document.getElementById('qaq-wordbook-detail-search').value);
+    qaqSaveWordbooks(books);
+    qaqCloseModal();
+    // ★ 先渲染当前页，首页异步
+    qaqRenderWordbookDetail(qaqCurrentWordbookId, document.getElementById('qaq-wordbook-detail-search').value);
+    setTimeout(function () {
         qaqRenderWordbookHome(document.getElementById('qaq-wordbook-search').value);
-        qaqToast('已添加');
-    };
+    }, 280);
+    qaqToast('已添加');
+};
 }
 
 /* ===== 导入 ===== */
@@ -2812,12 +2806,8 @@ function qaqImportWordbankExcel(file) {
                         qaqUpdateImportProgress(skipP, '跳过空工作表：' + sheetName);
                         continue;
                     }
-
-                    console.log('sheetName =', sheetName);
-                    console.log('rows sample =', rows.slice(0, 10));
-
                     var parsed = qaqParseExcelRowsToWordbank(rows, sheetName);
-                    console.log('parsed count =', parsed.length);
+                    
 
                     result = result.concat(parsed);
 
@@ -3214,14 +3204,7 @@ function qaqParseExcelRowsToWordbank(rows, sheetName) {
     var structuredEval = evaluate(qaqParseExcelStructuredRows(rows, sheetName));
     var fallbackEval = evaluate(qaqParseExcelFallbackByCells(rows, sheetName));
 
-    console.log('[' + sheetName + '] fixed accepted =', fixedEval.accepted.length, 'rejected =', fixedEval.rejected.length);
-    console.log('[' + sheetName + '] structured accepted =', structuredEval.accepted.length, 'rejected =', structuredEval.rejected.length);
-    console.log('[' + sheetName + '] fallback accepted =', fallbackEval.accepted.length, 'rejected =', fallbackEval.rejected.length);
-
-    console.log('[' + sheetName + '] fixed sample =', fixedEval.normalized.slice(0, 10));
-    console.log('[' + sheetName + '] structured sample =', structuredEval.normalized.slice(0, 10));
-    console.log('[' + sheetName + '] fallback sample =', fallbackEval.normalized.slice(0, 10));
-
+    
     var best = fixedEval;
     if (structuredEval.accepted.length > best.accepted.length) best = structuredEval;
     if (fallbackEval.accepted.length > best.accepted.length) best = fallbackEval;
@@ -3229,9 +3212,7 @@ function qaqParseExcelRowsToWordbank(rows, sheetName) {
     // 如果 accepted 都很少，再尝试“宽松模式”
     if (best.accepted.length <= 2 && typeof qaqParseExcelLooseRows === 'function') {
         var looseEval = evaluate(qaqParseExcelLooseRows(rows, sheetName));
-        console.log('[' + sheetName + '] loose accepted =', looseEval.accepted.length, 'rejected =', looseEval.rejected.length);
-        console.log('[' + sheetName + '] loose sample =', looseEval.normalized.slice(0, 10));
-
+        
         if (looseEval.accepted.length > best.accepted.length) {
             best = looseEval;
         }
@@ -3594,10 +3575,7 @@ wordbankFileInput.addEventListener('change', async function () {
     });
 
 var classified = qaqClassifyWordCandidates(normalized);
-console.log('normalized total =', normalized.length);
-console.log('accepted total =', classified.accepted.length);
-console.log('rejected total =', classified.rejected.length);
-console.log('rejected sample =', classified.rejected.slice(0, 20));
+
 
 if (!classified.accepted.length && !classified.rejected.length) {
     qaqToast('没有识别到有效词条');
@@ -4148,22 +4126,25 @@ card.addEventListener('click', function () {
     });
 
     container.querySelectorAll('.qaq-plan-card-del').forEach(function (btn) {
-        btn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            var id = this.dataset.planId;
-            qaqConfirm('删除计划', '确认删除这条计划吗？', function () {
-                var dayItems = qaqGetDayPlans(qaqPlanSelectedDate);
-                var idx = dayItems.findIndex(function (x) { return x.id === id; });
-                if (idx > -1) {
-                    dayItems.splice(idx, 1);
-                    qaqSaveDayPlans(qaqPlanSelectedDate, dayItems);
+    btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var id = this.dataset.planId;
+        qaqConfirm('删除计划', '确认删除这条计划吗？', function () {
+            var dayItems = qaqGetDayPlans(qaqPlanSelectedDate);
+            var idx = dayItems.findIndex(function (x) { return x.id === id; });
+            if (idx > -1) {
+                dayItems.splice(idx, 1);
+                qaqSaveDayPlans(qaqPlanSelectedDate, dayItems);
+                // ★ 延迟渲染，等弹窗关闭动画结束
+                setTimeout(function () {
                     qaqRenderPlanCards();
                     qaqRenderWidgetPlans();
-                    qaqToast('已删除');
-                }
-            });
+                }, 230);
+                qaqToast('已删除');
+            }
         });
     });
+});
 }
 
     function qaqOpenPlanPage() {
@@ -4414,23 +4395,26 @@ function qaqEditPlan(dateKey, planId) {
     /* ==== 保存 ==== */
     document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
     document.getElementById('qaq-modal-confirm').onclick = function () {
-        var name = document.getElementById('qaq-pf-name').value.trim();
-        if (!name) return qaqToast('请输入项目名称');
+    var name = document.getElementById('qaq-pf-name').value.trim();
+    if (!name) return qaqToast('请输入项目名称');
 
-        item.name = name;
-        item.desc = document.getElementById('qaq-pf-desc').value.trim();
-        item.thought = document.getElementById('qaq-pf-thought').value.trim();
-        item.time = selectedTime;
-        item.duration = document.getElementById('qaq-pf-duration').value.trim();
-        item.color = selectedColor;
-        item.category = selectedCategory;
+    item.name = name;
+    item.desc = document.getElementById('qaq-pf-desc').value.trim();
+    item.thought = document.getElementById('qaq-pf-thought').value.trim();
+    item.time = selectedTime;
+    item.duration = document.getElementById('qaq-pf-duration').value.trim();
+    item.color = selectedColor;
+    item.category = selectedCategory;
 
-        qaqSaveDayPlans(dateKey, dayItems);
-        qaqCloseModal();
+    qaqSaveDayPlans(dateKey, dayItems);
+    qaqCloseModal();
+    // ★ 延迟渲染
+    setTimeout(function () {
         qaqRenderPlanCards();
         qaqRenderWidgetPlans();
-        qaqToast('已保存');
-    };
+    }, 230);
+    qaqToast('已保存');
+};
 }
 
     document.getElementById('qaq-plan-add-btn').addEventListener('click', function () {
@@ -5560,7 +5544,12 @@ function qaqApplyWordbankTheme() {
         if (detailOverlay) detailOverlay.style.display = 'none';
     }
 }
-
+// ★ 找到 function qaqApplyWordbankCardTheme() 前面，加这段
+var _qaqCardThemeTimer = null;
+function qaqApplyWordbankCardThemeDebounced() {
+    clearTimeout(_qaqCardThemeTimer);
+    _qaqCardThemeTimer = setTimeout(qaqApplyWordbankCardTheme, 60);
+}
 function qaqApplyWordbankCardTheme() {
     var theme = qaqGetWordbankTheme();
     var opacity = (theme.cardOpacity != null ? theme.cardOpacity : 55) / 100;
@@ -5700,7 +5689,7 @@ document.getElementById('qaq-wbt-card-upload').addEventListener('click', functio
         if (qaqCurrentWordbookId) {
             qaqRenderWordbookDetail(qaqCurrentWordbookId, document.getElementById('qaq-wordbook-detail-search').value);
         }
-        setTimeout(qaqApplyWordbankCardTheme, 0);
+        qaqApplyWordbankCardThemeDebounced();
         qaqToast('卡片背景已设置');
     });
 });
@@ -5715,7 +5704,7 @@ document.getElementById('qaq-wbt-card-clear').addEventListener('click', function
     if (qaqCurrentWordbookId) {
         qaqRenderWordbookDetail(qaqCurrentWordbookId, document.getElementById('qaq-wordbook-detail-search').value);
     }
-    setTimeout(qaqApplyWordbankCardTheme, 0);
+    qaqApplyWordbankCardThemeDebounced();
     qaqToast('卡片背景已清除');
 });
 
@@ -5737,7 +5726,7 @@ document.getElementById('qaq-wbt-card-opacity').addEventListener('input', functi
     if (qaqCurrentWordbookId) {
         qaqRenderWordbookDetail(qaqCurrentWordbookId, document.getElementById('qaq-wordbook-detail-search').value);
     }
-    setTimeout(qaqApplyWordbankCardTheme, 0);
+    qaqApplyWordbankCardThemeDebounced();
 });
 
 /* 重置 */
@@ -5750,7 +5739,7 @@ document.getElementById('qaq-wbt-reset').addEventListener('click', function () {
         if (qaqCurrentWordbookId) {
             qaqRenderWordbookDetail(qaqCurrentWordbookId, document.getElementById('qaq-wordbook-detail-search').value);
         }
-        setTimeout(qaqApplyWordbankCardTheme, 0);
+        qaqApplyWordbankCardThemeDebounced();
         qaqToast('已恢复默认');
     });
 });
@@ -6404,46 +6393,6 @@ function qaqNormalizeReviewWord(word, bookId, bookName) {
     };
 }
 
-function qaqStartWordReview(book, count) {
-    var settings = qaqGetReviewSettings();
-
-    var sourceWords = (book.words || []).map(function (w) {
-        return qaqNormalizeReviewWord(w, book.id, book.name);
-    });
-
-    if (settings.skipMarked) {
-        sourceWords = sourceWords.filter(function (w) {
-            return !qaqIsMarkedWord(book.id, w.id);
-        });
-    }
-
-    if (!sourceWords.length) {
-        return qaqToast(settings.skipMarked ? '这本词库的单词都被标记跳过了' : '这本词库没有可背单词');
-    }
-
-    var finalPool = settings.random ? qaqShuffle(sourceWords) : sourceWords.slice();
-    var source = finalPool.slice(0, Math.min(count, sourceWords.length));
-
-    qaqReviewSession = {
-        bookId: book.id,
-        bookName: book.name,
-        queue: source.slice(),
-        current: null,
-        history: [],
-        roundTotal: source.length,
-        shownMeaning: false,
-        pendingLevel: '',
-        stats: {
-            unknown: 0,
-            vague: 0,
-            known: 0
-        }
-    };
-
-    qaqSwitchTo(qaqWordReviewPage);
-    qaqReviewGoNext();
-}
-
 function qaqRenderCurrentReviewWord() {
     var item = qaqReviewSession.current;
     if (!item) return;
@@ -7004,14 +6953,14 @@ function qaqGetReviewApiConfig() {
         var reviewBtn = target.closest('.qaq-word-review-btn');
         if (reviewBtn) {
             var level = reviewBtn.dataset.level;
-            console.log('review btn clicked:', level);
+            
             qaqReviewShowMeaning(level);
             return true;
         }
 
         var nextBtn = target.closest('#qaq-review-next-btn');
         if (nextBtn) {
-            console.log('review next clicked');
+            
             qaqReviewFinishCurrent();
             return true;
         }
@@ -7208,7 +7157,7 @@ function qaqRenderMinePanel(keyword) {
         });
     });
 
-    setTimeout(qaqApplyWordbankCardTheme, 0);
+    qaqApplyWordbankCardThemeDebounced();
 }
 
 function qaqNormalizeOpenAIChatUrl(url) {
@@ -7261,7 +7210,13 @@ async function qaqReviewGenerateByOpenAICompatible(cfg, prompt, signal) {
     if (!content) {
         throw new Error('兼容接口返回为空');
     }
-
+// Token 统计
+var usage = data.usage;
+if (usage && usage.total_tokens) {
+    qaqAddTokens(usage.total_tokens);
+} else {
+    qaqAddTokens(qaqEstimateTokens(prompt) + qaqEstimateTokens(content));
+}
     return content;
 }
 
@@ -7364,7 +7319,13 @@ async function qaqReviewGenerateByMiniMaxNative(cfg, prompt, signal) {
     if (!content) {
         throw new Error('MiniMax 原生接口返回为空');
     }
-
+// Token 统计
+var usage = data.usage;
+if (usage && usage.total_tokens) {
+    qaqAddTokens(usage.total_tokens);
+} else {
+    qaqAddTokens(qaqEstimateTokens(prompt) + qaqEstimateTokens(content));
+}
     return content;
 }
 /* ===== 分模块数据导出导入 ===== */

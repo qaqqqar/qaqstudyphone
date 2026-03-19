@@ -3,7 +3,7 @@
 :root {
     --qaq-page-duration: 0.18s;
     --qaq-page-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
-    --qaq-statusbar-h: max(env(safe-area-inset-top, 20px), 20px);
+    --qaq-statusbar-h: max(env(safe-area-inset-top, 5vw), 5vw);
 }
 
 html {                       /* ← 新增整块 */
@@ -66,7 +66,7 @@ body {
     flex-shrink: 0;
     position: relative;
     z-index: 90;
-    min-height: calc(var(--qaq-statusbar-h) + 1.5vw);
+    min-height: calc(var(--qaq-statusbar-h) + 2.5vw);
 }
 
 .qaq-time-display {

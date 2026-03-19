@@ -5076,3 +5076,24 @@ body {
     padding-top: 20px;
 }
 
+/* 用真实视口高度替代 100vh */
+.qaq-phone-frame {
+    height: calc(var(--qaq-vh, 1vh) * 100);
+    max-height: calc(var(--qaq-vh, 1vh) * 100);
+    overflow: hidden;
+    position: relative;
+}
+
+/* 全屏状态下去掉圆角和边框 */
+.qaq-phone-frame.qaq-fullscreen {
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    width: 100vw;
+    height: calc(var(--qaq-vh, 1vh) * 100);
+}
+
+/* 安卓浏览器地址栏隐藏后的过渡 */
+.qaq-phone-frame {
+    transition: height 0.2s ease;
+}

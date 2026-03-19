@@ -7565,6 +7565,104 @@ async function ensurePDFJS() {
         document.head.appendChild(s);
     });
 }
+// ===== Android 全屏适配 =====
+(function androidFullscreen() {
+    const phoneFrame = document.querySelector('.qaq-phone-frame');
+    if (!phoneFrame) return;
+
+    // 1. 真实视口高度（解决地址栏收缩问题）
+    function setRealVH() {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--qaq-vh', vh + 'px');
+        phoneFrame.style.height = window.innerHeight + 'px';
+    }
+
+    setRealVH();
+    window.addEventListener('resize', setRealVH);
+
+    // 部分安卓浏览器 resize 不触发，用 visualViewport 兜底
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', setRealVH);
+    }
+
+    // 2. 尝试进入全屏模式（需要用户手势触发）
+    function tryFullscreen() {
+        const el = document.documentElement;
+        const rfs = el.requestFullscreen
+            || el.webkitRequestFullscreen
+            || el.mozRequestFullScreen
+            || el.msRequestFullscreen;
+        if (rfs) {
+            rfs.call(el).catch(() => {});
+        }
+    }
+
+    // 3. 监听全屏状态变化
+    function onFullscreenChange() {
+        const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+        phoneFrame.classList.toggle('qaq-fullscreen', isFS);
+        // 全屏后重新算高度
+        setTimeout(setRealVH, 100);
+    }
+
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+
+    // 4. 双击顶部状态栏区域切换全屏
+    const statusBar = document.querySelector('.qaq-status-bar');
+    if (statusBar) {
+        let lastTap = 0;
+        statusBar.addEventListener('click', function () {
+            const now = Date.now();
+            if (now - lastTap < 300) {
+                const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+                if (isFS) {
+                    (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+                } else {
+                    tryFullscreen();
+                }
+            }
+            lastTap = now;
+        });
+    }
+
+    // 5. 首次触摸时尝试全屏（安卓要求用户手势）
+    let firstTouch = true;
+    document.addEventListener('touchstart', function () {
+        if (firstTouch) {
+            firstTouch = false;
+            tryFullscreen();
+        }
+    }, { once: true });
+
+    // 6. 软键盘弹出适配（安卓输入框聚焦时视口会缩小）
+    const inputs = phoneFrame.querySelectorAll('input, textarea');
+    inputs.forEach(function (input) {
+        input.addEventListener('focus', function () {
+            setTimeout(function () {
+                input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+        });
+
+        input.addEventListener('blur', function () {
+            // 键盘收起后恢复高度
+            setTimeout(setRealVH, 200);
+        });
+    });
+
+    // 7. 阻止双指缩放（保持 UI 一致性）
+    document.addEventListener('touchmove', function (e) {
+        if (e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (e) {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) e.preventDefault();
+        lastTouchEnd = now;
+    }, false);
+
+})();
 
 // 替换原有的导出导入事件
 document.getElementById('qaq-set-export').addEventListener('click', function() {

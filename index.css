@@ -5097,3 +5097,28 @@ body {
 .qaq-phone-frame {
     transition: height 0.2s ease;
 }
+/* 状态栏开启时 */
+.qaq-settings-page,
+.qaq-settings-sub,
+.qaq-plan-page,
+.qaq-wordbank-page,
+.qaq-wordbook-detail-page,
+.qaq-wordbank-theme-page,
+.qaq-plan-theme-page,
+.qaq-word-review-page,
+.qaq-review-story-page {
+    padding-top: calc(var(--qaq-statusbar-h) + 3vw);
+}
+
+/* 状态栏关闭时 */
+.qaq-statusbar-hidden .qaq-settings-page,
+.qaq-statusbar-hidden .qaq-settings-sub,
+.qaq-statusbar-hidden .qaq-plan-page,
+.qaq-statusbar-hidden .qaq-wordbank-page,
+.qaq-statusbar-hidden .qaq-wordbook-detail-page,
+.qaq-statusbar-hidden .qaq-wordbank-theme-page,
+.qaq-statusbar-hidden .qaq-plan-theme-page,
+.qaq-statusbar-hidden .qaq-word-review-page,
+.qaq-statusbar-hidden .qaq-review-story-page {
+    padding-top: 3vw;
+}

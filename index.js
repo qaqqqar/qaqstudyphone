@@ -7664,6 +7664,12 @@ async function ensurePDFJS() {
 
 })();
 
+// 状态栏隐藏时
+document.querySelector('.qaq-app').classList.add('qaq-statusbar-hidden');
+
+// 状态栏显示时
+document.querySelector('.qaq-app').classList.remove('qaq-statusbar-hidden');
+
 // 替换原有的导出导入事件
 document.getElementById('qaq-set-export').addEventListener('click', function() {
     qaqOpenExportModal();

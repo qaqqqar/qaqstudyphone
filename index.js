@@ -7540,6 +7540,32 @@ function qaqOpenImportModal() {
     };
 }
 
+async function ensureXLSX() {
+    if (typeof XLSX !== 'undefined') return;
+    return new Promise(function(resolve, reject) {
+        var s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js';
+        s.onload = resolve;
+        s.onerror = function() { reject(new Error('XLSX 加载失败')); };
+        document.head.appendChild(s);
+    });
+}
+
+async function ensurePDFJS() {
+    if (typeof pdfjsLib !== 'undefined') return;
+    return new Promise(function(resolve, reject) {
+        var s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+        s.onload = function() {
+            pdfjsLib.GlobalWorkerOptions.workerSrc =
+                'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+            resolve();
+        };
+        s.onerror = function() { reject(new Error('PDF.js 加载失败')); };
+        document.head.appendChild(s);
+    });
+}
+
 // 替换原有的导出导入事件
 document.getElementById('qaq-set-export').addEventListener('click', function() {
     qaqOpenExportModal();

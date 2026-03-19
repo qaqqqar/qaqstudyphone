@@ -4730,12 +4730,24 @@ document.getElementById('qaq-plan-cat-manage-btn').addEventListener('click', fun
     };
 
     function qaqApplyTheme(t) {
-        var phoneFrame = document.querySelector('.qaq-phone-frame');
-        phoneFrame.style.background = themes[t] || themes['default'];
-        phoneFrame.classList.remove('qaq-theme-cool', 'qaq-theme-dark');
-        if (t === 'cool') phoneFrame.classList.add('qaq-theme-cool');
-        if (t === 'dark') phoneFrame.classList.add('qaq-theme-dark');
+    var phoneFrame = document.querySelector('.qaq-phone-frame');
+    phoneFrame.style.background = themes[t] || themes['default'];
+    phoneFrame.classList.remove('qaq-theme-cool', 'qaq-theme-dark');
+    if (t === 'cool') phoneFrame.classList.add('qaq-theme-cool');
+    if (t === 'dark') phoneFrame.classList.add('qaq-theme-dark');
+
+    // 动态更新系统状态栏颜色
+    var themeColors = {
+        'default': '#f6e9c9',
+        'cool': '#ebeef3',
+        'dark': '#121212'
+    };
+    var color = themeColors[t] || themeColors['default'];
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+        meta.setAttribute('content', color);
     }
+}
 
     document.querySelectorAll('[data-theme]').forEach(function (item) {
         item.addEventListener('click', function () {

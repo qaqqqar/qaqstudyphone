@@ -1,6 +1,12 @@
 (function () {
     'use strict';
 
+    /* ===== 全局错误捕获 ===== */
+    window.addEventListener('error', function(e) {
+        document.title = 'ERR: ' + e.message;
+        console.error('[QAQ Global Error]', e.message, e.filename, e.lineno);
+    });
+
     /* ===== 时间更新 ===== */
     function qaqUpdateClock() {
         var now = new Date();

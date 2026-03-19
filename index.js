@@ -47,6 +47,12 @@ function qaqApplyStatusBar() {
     if (!bar) return;
     bar.style.display = s.visible ? '' : 'none';
 
+    // ★ 新增：同步 class 到 phone-frame
+    var frame = document.querySelector('.qaq-phone-frame');
+    if (frame) {
+        frame.classList.toggle('qaq-statusbar-hidden', !s.visible);
+    }
+
     var tokenEl = document.getElementById('qaq-token-display');
     if (tokenEl) {
         if (s.showToken) {
@@ -7664,11 +7670,6 @@ async function ensurePDFJS() {
 
 })();
 
-// 状态栏隐藏时
-document.querySelector('.qaq-app').classList.add('qaq-statusbar-hidden');
-
-// 状态栏显示时
-document.querySelector('.qaq-app').classList.remove('qaq-statusbar-hidden');
 
 // 替换原有的导出导入事件
 document.getElementById('qaq-set-export').addEventListener('click', function() {

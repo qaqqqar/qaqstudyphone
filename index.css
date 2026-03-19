@@ -5110,15 +5110,15 @@ body {
     padding-top: calc(var(--qaq-statusbar-h) + 3vw);
 }
 
-/* 状态栏关闭时 */
-.qaq-statusbar-hidden .qaq-settings-page,
-.qaq-statusbar-hidden .qaq-settings-sub,
-.qaq-statusbar-hidden .qaq-plan-page,
-.qaq-statusbar-hidden .qaq-wordbank-page,
-.qaq-statusbar-hidden .qaq-wordbook-detail-page,
-.qaq-statusbar-hidden .qaq-wordbank-theme-page,
-.qaq-statusbar-hidden .qaq-plan-theme-page,
-.qaq-statusbar-hidden .qaq-word-review-page,
-.qaq-statusbar-hidden .qaq-review-story-page {
+/* 状态栏关闭时，子页面和主内容都上移 */
+.qaq-phone-frame.qaq-statusbar-hidden .qaq-settings-page,
+.qaq-phone-frame.qaq-statusbar-hidden .qaq-settings-sub,
+.qaq-phone-frame.qaq-statusbar-hidden .qaq-plan-page,
+.qaq-phone-frame.qaq-statusbar-hidden .qaq-wordbank-page,
+.qaq-phone-frame.qaq-statusbar-hidden .qaq-wordbook-detail-page,
+.qaq-phone-frame.qaq-statusbar-hidden .qaq-wordbank-theme-page,
+.qaq-phone-frame.qaq-statusbar-hidden .qaq-plan-theme-page,
+.qaq-phone-frame.qaq-statusbar-hidden .qaq-word-review-page,
+.qaq-phone-frame.qaq-statusbar-hidden .qaq-review-story-page {
     padding-top: 3vw;
 }

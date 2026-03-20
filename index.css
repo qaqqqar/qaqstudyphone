@@ -1393,21 +1393,33 @@ body {
 }
 
 .qaq-plan-add-btn {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     border: none;
-    background: linear-gradient(135deg, #f6e9c9, #fed2e0);
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: transform 0.2s, opacity 0.2s;
+    transition: transform0.2s, opacity 0.2s, background 0.2s;
     flex-shrink: 0;
+    padding: 0;
 }
 
 .qaq-plan-add-btn:active {
-    transform: scale(0.88);
+    transform: scale(0.85);
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.qaq-plan-add-btn svg {
+    width: 15px;
+    height: 15px;
+}
+
+.qaq-plan-add-btn svg[width] {
+    width: 15px !important;
+    height: 15px !important;
 }
 
 .qaq-plan-page-content {
@@ -1725,7 +1737,11 @@ body {
 }
 
 .qaq-theme-dark .qaq-plan-add-btn {
-    background: linear-gradient(135deg, #4a3a2a, #5a3a4a);
+    background: transparent;
+}
+
+.qaq-theme-dark .qaq-plan-add-btn:active {
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .qaq-theme-dark .qaq-plan-add-btn svg {
@@ -1792,7 +1808,11 @@ body {
 }
 
 .qaq-theme-cool .qaq-plan-add-btn {
-    background: linear-gradient(135deg, #d0d8e8, #bfc9dd);
+    background: transparent;
+}
+
+.qaq-theme-cool .qaq-plan-add-btn:active {
+    background: rgba(0, 0, 0, 0.06);
 }
 
 .qaq-theme-cool .qaq-plan-date-chip.qaq-date-active {

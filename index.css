@@ -5214,3 +5214,32 @@ body {
 .qaq-theme-cool .qaq-review-settings-page {
     background: linear-gradient(160deg, #ebeef3 0%, #f0f2f5 25%, #f3f4f7 50%, #eef0f4 75%, #ebeef3 100%);
 }
+
+/* ===== 空状态提示美化 ===== */
+.qaq-wordbank-empty,
+#qaq-wordbook-empty,
+#qaq-wordbook-detail-empty,
+#qaq-review-book-empty,
+#qaq-mine-fav-empty {
+    text-align: center;
+    color: #bbb;
+    font-size: 13px;
+    padding: 50px 20px;
+    line-height: 1.8;
+}
+
+.qaq-theme-dark .qaq-wordbank-empty,
+.qaq-theme-dark #qaq-wordbook-empty,
+.qaq-theme-dark #qaq-wordbook-detail-empty,
+.qaq-theme-dark #qaq-review-book-empty,
+.qaq-theme-dark #qaq-mine-fav-empty {
+    color: #555;
+}
+
+.qaq-theme-cool .qaq-wordbank-empty,
+.qaq-theme-cool #qaq-wordbook-empty,
+.qaq-theme-cool #qaq-wordbook-detail-empty,
+.qaq-theme-cool #qaq-review-book-empty,
+.qaq-theme-cool #qaq-mine-fav-empty {
+    color: #9aa4b0;
+}

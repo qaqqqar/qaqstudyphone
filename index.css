@@ -3,7 +3,8 @@
 :root {
     --qaq-page-duration: 0.18s;
     --qaq-page-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
-    --qaq-statusbar-h: max(env(safe-area-inset-top, 5vw), 5vw);
+    --qaq-statusbar-h: max(env(safe-area-inset-top, 4vw), 4vw);
+    --qaq-safe-top: max(env(safe-area-inset-top, 0px), 0px);
 }
 
 html {                       /* ← 新增整块 */
@@ -62,11 +63,12 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--qaq-statusbar-h) 6vw 3vw;
+    padding: var(--qaq-safe-top) 6vw 1.5vw;
+    padding-top: calc(var(--qaq-safe-top) + 1vw);
     flex-shrink: 0;
     position: relative;
     z-index: 90;
-    min-height: calc(var(--qaq-statusbar-h) + 4vw);
+    min-height: calc(var(--qaq-safe-top) + 3vw);
 }
 
 .qaq-time-display {
@@ -4830,7 +4832,6 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    padding-top: calc(var(--qaq-statusbar-h) + 3vw);
     display: flex;
     flex-direction: column;
     transform: translate3d(100%, 0, 0);
@@ -4839,11 +4840,9 @@ body {
     transition:
         transform var(--qaq-page-duration) var(--qaq-page-ease),
         visibility 0s linear var(--qaq-page-duration);
-    will-change: transform;
-    contain: layout paint style;
+    will-change: transform;contain: layout paint style;
     -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    clip-path: inset(0);
+    backface-visibility: hidden;clip-path: inset(0);
     -webkit-clip-path: inset(0);
     overscroll-behavior: none;
 }
@@ -5097,7 +5096,7 @@ body {
 .qaq-phone-frame {
     transition: height 0.2s ease;
 }
-/* 状态栏开启时 */
+/* 状态栏开启时 — 子页面顶部留白 */
 .qaq-settings-page,
 .qaq-settings-sub,
 .qaq-plan-page,
@@ -5107,10 +5106,10 @@ body {
 .qaq-plan-theme-page,
 .qaq-word-review-page,
 .qaq-review-story-page {
-    padding-top: calc(var(--qaq-statusbar-h) + 3vw);
+    padding-top: calc(var(--qaq-safe-top) + 3vw);
 }
 
-/* 状态栏关闭时，子页面和主内容都上移 */
+/* 状态栏关闭时 — 仍保留 iOS safe-area，防止原生状态栏遮挡按钮 */
 .qaq-phone-frame.qaq-statusbar-hidden .qaq-settings-page,
 .qaq-phone-frame.qaq-statusbar-hidden .qaq-settings-sub,
 .qaq-phone-frame.qaq-statusbar-hidden .qaq-plan-page,
@@ -5120,5 +5119,10 @@ body {
 .qaq-phone-frame.qaq-statusbar-hidden .qaq-plan-theme-page,
 .qaq-phone-frame.qaq-statusbar-hidden .qaq-word-review-page,
 .qaq-phone-frame.qaq-statusbar-hidden .qaq-review-story-page {
-    padding-top: 3vw;
+    padding-top: calc(var(--qaq-safe-top) + 3vw);
+}
+
+/* 主内容区：状态栏隐藏时也保留安全距离 */
+.qaq-phone-frame.qaq-statusbar-hidden .qaq-main-content {
+    padding-top: calc(var(--qaq-safe-top) + 2vw);
 }

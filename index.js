@@ -635,9 +635,9 @@ if (qaqImportRetryBtn) {
     function qaqOpenModal() {
     if (!overlay) return;
     overlay.style.display = '';
-    requestAnimationFrame(function () {
-        overlay.classList.add('qaq-modal-show');
-    });
+    //强制 reflow 后再加class，避免跳帧
+    void overlay.offsetHeight;
+    overlay.classList.add('qaq-modal-show');
 }
 
 function qaqCloseModal() {
@@ -645,10 +645,9 @@ function qaqCloseModal() {
     overlay.classList.remove('qaq-modal-show');
     setTimeout(function () {
         if (!overlay.classList.contains('qaq-modal-show')) {
-            overlay.style.display = 'none';
-            modalBody.innerHTML = '';  // ★ 释放弹窗内DOM
+            overlay.style.display = 'none';modalBody.innerHTML = '';
         }
-    }, 220);
+    }, 160);
 }
 
     overlay.addEventListener('click', function (e) {
@@ -4065,7 +4064,7 @@ function qaqOpenCatManage() {
         catItems.forEach(function (item, idx) {
             var card = document.createElement('div');
             card.className = 'qaq-plan-card' + (item.done ? ' qaq-plan-card-done' : '');
-            card.style.animationDelay = (idx * 0.05) + 's';
+            
 
             var timeHtml = item.time ? '<div class="qaq-plan-card-time">' + item.time + '</div>' : '';
             var durationHtml = item.duration ? '<div class="qaq-plan-card-duration">' + item.duration + '</div>' : '';
@@ -4838,43 +4837,6 @@ document.getElementById('qaq-plan-cat-manage-btn').addEventListener('click', fun
     });
 
     /* ===== 数据导出导入清除 ===== */
-    document.getElementById('qaq-set-export').addEventListener('click', function () {
-        var data = {};
-        for (var i = 0; i < localStorage.length; i++) {
-            var key = localStorage.key(i);
-            if (key.indexOf('qaq') === 0) data[key] = localStorage.getItem(key);
-        }
-        var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = 'qaq-backup-' + new Date().toISOString().slice(0, 10) + '.json';
-        a.click();
-        URL.revokeObjectURL(url);
-        qaqToast('数据已导出');
-    });
-
-    document.getElementById('qaq-set-import').addEventListener('click', function () {
-        var input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-        input.onchange = function () {
-            if (!this.files || !this.files[0]) return;
-            var reader = new FileReader();
-            reader.onload = function (e) {
-                try {
-                    var data = JSON.parse(e.target.result);
-                    Object.keys(data).forEach(function (key) { localStorage.setItem(key, data[key]); });
-                    qaqToast('数据已导入，刷新生效');
-                    setTimeout(function () { location.reload(); }, 1000);
-                } catch (err) {
-                    qaqToast('文件格式错误');
-                }
-            };
-            reader.readAsText(this.files[0]);
-        };
-        input.click();
-    });
 
     document.getElementById('qaq-set-clearall').addEventListener('click', function () {
         qaqConfirm('清除所有数据', '此操作不可恢复，确认要清除所有数据吗？', function () {
@@ -5572,7 +5534,7 @@ function qaqApplyWordbankTheme() {
 var _qaqCardThemeTimer = null;
 function qaqApplyWordbankCardThemeDebounced() {
     clearTimeout(_qaqCardThemeTimer);
-    _qaqCardThemeTimer = setTimeout(qaqApplyWordbankCardTheme, 60);
+    _qaqCardThemeTimer = setTimeout(qaqApplyWordbankCardTheme, 150);
 }
 function qaqApplyWordbankCardTheme() {
     var theme = qaqGetWordbankTheme();
@@ -5787,186 +5749,132 @@ var qaqReviewSession = {
     }
 };
 
-function qaqOpenReviewSettingsModal() {
+var qaqReviewSettingsPage = document.getElementById('qaq-review-settings-page');
+
+function qaqOpenReviewSettingsPage() {
     var settings = qaqGetReviewSettings();
 
-    modalTitle.textContent = '背单词设置';
-    modalBody.innerHTML =
-        '<div class="qaq-plan-form">' +
-            '<div class="qaq-plan-form-label">学习设置</div>' +
-            '<input class="qaq-plan-form-input" id="qaq-review-setting-count" type="number" min="1" max="200" value="' + (settings.roundCount || 20) + '" placeholder="本轮单词数">' +
+    document.getElementById('qaq-rs-count').value = settings.roundCount || 20;
+    document.getElementById('qaq-rs-rate').value = settings.speechRate || 0.9;
+    document.getElementById('qaq-rs-story-word-count').value = settings.storyWordCount || 800;
+    document.getElementById('qaq-rs-provider').value = settings.apiProvider || 'openai';
+    document.getElementById('qaq-rs-api-url').value = settings.apiUrl || '';
+    document.getElementById('qaq-rs-api-key').value = settings.apiKey || '';
+    document.getElementById('qaq-rs-api-model').value = settings.apiModel || '';
+    document.getElementById('qaq-rs-minimax-group').value = settings.minimaxGroupId || '';
 
-            '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#666;">' +
-                '<input type="checkbox" id="qaq-review-setting-random" ' + (settings.random ? 'checked' : '') + '> 随机抽取单词' +
-            '</label>' +
+    var toggleMap = {
+        'qaq-rs-random': settings.random,
+        'qaq-rs-auto-pronounce': settings.autoPronounce,
+        'qaq-rs-show-phonetic': settings.showPhonetic,
+        'qaq-rs-show-example': settings.showExample,
+        'qaq-rs-skip-marked': settings.skipMarked
+    };
 
-            '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#666;">' +
-                '<input type="checkbox" id="qaq-review-setting-auto-pronounce" ' + (settings.autoPronounce ? 'checked' : '') + '> 自动朗读单词' +
-            '</label>' +
-
-            '<div class="qaq-plan-form-label">朗读语速（0.6 ~ 1.2）</div>' +
-            '<input class="qaq-plan-form-input" id="qaq-review-setting-rate" type="number" min="0.6" max="1.2" step="0.1" value="' + (settings.speechRate || 0.9) + '">' +
-
-            '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#666;">' +
-                '<input type="checkbox" id="qaq-review-setting-show-phonetic" ' + (settings.showPhonetic ? 'checked' : '') + '> 显示音标' +
-            '</label>' +
-
-            '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#666;">' +
-                '<input type="checkbox" id="qaq-review-setting-show-example" ' + (settings.showExample ? 'checked' : '') + '> 显示例句' +
-            '</label>' +
-
-            '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#666;">' +
-                '<input type="checkbox" id="qaq-review-setting-skip-marked" ' + (settings.skipMarked ? 'checked' : '') + '> 跳过已标记单词' +
-            '</label>' +
-
-            '<div class="qaq-plan-form-label">默认小说词数</div>' +
-            '<input class="qaq-plan-form-input" id="qaq-review-setting-story-word-count" type="number" min="100" max="5000" step="50" value="' + (settings.storyWordCount || 800) + '" placeholder="如 800">' +
-
-            '<div class="qaq-plan-form-label" style="margin-top:6px;">API 设置</div>' +
-            '<select class="qaq-plan-form-input" id="qaq-review-setting-provider">' +
-                '<option value="openai"' + (settings.apiProvider === 'openai' ? ' selected' : '') + '>OpenAI 兼容</option>' +
-                '<option value="minimax-openai"' + (settings.apiProvider === 'minimax-openai' ? ' selected' : '') + '>MiniMax（OpenAI兼容）</option>' +
-                '<option value="minimax-native"' + (settings.apiProvider === 'minimax-native' ? ' selected' : '') + '>MiniMax（原生接口）</option>' +
-            '</select>' +
-
-            '<input class="qaq-plan-form-input" id="qaq-review-setting-api-url" type="text" value="' + (settings.apiUrl || '').replace(/"/g, '&quot;') + '" placeholder="API URL">' +
-            '<input class="qaq-plan-form-input" id="qaq-review-setting-api-key" type="text" value="' + (settings.apiKey || '').replace(/"/g, '&quot;') + '" placeholder="API Key">' +
-            '<input class="qaq-plan-form-input" id="qaq-review-setting-api-model" type="text" value="' + (settings.apiModel || '').replace(/"/g, '&quot;') + '" placeholder="Model，可手动输入或下方选择">' +
-            '<div style="display:flex;gap:8px;">' +
-                '<button class="qaq-import-ghost-btn" id="qaq-review-fetch-models-btn" type="button" style="flex:1;">拉取模型</button>' +
-                '<select class="qaq-plan-form-input" id="qaq-review-model-select" style="flex:1;">' +
-                    '<option value="">选择已拉取模型</option>' +
-                '</select>' +
-            '</div>' +
-            '<input class="qaq-plan-form-input" id="qaq-review-setting-minimax-group" type="text" value="' + (settings.minimaxGroupId || '').replace(/"/g, '&quot;') + '" placeholder="MiniMax Group ID（可选）">' +
-
-            (qaqReviewSession.current
-                ? '<button class="qaq-api-save-btn" id="qaq-review-generate-current-btn" type="button">重新生成当前单词内容</button>'
-                : '') +
-        '</div>';
-
-    modalBtns.innerHTML =
-        '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">取消</button>' +
-        '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-modal-confirm">保存</button>';
-
-    qaqOpenModal();
-
-    function qaqUpdateProviderHint() {
-        var provider = document.getElementById('qaq-review-setting-provider').value;
-        var groupInput = document.getElementById('qaq-review-setting-minimax-group');
-        groupInput.style.display = provider === 'minimax-native' ? '' : 'none';
-    }
-
-    document.getElementById('qaq-review-setting-provider').addEventListener('change', qaqUpdateProviderHint);
-    qaqUpdateProviderHint();
-
-    function qaqRenderModelSelect(models) {
-        var select = document.getElementById('qaq-review-model-select');
-        var currentModel = document.getElementById('qaq-review-setting-api-model').value.trim();
-        select.innerHTML = '<option value="">选择已拉取模型</option>';
-
-        (models || []).forEach(function (model) {
-            var opt = document.createElement('option');
-            opt.value = model;
-            opt.textContent = model;
-            if (model === currentModel) opt.selected = true;
-            select.appendChild(opt);
-        });
-    }
-
-    var initProvider = document.getElementById('qaq-review-setting-provider').value;
-    var initUrl = document.getElementById('qaq-review-setting-api-url').value.trim();
-    qaqRenderModelSelect(qaqGetReviewModelCache(initProvider, initUrl));
-
-    document.getElementById('qaq-review-model-select').addEventListener('change', function () {
-        if (this.value) {
-            document.getElementById('qaq-review-setting-api-model').value = this.value;
-        }
+    Object.keys(toggleMap).forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.toggle('qaq-toggle-on',!!toggleMap[id]);
     });
 
-    document.getElementById('qaq-review-fetch-models-btn').onclick = async function () {
-        var provider = document.getElementById('qaq-review-setting-provider').value;
-        var apiUrl = document.getElementById('qaq-review-setting-api-url').value.trim();
-        var apiKey = document.getElementById('qaq-review-setting-api-key').value.trim();
+    qaqRsUpdateProviderUI();
+    qaqRsRenderModelSelect(qaqGetReviewModelCache(
+        document.getElementById('qaq-rs-provider').value,
+        document.getElementById('qaq-rs-api-url').value.trim()
+    ));
 
-        try {
-            this.disabled = true;
-            this.textContent = '拉取中...';
+    qaqSwitchTo(qaqReviewSettingsPage);
+}
 
-            var models = await qaqFetchReviewModels(provider, apiUrl, apiKey);
-            qaqSaveReviewModelCache(provider, apiUrl, models);
-            qaqRenderModelSelect(models);
+function qaqRsUpdateProviderUI() {
+    var provider = document.getElementById('qaq-rs-provider').value;
+    document.getElementById('qaq-rs-minimax-group').style.display = provider === 'minimax-native' ? '' : 'none';
+    document.getElementById('qaq-rs-minimax-group-label').style.display = provider === 'minimax-native' ? '' : 'none';
+}
 
-            if (models.length && !document.getElementById('qaq-review-setting-api-model').value.trim()) {
-                document.getElementById('qaq-review-setting-api-model').value = models[0];
-                document.getElementById('qaq-review-model-select').value = models[0];
-            }
+function qaqRsRenderModelSelect(models) {
+    var select = document.getElementById('qaq-rs-model-select');
+    var currentModel = document.getElementById('qaq-rs-api-model').value.trim();
+    select.innerHTML = '<option value="">选择已拉取模型</option>';
+    (models || []).forEach(function (model) {
+        var opt = document.createElement('option');
+        opt.value = model;
+        opt.textContent = model;
+        if (model === currentModel) opt.selected = true;
+        select.appendChild(opt);
+    });
+}
 
-            qaqToast('模型拉取成功');
-        } catch (err) {
-            console.error(err);
-            qaqToast(err.message || '拉取模型失败');
-        } finally {
-            this.disabled = false;
-            this.textContent = '拉取模型';
-        }
-    };
+function qaqRsSaveSettings() {
+    var settings = qaqGetReviewSettings();
+    settings.roundCount = Math.max(1, parseInt(document.getElementById('qaq-rs-count').value, 10) || 20);
+    settings.random = document.getElementById('qaq-rs-random').classList.contains('qaq-toggle-on');
+    settings.autoPronounce = document.getElementById('qaq-rs-auto-pronounce').classList.contains('qaq-toggle-on');
+    settings.speechRate = Math.max(0.6, Math.min(1.2, parseFloat(document.getElementById('qaq-rs-rate').value) || 0.9));
+    settings.showPhonetic = document.getElementById('qaq-rs-show-phonetic').classList.contains('qaq-toggle-on');
+    settings.showExample = document.getElementById('qaq-rs-show-example').classList.contains('qaq-toggle-on');
+    settings.skipMarked = document.getElementById('qaq-rs-skip-marked').classList.contains('qaq-toggle-on');
+    settings.storyWordCount = Math.max(100, Math.min(5000, parseInt(document.getElementById('qaq-rs-story-word-count').value, 10) || 800));
+    settings.apiProvider = document.getElementById('qaq-rs-provider').value;
+    settings.apiUrl = document.getElementById('qaq-rs-api-url').value.trim();
+    settings.apiKey = document.getElementById('qaq-rs-api-key').value.trim();
+    settings.apiModel = document.getElementById('qaq-rs-api-model').value.trim();
+    settings.minimaxGroupId = document.getElementById('qaq-rs-minimax-group').value.trim();
+    qaqSaveReviewSettings(settings);
 
-    var genBtn = document.getElementById('qaq-review-generate-current-btn');
-    if (genBtn) {
-        genBtn.onclick = function () {
-            var tempSettings = {
-                roundCount: Math.max(1, parseInt(document.getElementById('qaq-review-setting-count').value, 10) || 20),
-                random: document.getElementById('qaq-review-setting-random').checked,
-                autoPronounce: document.getElementById('qaq-review-setting-auto-pronounce').checked,
-                speechRate: Math.max(0.6, Math.min(1.2, parseFloat(document.getElementById('qaq-review-setting-rate').value) || 0.9)),
-                showPhonetic: document.getElementById('qaq-review-setting-show-phonetic').checked,
-                showExample: document.getElementById('qaq-review-setting-show-example').checked,
-                skipMarked: document.getElementById('qaq-review-setting-skip-marked').checked,
-                storyWordCount: Math.max(100, Math.min(5000, parseInt(document.getElementById('qaq-review-setting-story-word-count').value, 10) || 800)),
-                apiProvider: document.getElementById('qaq-review-setting-provider').value,
-                apiUrl: document.getElementById('qaq-review-setting-api-url').value.trim(),
-                apiKey: document.getElementById('qaq-review-setting-api-key').value.trim(),
-                apiModel: document.getElementById('qaq-review-setting-api-model').value.trim(),
-                minimaxGroupId: document.getElementById('qaq-review-setting-minimax-group').value.trim()
-            };
-
-            qaqSaveReviewSettings(tempSettings);
-            qaqGenerateCurrentWordStudyData();
-        };
+    if (qaqReviewSession.current) qaqRenderCurrentReviewWord();
+    if (document.getElementById('qaq-review-story-word-count')) {
+        document.getElementById('qaq-review-story-word-count').value = settings.storyWordCount || 800;
     }
 
-    document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
-    document.getElementById('qaq-modal-confirm').onclick = function () {
-        settings.roundCount = Math.max(1, parseInt(document.getElementById('qaq-review-setting-count').value, 10) || 20);
-        settings.random = document.getElementById('qaq-review-setting-random').checked;
-        settings.autoPronounce = document.getElementById('qaq-review-setting-auto-pronounce').checked;
-        settings.speechRate = Math.max(0.6, Math.min(1.2, parseFloat(document.getElementById('qaq-review-setting-rate').value) || 0.9));
-        settings.showPhonetic = document.getElementById('qaq-review-setting-show-phonetic').checked;
-        settings.showExample = document.getElementById('qaq-review-setting-show-example').checked;
-        settings.skipMarked = document.getElementById('qaq-review-setting-skip-marked').checked;
-        settings.storyWordCount = Math.max(100, Math.min(5000, parseInt(document.getElementById('qaq-review-setting-story-word-count').value, 10) || 800));
-
-        settings.apiProvider = document.getElementById('qaq-review-setting-provider').value;
-        settings.apiUrl = document.getElementById('qaq-review-setting-api-url').value.trim();
-        settings.apiKey = document.getElementById('qaq-review-setting-api-key').value.trim();
-        settings.apiModel = document.getElementById('qaq-review-setting-api-model').value.trim();
-        settings.minimaxGroupId = document.getElementById('qaq-review-setting-minimax-group').value.trim();
-
-        qaqSaveReviewSettings(settings);
-        qaqCloseModal();
-
-        if (qaqReviewSession.current) {
-            qaqRenderCurrentReviewWord();
-        }
-
-        if (document.getElementById('qaq-review-story-word-count')) {
-            document.getElementById('qaq-review-story-word-count').value = settings.storyWordCount || 800;
-        }
-
-        qaqToast('设置已保存');
-    };
+    qaqToast('设置已保存');
 }
+
+document.getElementById('qaq-review-settings-back').addEventListener('click', function () {
+    qaqRsSaveSettings();
+    qaqGoBackTo(wordbankPage, qaqReviewSettingsPage);
+});
+
+document.getElementById('qaq-rs-save-btn').addEventListener('click', function () {
+    qaqRsSaveSettings();
+    qaqGoBackTo(wordbankPage, qaqReviewSettingsPage);
+});
+
+document.getElementById('qaq-rs-provider').addEventListener('change', qaqRsUpdateProviderUI);
+
+document.getElementById('qaq-rs-model-select').addEventListener('change', function () {
+    if (this.value) document.getElementById('qaq-rs-api-model').value = this.value;
+});
+
+document.getElementById('qaq-rs-fetch-models-btn').addEventListener('click', async function () {
+    var provider = document.getElementById('qaq-rs-provider').value;
+    var apiUrl = document.getElementById('qaq-rs-api-url').value.trim();
+    var apiKey = document.getElementById('qaq-rs-api-key').value.trim();
+
+    try {
+        this.disabled = true;
+        this.textContent = '拉取中...';
+        var models = await qaqFetchReviewModels(provider, apiUrl, apiKey);
+        qaqSaveReviewModelCache(provider, apiUrl, models);
+        qaqRsRenderModelSelect(models);
+
+        if (models.length && !document.getElementById('qaq-rs-api-model').value.trim()) {
+            document.getElementById('qaq-rs-api-model').value = models[0];document.getElementById('qaq-rs-model-select').value = models[0];
+        }
+        qaqToast('模型拉取成功');
+    } catch (err) {
+        console.error(err);
+        qaqToast(err.message || '拉取模型失败');
+    } finally {
+        this.disabled = false;
+        this.textContent = '拉取模型';
+    }
+});
+
+['qaq-rs-random', 'qaq-rs-auto-pronounce', 'qaq-rs-show-phonetic', 'qaq-rs-show-example', 'qaq-rs-skip-marked'].forEach(function (id) {
+    document.getElementById(id + '-row').addEventListener('click', function () {
+        document.getElementById(id).classList.toggle('qaq-toggle-on');
+    });
+});
 
 function qaqGetReviewSettings() {
     var saved = localStorage.getItem('qaq-word-review-settings');
@@ -6673,14 +6581,10 @@ document.getElementById('qaq-word-review-mark-btn').addEventListener('click', fu
     }
 });
 
-document.getElementById('qaq-word-review-setting-btn').addEventListener('click', function () {
-    qaqOpenReviewSettingsModal();
-});
-
 var qaqReviewHomeSettingBtn = document.getElementById('qaq-review-home-setting-btn');
 if (qaqReviewHomeSettingBtn) {
     qaqReviewHomeSettingBtn.addEventListener('click', function () {
-        qaqOpenReviewSettingsModal();
+        qaqOpenReviewSettingsPage();
     });
 }
 
@@ -6772,74 +6676,6 @@ function qaqCheckStoryCoverage(targetWords, usedWords) {
     return target.filter(function (w) {
         return used.indexOf(w) === -1;
     });
-}
-
-async function qaqGenerateCurrentWordStudyData() {
-    if (!qaqReviewSession.current) {
-        return qaqToast('当前没有单词可生成');
-    }
-
-    var cfg = qaqGetReviewApiConfig();
-    if (!cfg.key || !cfg.model) {
-        return qaqToast('请先在设置中填好 API Key 和 Model');
-    }
-
-    if ((cfg.provider === 'openai' || cfg.provider === 'minimax-openai') && !cfg.url) {
-        return qaqToast('请先填写兼容接口 URL');
-    }
-
-    if (cfg.provider === 'minimax-native' && !cfg.minimaxGroupId && !cfg.url) {
-        return qaqToast('MiniMax 原生接口请填写 Group ID，或完整原生 URL');
-    }
-
-    var current = qaqReviewSession.current;
-
-    try {
-        qaqToast('正在生成，请稍等...');
-
-        var prompt =
-            '请为下面这个英语单词补全学习信息，并只返回 JSON，不要返回多余解释。\n' +
-            '单词：' + current.word + '\n' +
-            '已知释义：' + (current.meaning || '无') + '\n\n' +
-            '返回格式：\n' +
-            '{\n' +
-            '  "phonetic": "音标",\n' +
-            '  "example": "简短英文例句",\n' +
-            '  "exampleCn": "例句中文翻译"\n' +
-            '}\n\n' +
-            '要求：\n' +
-            '1. 音标尽量标准\n' +
-            '2. 例句自然、简短，适合四六级学习\n' +
-            '3. 中文翻译准确\n' +
-            '4. 只返回 JSON';
-
-        var content = '';
-
-        if (cfg.provider === 'openai' || cfg.provider === 'minimax-openai') {
-            content = await qaqReviewGenerateByOpenAICompatible(cfg, prompt);
-        } else if (cfg.provider === 'minimax-native') {
-            content = await qaqReviewGenerateByMiniMaxNative(cfg, prompt);
-        } else {
-            throw new Error('不支持的 provider');
-        }
-
-        var parsed = qaqExtractJsonBlock(content);
-        if (!parsed) {
-            console.log('模型原始返回 = ', content);
-            throw new Error('模型返回内容无法解析为 JSON');
-        }
-
-        current.phonetic = parsed.phonetic || current.phonetic || '';
-        current.example = parsed.example || current.example || '';
-        current.exampleCn = parsed.exampleCn || current.exampleCn || '';
-
-        qaqPersistGeneratedWordData(current);
-        qaqRenderCurrentReviewWord();
-        qaqToast('已生成例句和音标');
-    } catch (err) {
-        console.error(err);
-        qaqToast(err.message || '生成失败');
-    }
 }
 
 function qaqPersistGeneratedWordData(wordObj) {
@@ -7546,31 +7382,6 @@ function qaqOpenImportModal() {
     };
 }
 
-async function ensureXLSX() {
-    if (typeof XLSX !== 'undefined') return;
-    return new Promise(function(resolve, reject) {
-        var s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js';
-        s.onload = resolve;
-        s.onerror = function() { reject(new Error('XLSX 加载失败')); };
-        document.head.appendChild(s);
-    });
-}
-
-async function ensurePDFJS() {
-    if (typeof pdfjsLib !== 'undefined') return;
-    return new Promise(function(resolve, reject) {
-        var s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
-        s.onload = function() {
-            pdfjsLib.GlobalWorkerOptions.workerSrc =
-                'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-            resolve();
-        };
-        s.onerror = function() { reject(new Error('PDF.js 加载失败')); };
-        document.head.appendChild(s);
-    });
-}
 // ===== Android 全屏适配 =====
 (function androidFullscreen() {
     const phoneFrame = document.querySelector('.qaq-phone-frame');

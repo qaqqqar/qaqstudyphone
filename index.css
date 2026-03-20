@@ -105,7 +105,7 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.6);
     border-radius: 4vw;
     padding: 2.5vw 3vw;
-    margin-bottom: 10vw;
+    margin-bottom: 5vw;
     display: flex;
     flex-direction: column;
     gap: 1.5vw;
@@ -617,9 +617,11 @@ body {
     justify-content: center;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.18s ease, visibility 0s linear 0.18s;
+    transition: opacity 0.15s ease, visibility 0s linear 0.15s;
     will-change: opacity;
     pointer-events: none;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
 }
 
 .qaq-modal-overlay.qaq-modal-show {
@@ -636,14 +638,17 @@ body {
     width: min(300px, 85vw);
     max-height: 80vh;
     padding: 5vw;
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15);
-    transform: scale(0.92) translateY(8px);
-    transition: transform 0.18s ease;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    transform: translateY(6px);
+    opacity: 0;
+    transition: transform 0.15s ease, opacity 0.15s ease;
     display: flex;
     flex-direction: column;
     gap: 3.5vw;
     overflow-y: auto;
     scrollbar-width: none;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;will-change: transform, opacity;
 }
 
 .qaq-modal::-webkit-scrollbar {
@@ -651,7 +656,8 @@ body {
 }
 
 .qaq-modal-overlay.qaq-modal-show .qaq-modal {
-    transform: scale(1) translateY(0);
+    transform: translateY(0);
+    opacity: 1;
 }
 
 .qaq-modal-title {
@@ -1828,19 +1834,6 @@ body {
 .qaq-theme-cool .qaq-plan-card-name {
     color: #222;
 }
-
-/* ===== 统一页面层管理：只做 transform 动画，更丝滑 ===== */
-
-.qaq-settings-page { z-index: 50; }
-.qaq-settings-sub  { z-index: 55; }
-.qaq-plan-page     { z-index: 60; }
-.qaq-wordbank-page { z-index: 62; }
-.qaq-wordbook-detail-page { z-index: 63; }
-.qaq-plan-theme-page { z-index: 65; }
-
-
-
-/* ===== 修复安卓滑入动画导致父页面左移 ===== */
 
 /* ===== QAQ 计划分类折叠栏 ===== */
 
@@ -4202,6 +4195,48 @@ body {
     color: #4f7c58;
 }
 
+/*夜幕 - 背单词按钮 */
+.qaq-theme-dark .qaq-review-btn-unknown {
+    background: linear-gradient(135deg, #4a2a2e, #5a3338);
+    color: #e8a0a8;
+}
+
+.qaq-theme-dark .qaq-review-btn-vague {
+    background: linear-gradient(135deg, #4a3a2a, #5a4430);
+    color: #d8c090;
+}
+
+.qaq-theme-dark .qaq-review-btn-known {
+    background: linear-gradient(135deg, #2a3e2e, #334a38);
+    color: #a0d0a8;
+}
+
+.qaq-theme-dark .qaq-word-review-next-btn {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a);
+    color: #d0b8a8;
+}
+
+/* 冷雾 - 背单词按钮 */
+.qaq-theme-cool .qaq-review-btn-unknown {
+    background: linear-gradient(135deg, #e8d0d4, #dfc0c6);
+    color: #7a4550;
+}
+
+.qaq-theme-cool .qaq-review-btn-vague {
+    background: linear-gradient(135deg, #d8dce8, #ccd2e0);
+    color: #4a5268;
+}
+
+.qaq-theme-cool .qaq-review-btn-known {
+    background: linear-gradient(135deg, #cce0d4, #bdd6c6);
+    color: #3e6850;
+}
+
+.qaq-theme-cool .qaq-word-review-next-btn {
+    background: linear-gradient(135deg, #d0d8e8, #bfc9dd);
+    color: #3a4a60;
+}
+
 .qaq-word-review-next-wrap {
     display: flex;
 }
@@ -4837,6 +4872,7 @@ body {
 .qaq-plan-theme-page      { z-index: 65; }
 .qaq-word-review-page     { z-index: 66; }
 .qaq-review-story-page    { z-index: 67; }
+.qaq-review-settings-page { z-index: 64; }
 
 .qaq-settings-page,
 .qaq-settings-sub,
@@ -4846,7 +4882,8 @@ body {
 .qaq-wordbank-theme-page,
 .qaq-plan-theme-page,
 .qaq-word-review-page,
-.qaq-review-story-page {
+.qaq-review-story-page,
+.qaq-review-settings-page {
     position: absolute;
     top: 0;
     left: 0;
@@ -4859,8 +4896,7 @@ body {
     pointer-events: none;
     transition:
         transform var(--qaq-page-duration) var(--qaq-page-ease),
-        visibility 0s linear var(--qaq-page-duration);
-    will-change: transform;contain: layout paint style;
+        visibility 0s linear var(--qaq-page-duration);will-change: transform;contain: layout paint style;
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;clip-path: inset(0);
     -webkit-clip-path: inset(0);
@@ -4875,7 +4911,8 @@ body {
 .qaq-wordbank-theme-page.qaq-page-show,
 .qaq-plan-theme-page.qaq-page-show,
 .qaq-word-review-page.qaq-page-show,
-.qaq-review-story-page.qaq-page-show {
+.qaq-review-story-page.qaq-page-show,
+.qaq-review-settings-page.qaq-page-show {
     transform: translate3d(0, 0, 0);
     visibility: visible;
     pointer-events: auto;
@@ -5125,11 +5162,11 @@ body {
 .qaq-wordbank-theme-page,
 .qaq-plan-theme-page,
 .qaq-word-review-page,
-.qaq-review-story-page {
+.qaq-review-story-page,
+.qaq-review-settings-page {
     padding-top: calc(var(--qaq-safe-top) + 3vw);
 }
 
-/* 状态栏关闭时 — 仍保留 iOS safe-area，防止原生状态栏遮挡按钮 */
 .qaq-phone-frame.qaq-statusbar-hidden .qaq-settings-page,
 .qaq-phone-frame.qaq-statusbar-hidden .qaq-settings-sub,
 .qaq-phone-frame.qaq-statusbar-hidden .qaq-plan-page,
@@ -5138,11 +5175,42 @@ body {
 .qaq-phone-frame.qaq-statusbar-hidden .qaq-wordbank-theme-page,
 .qaq-phone-frame.qaq-statusbar-hidden .qaq-plan-theme-page,
 .qaq-phone-frame.qaq-statusbar-hidden .qaq-word-review-page,
-.qaq-phone-frame.qaq-statusbar-hidden .qaq-review-story-page {
+.qaq-phone-frame.qaq-statusbar-hidden .qaq-review-story-page,
+.qaq-phone-frame.qaq-statusbar-hidden .qaq-review-settings-page {
     padding-top: calc(var(--qaq-safe-top) + 3vw);
 }
 
 /* 主内容区：状态栏隐藏时也保留安全距离 */
 .qaq-phone-frame.qaq-statusbar-hidden .qaq-main-content {
     padding-top: calc(var(--qaq-safe-top) + 2vw);
+}
+
+.qaq-review-settings-page {
+    background: linear-gradient(160deg, #f6e9c9 0%, #faebd7 25%, #fce8e2 50%, #fed2e0 75%, #f6e9c9 100%);
+}
+
+.qaq-review-settings-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 30px;
+    scrollbar-width: none;
+}
+
+.qaq-review-settings-content::-webkit-scrollbar {
+    display: none;
+}
+
+.qaq-review-settings-content .qaq-settings-item {
+    padding: 12px 0;
+    border-bottom: none;
+}
+
+/*夜幕 */
+.qaq-theme-dark .qaq-review-settings-page {
+    background: linear-gradient(160deg, #121212 0%, #1a1a1a 25%, #161616 50%, #1c1c1c 75%, #121212 100%);
+}
+
+/* 冷雾 */
+.qaq-theme-cool .qaq-review-settings-page {
+    background: linear-gradient(160deg, #ebeef3 0%, #f0f2f5 25%, #f3f4f7 50%, #eef0f4 75%, #ebeef3 100%);
 }

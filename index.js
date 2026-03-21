@@ -8012,18 +8012,28 @@ function qaq3DLoadGLB(item, group) {
                 if (!model) return reject(new Error('模型为空'));
 
                 var box = new THREE.Box3().setFromObject(model);
-                var size = new THREE.Vector3();
-                var center = new THREE.Vector3();
-                box.getSize(size);
-                box.getCenter(center);
+var size = new THREE.Vector3();
+var center = new THREE.Vector3();
+box.getSize(size);
+box.getCenter(center);
 
-                model.position.sub(center);
+// 先居中
+model.position.sub(center);
 
-                var maxDim = Math.max(size.x, size.y, size.z) || 1;
-                var scale = 1.7 / maxDim;
-                model.scale.setScalar(scale);
+// 缩放到合适大小
+var maxDim = Math.max(size.x, size.y, size.z) || 1;
+var scale = 1.7 / maxDim;
+model.scale.setScalar(scale);
 
-                model.position.y += 0.35;
+// 重新计算缩放后的包围盒
+var scaledBox = new THREE.Box3().setFromObject(model);
+var minY = scaledBox.min.y;
+
+// 让模型“落地”
+model.position.y -= minY;
+
+// 再轻微抬高一点，避免和底盘穿插
+model.position.y += 0.02;
 
                 model.traverse(function(obj) {
                     if (obj.isMesh) {
@@ -8273,7 +8283,7 @@ camera.lookAt(0, 0.62, 0);
             new THREE.MeshStandardMaterial({ color: isDark ? 0x222222 : 0xddccbb, roughness: 0.9 })
         );
         ground.rotation.x = -Math.PI / 2;
-        ground.position.y = -0.01;
+        ground.position.y = -0.12;
         ground.receiveShadow = true;
         scene.add(ground);
 
@@ -8357,6 +8367,7 @@ async function qaq3DBuild(item, group, isDark) {
             return;
         } catch (e) {
             console.warn('GLB 模型加载失败，回退到手搓模型：', e);
+            qaqToast('3D 模型加载失败，已切换为默认展示模型');
         }
     }
 

@@ -444,6 +444,38 @@
                 </div>
             </div>
         </div>
+        
+        <div class="qaq-mine-point-detail-page" id="qaq-wordbank-point-detail-page">
+    <div class="qaq-settings-header">
+        <div class="qaq-back-btn" id="qaq-wordbank-point-detail-back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
+                <polyline points="15,18 9,12 15,6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="qaq-settings-title">词库积分明细</div>
+    </div>
+    <div class="qaq-mine-fav-content">
+        <div class="qaq-wordbank-stats" id="qaq-wordbank-point-detail-stats">共 0 条</div>
+        <div class="qaq-mine-point-detail-list" id="qaq-wordbank-point-detail-list"></div>
+        <div class="qaq-wordbank-empty" id="qaq-wordbank-point-detail-empty" style="display:none;">暂无积分记录</div>
+    </div>
+</div>
+
+<div class="qaq-mine-point-detail-page" id="qaq-shop-point-detail-page">
+    <div class="qaq-settings-header">
+        <div class="qaq-back-btn" id="qaq-shop-point-detail-back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
+                <polyline points="15,18 9,12 15,6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="qaq-settings-title">商店积分明细</div>
+    </div>
+    <div class="qaq-mine-fav-content">
+        <div class="qaq-wordbank-stats" id="qaq-shop-point-detail-stats">共 0 条</div>
+        <div class="qaq-mine-point-detail-list" id="qaq-shop-point-detail-list"></div>
+        <div class="qaq-wordbank-empty" id="qaq-shop-point-detail-empty" style="display:none;">暂无积分记录</div>
+    </div>
+</div>
 
         <!-- ===== 使用须知子页面 ===== -->
         <div class="qaq-settings-sub" id="qaq-sub-notice">
@@ -748,6 +780,10 @@
                 <div class="qaq-word-review-next-wrap" id="qaq-review-next-wrap" style="display:none;">
                     <button class="qaq-word-review-next-btn" id="qaq-review-next-btn">下一个</button>
                 </div>
+                <div class="qaq-wordbank-pet-float" id="qaq-review-pet-float" style="display:none;">
+    <div class="qaq-wordbank-pet-bubble" id="qaq-review-pet-bubble" style="display:none;"></div>
+    <div class="qaq-wordbank-pet-avatar" id="qaq-review-pet-avatar"></div>
+</div>
             </div>
         </div>
 
@@ -933,6 +969,10 @@
     </div>
     </div><!-- 关闭 qaq-wordbank-panel-mine -->
 </div><!-- 关闭 qaq-wordbank-content -->
+<div class="qaq-wordbank-pet-float" id="qaq-wordbank-pet-float" style="display:none;">
+    <div class="qaq-wordbank-pet-bubble" id="qaq-wordbank-pet-bubble" style="display:none;"></div>
+    <div class="qaq-wordbank-pet-avatar" id="qaq-wordbank-pet-avatar"></div>
+</div>
 </div><!-- 关闭 qaq-wordbank-page -->
 
 <!-- ===== 我的收藏子页面 ===== -->
@@ -1050,7 +1090,7 @@
             <circle cx="12" cy="12" r="3"/>
         </svg>
     </button>
-    <div class="qaq-shop-balance-badge">
+    <div class="qaq-shop-balance-badge" id="qaq-shop-balance-badge">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e8c34f" stroke-width="2.5">
         <circle cx="12" cy="12" r="10"/>
         <text x="12" y="15.5" text-anchor="middle" fill="#e8c34f" stroke="none" font-size="10" font-weight="700">¥</text>

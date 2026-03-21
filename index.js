@@ -205,13 +205,17 @@ function qaqEnsureLive2D(callback) {
     }
     qaqUpdateClock();
     setInterval(qaqUpdateClock, 15000);
+    var qaqTokenTotal = parseInt(qaqCacheGet('qaq-token-total', 0), 10) || 0;
     
-var qaqTokenTotal = parseInt(qaqCacheGet('qaq-token-total', 0), 10) || 0;
+function qaqClearReviewStoryHistory() {
+    qaqCacheInvalidate('qaq-review-story-history');
+    localStorage.removeItem('qaq-review-story-history');
+}
 
 function qaqAddTokens(n) {
     if (!n || n <= 0) return;
     qaqTokenTotal += n;
-    qaqCacheSet('qaq-token-total', 0);
+    qaqCacheSet('qaq-token-total', qaqTokenTotal);
     qaqApplyStatusBar();
 }
 
@@ -329,7 +333,7 @@ document.getElementById('qaq-sb-token-toggle').parentElement.addEventListener('c
 document.getElementById('qaq-sb-token-reset').addEventListener('click', function () {
     qaqConfirm('重置 Token', '确认将 Token 计数清零？', function () {
         qaqTokenTotal = 0;
-        qaqCacheSet('qaq-token-total', 0);
+        qaqCacheSet('qaq-token-total', qaqTokenTotal);
         qaqApplyStatusBar();
         qaqToast('Token 已清零');
     });
@@ -1400,10 +1404,6 @@ function qaqPushReviewStoryHistory(item) {
     qaqSaveReviewStoryHistory(list);
 }
 
-function qaqClearReviewStoryHistory() {
-    localStorage.removeItem('qaq-review-story-history');
-}
-
 function qaqFormatDateTime(ts) {
     var d = new Date(ts);
     var y = d.getFullYear();
@@ -2396,6 +2396,7 @@ function qaqOpenWordbankPage() {
         document.getElementById('qaq-wordbook-search').value = '';
         qaqRenderWordbookHome('');
         qaqApplyWordbankCardThemeDebounced();
+        qaqRenderWordbankPetFloat(); // 新增
     });
 }
 
@@ -6472,22 +6473,35 @@ function qaqGetLastFinishedReview() {
     return qaqCacheGet('qaq-word-review-last-finished', null);
 }
 
+function qaqGetReviewPetMessages() {
+    return qaqCacheGet('qaq-review-pet-messages', {});
+}
+
+function qaqSaveReviewPetMessages(data) {
+    qaqCacheSet('qaq-review-pet-messages', data || {});
+}
+
 async function qaqGenerateWordStudyDataForItem(wordObj, cfg) {
     var prompt =
-        '请为下面这个英语单词补全学习信息，并只返回 JSON，不要返回多余解释。\n' +
-        '单词：' + wordObj.word + '\n' +
-        '已知释义：' + (wordObj.meaning || '无') + '\n\n' +
-        '返回格式：\n' +
-        '{\n' +
-        '  "phonetic": "音标",\n' +
-        '  "example": "简短英文例句",\n' +
-        '  "exampleCn": "例句中文翻译"\n' +
-        '}\n\n' +
-        '要求：\n' +
-        '1. 音标尽量标准\n' +
-        '2. 例句自然、简短，适合四六级学习\n' +
-        '3. 中文翻译准确\n' +
-        '4. 只返回 JSON';
+    '请为下面这个英语单词补全学习信息，并只返回 JSON，不要返回多余解释。\n' +
+    '单词：' + wordObj.word + '\n' +
+    '已知释义：' + (wordObj.meaning || '无') + '\n\n' +
+    '返回格式：\n' +
+    '{\n' +
+    '  "phonetic": "音标",\n' +
+    '  "example": "简短英文例句",\n' +
+    '  "exampleCn": "例句中文翻译",\n' +
+    '  "petMsgKnown": "答对时桌宠夸奖的话，简短温柔",\n' +
+    '  "petMsgVague": "有点印象时桌宠鼓励的话，简短温柔",\n' +
+    '  "petMsgUnknown": "不认识时桌宠安慰的话，简短温柔"\n' +
+    '}\n\n' +
+    '要求：\n' +
+    '1. 音标尽量标准\n' +
+    '2. 例句自然、简短，适合四六级学习\n' +
+    '3. 中文翻译准确\n' +
+    '4. 桌宠话术中文输出，语气温柔可爱但不要太夸张\n' +
+    '5. 三句桌宠话术都要不同\n' +
+    '6. 只返回 JSON';
 
     var content = '';
 
@@ -6505,10 +6519,13 @@ async function qaqGenerateWordStudyDataForItem(wordObj, cfg) {
     }
 
     return {
-        phonetic: parsed.phonetic || '',
-        example: parsed.example || '',
-        exampleCn: parsed.exampleCn || ''
-    };
+    phonetic: parsed.phonetic || '',
+    example: parsed.example || '',
+    exampleCn: parsed.exampleCn || '',
+    petMsgKnown: parsed.petMsgKnown || '',
+    petMsgVague: parsed.petMsgVague || '',
+    petMsgUnknown: parsed.petMsgUnknown || ''
+};
 }
 
 async function qaqGenerateRoundStudyData(words) {
@@ -6537,8 +6554,12 @@ async function qaqGenerateRoundStudyData(words) {
         try {
             var generated = await qaqGenerateWordStudyDataForItem(item, cfg);
             item.phonetic = generated.phonetic || item.phonetic || '';
-            item.example = generated.example || item.example || '';
-            item.exampleCn = generated.exampleCn || item.exampleCn || '';
+item.phonetic = generated.phonetic || item.phonetic || '';
+item.example = generated.example || item.example || '';
+item.exampleCn = generated.exampleCn || item.exampleCn || '';
+item.petMsgKnown = generated.petMsgKnown || item.petMsgKnown || '';
+item.petMsgVague = generated.petMsgVague || item.petMsgVague || '';
+item.petMsgUnknown = generated.petMsgUnknown || item.petMsgUnknown || '';
             qaqPersistGeneratedWordData(item);
         } catch (err) {
             console.error('生成失败: ', item.word, err);
@@ -6697,12 +6718,13 @@ function qaqRenderReviewHome() {
     });
 
     continueCard.onclick = function () {
-        var session = qaqGetCurrentReviewSession();
-        if (!session || !session.bookId) return;
-        qaqReviewSession = session;
-        qaqSwitchTo(qaqWordReviewPage);
-        qaqRenderCurrentReviewWord();
-    };
+    var session = qaqGetCurrentReviewSession();
+    if (!session || !session.bookId) return;
+    qaqReviewSession = session;
+    qaqSwitchTo(qaqWordReviewPage);
+    qaqRenderReviewPetFloat();
+    qaqRenderCurrentReviewWord();
+};
 
     repeatCard.onclick = function () {
         var finished = qaqGetLastFinishedReview();
@@ -6725,7 +6747,8 @@ function qaqRenderReviewHome() {
         };
 
         qaqSwitchTo(qaqWordReviewPage);
-        qaqReviewGoNext();
+qaqRenderReviewPetFloat();
+qaqReviewGoNext();
     };
 }
 
@@ -6815,8 +6838,9 @@ function qaqOpenReviewStartModal(book) {
         };
 
         qaqSaveCurrentReviewSession();
-        qaqSwitchTo(qaqWordReviewPage);
-        qaqReviewGoNext();
+qaqSwitchTo(qaqWordReviewPage);
+qaqRenderReviewPetFloat();
+qaqReviewGoNext();
     };
 }
 
@@ -6846,7 +6870,10 @@ function qaqNormalizeReviewWord(word, bookId, bookName) {
         exampleCn: word.exampleCn || '',
         bookId: bookId,
         bookName: bookName,
-        mastery: 0
+        mastery: 0,
+        petMsgKnown: word.petMsgKnown || '',
+        petMsgVague: word.petMsgVague || '',
+        petMsgUnknown: word.petMsgUnknown || ''
     };
 }
 
@@ -6954,6 +6981,7 @@ function qaqReviewFinishCurrent() {
     qaqReviewSession.history.push(snapshot);
 
     qaqReviewRequeue(qaqReviewSession.current, qaqReviewSession.pendingLevel);
+    qaqShowPetEncourageBubble(qaqReviewSession.pendingLevel, qaqReviewSession.current);
     qaqSaveCurrentReviewSession();
     qaqReviewGoNext();
 }
@@ -6963,31 +6991,37 @@ function qaqReviewFinishRound() {
 
     if (qaqReviewSession.current) {
         finishedWords.push({
-            id: qaqReviewSession.current.id,
-            word: qaqReviewSession.current.word || '',
-            meaning: qaqReviewSession.current.meaning || '',
-            phonetic: qaqReviewSession.current.phonetic || '',
-            example: qaqReviewSession.current.example || '',
-            exampleCn: qaqReviewSession.current.exampleCn || '',
-            bookId: qaqReviewSession.current.bookId || qaqReviewSession.bookId,
-            bookName: qaqReviewSession.current.bookName || qaqReviewSession.bookName,
-            mastery: qaqReviewSession.current.mastery || 0
-        });
+    id: qaqReviewSession.current.id,
+    word: qaqReviewSession.current.word || '',
+    meaning: qaqReviewSession.current.meaning || '',
+    phonetic: qaqReviewSession.current.phonetic || '',
+    example: qaqReviewSession.current.example || '',
+    exampleCn: qaqReviewSession.current.exampleCn || '',
+    petMsgKnown: qaqReviewSession.current.petMsgKnown || '',
+    petMsgVague: qaqReviewSession.current.petMsgVague || '',
+    petMsgUnknown: qaqReviewSession.current.petMsgUnknown || '',
+    bookId: qaqReviewSession.current.bookId || qaqReviewSession.bookId,
+    bookName: qaqReviewSession.current.bookName || qaqReviewSession.bookName,
+    mastery: qaqReviewSession.current.mastery || 0
+});
     }
 
     qaqReviewSession.history.forEach(function (item) {
         if (!finishedWords.find(function (x) { return x.id === item.id && x.bookId === item.bookId; })) {
             finishedWords.push({
-                id: item.id,
-                word: item.word || '',
-                meaning: item.meaning || '',
-                phonetic: item.phonetic || '',
-                example: item.example || '',
-                exampleCn: item.exampleCn || '',
-                bookId: item.bookId || qaqReviewSession.bookId,
-                bookName: item.bookName || qaqReviewSession.bookName,
-                mastery: item.mastery || 0
-            });
+    id: item.id,
+    word: item.word || '',
+    meaning: item.meaning || '',
+    phonetic: item.phonetic || '',
+    example: item.example || '',
+    exampleCn: item.exampleCn || '',
+    petMsgKnown: item.petMsgKnown || '',
+    petMsgVague: item.petMsgVague || '',
+    petMsgUnknown: item.petMsgUnknown || '',
+    bookId: item.bookId || qaqReviewSession.bookId,
+    bookName: item.bookName || qaqReviewSession.bookName,
+    mastery: item.mastery || 0
+});
         }
     });
 
@@ -7221,7 +7255,9 @@ function qaqPersistGeneratedWordData(wordObj) {
 
     var hit = book.words.find(function (w) { return w.id === wordObj.id; });
     if (!hit) return;
-
+hit.petMsgKnown = wordObj.petMsgKnown || hit.petMsgKnown || '';
+hit.petMsgVague = wordObj.petMsgVague || hit.petMsgVague || '';
+hit.petMsgUnknown = wordObj.petMsgUnknown || hit.petMsgUnknown || '';
     hit.phonetic = wordObj.phonetic || hit.phonetic || '';
     hit.example = wordObj.example || hit.example || '';
     hit.exampleCn = wordObj.exampleCn || hit.exampleCn || '';
@@ -7229,24 +7265,30 @@ function qaqPersistGeneratedWordData(wordObj) {
     qaqSaveWordbooks(books);
 
     if (qaqReviewSession.queue && qaqReviewSession.queue.length) {
-        qaqReviewSession.queue.forEach(function (item) {
-            if (item.id === wordObj.id && item.bookId === wordObj.bookId) {
-                item.phonetic = wordObj.phonetic;
-                item.example = wordObj.example;
-                item.exampleCn = wordObj.exampleCn;
-            }
-        });
-    }
+    qaqReviewSession.queue.forEach(function (item) {
+        if (item.id === wordObj.id && item.bookId === wordObj.bookId) {
+            item.phonetic = wordObj.phonetic;
+            item.example = wordObj.example;
+            item.exampleCn = wordObj.exampleCn;
+            item.petMsgKnown = wordObj.petMsgKnown || '';
+            item.petMsgVague = wordObj.petMsgVague || '';
+            item.petMsgUnknown = wordObj.petMsgUnknown || '';
+        }
+    });
+}
 
     if (qaqReviewSession.history && qaqReviewSession.history.length) {
-        qaqReviewSession.history.forEach(function (item) {
-            if (item.id === wordObj.id && item.bookId === wordObj.bookId) {
-                item.phonetic = wordObj.phonetic;
-                item.example = wordObj.example;
-                item.exampleCn = wordObj.exampleCn;
-            }
-        });
-    }
+    qaqReviewSession.history.forEach(function (item) {
+        if (item.id === wordObj.id && item.bookId === wordObj.bookId) {
+            item.phonetic = wordObj.phonetic;
+            item.example = wordObj.example;
+            item.exampleCn = wordObj.exampleCn;
+            item.petMsgKnown = wordObj.petMsgKnown || '';
+            item.petMsgVague = wordObj.petMsgVague || '';
+            item.petMsgUnknown = wordObj.petMsgUnknown || '';
+        }
+    });
+}
 
     if (qaqCurrentWordbookId === wordObj.bookId) {
         qaqRenderWordbookDetail(qaqCurrentWordbookId, document.getElementById('qaq-wordbook-detail-search').value);
@@ -7483,7 +7525,123 @@ function qaqToggleMarkedWord(bookId, wordId) {
 
 /* ===== 我的页面 - 完整重构===== */
 
-// ---- 用户资料 ----
+function qaqRenderPointDetailPage(appType) {
+    var list = qaqGetPointLedger().filter(function(item) {
+        return item.app === appType;
+    });
+
+    var listEl = document.getElementById(appType === 'shop'
+        ? 'qaq-shop-point-detail-list'
+        : 'qaq-wordbank-point-detail-list');
+
+    var statsEl = document.getElementById(appType === 'shop'
+        ? 'qaq-shop-point-detail-stats'
+        : 'qaq-wordbank-point-detail-stats');
+
+    var emptyEl = document.getElementById(appType === 'shop'
+        ? 'qaq-shop-point-detail-empty'
+        : 'qaq-wordbank-point-detail-empty');
+
+    if (!listEl) return;
+
+    statsEl.textContent = '共 ' + list.length + ' 条';
+    listEl.innerHTML = '';
+
+    if (!list.length) {
+        emptyEl.style.display = '';
+        return;
+    }
+
+    emptyEl.style.display = 'none';
+
+    list.forEach(function(item) {
+        var card = document.createElement('div');
+        card.className = 'qaq-point-detail-card';
+        card.innerHTML =
+            '<div class="qaq-point-detail-title">' + qaqEscapeHtml(item.title || '') + '</div>' +
+            '<div class="qaq-point-detail-detail">' + qaqEscapeHtml(item.detail || '') + '</div>' +
+            '<div class="qaq-point-detail-points">+' + (item.points || 0) + '</div>';
+        listEl.appendChild(card);
+    });
+}
+
+function qaqGetPointLedger() {
+    return qaqCacheGet('qaq-point-ledger', []);
+}
+
+function qaqSavePointLedger(list) {
+    qaqCacheSet('qaq-point-ledger', list || []);
+}
+
+function qaqPushPointLedger(item) {
+    var list = qaqGetPointLedger();
+    list.unshift(item);
+    if (list.length > 300) list = list.slice(0, 300);
+    qaqSavePointLedger(list);
+}
+
+function qaqGetDailyWordPointProgress() {
+    return qaqCacheGet('qaq-daily-word-point-progress', {});
+}
+
+function qaqSaveDailyWordPointProgress(data) {
+    qaqCacheSet('qaq-daily-word-point-progress', data || {});
+}
+
+function qaqRewardWordStudyPoints(bookName, wordCount, durationMinutes) {
+    var today = qaqDateKey(new Date());
+    var progressAll = qaqGetDailyWordPointProgress();
+
+    if (!progressAll[today]) {
+        progressAll[today] = {
+            words: 0,
+            minutes: 0,
+            gained: 0   // 今日已通过背单词获得的积分
+        };
+    }
+
+    var todayData = progressAll[today];
+
+    todayData.words += Math.max(0, wordCount || 0);
+    todayData.minutes += Math.max(0, durationMinutes || 0);
+
+    // 每 10 词 + 15 分钟 = 10 积分
+    var wordUnits = Math.floor(todayData.words / 10);
+    var timeUnits = Math.floor(todayData.minutes / 15);
+    var totalEligiblePoints = Math.min(100, Math.min(wordUnits, timeUnits) * 10);
+
+    var canGain = totalEligiblePoints - (todayData.gained || 0);
+    if (canGain > 0) {
+        todayData.gained += canGain;
+        qaqSavePoints(qaqGetPoints() + canGain);
+
+        // 词库积分明细
+        qaqPushPointLedger({
+            id: 'pl_' + Date.now() + Math.random().toString(36).slice(2, 6),
+            app: 'wordbank',
+            source: 'review',
+            points: canGain,
+            title: qaqFormatDateTime(Date.now()) + ' 背单词所得',
+            detail: '词库：' + (bookName || '未知词库') + ' · 累计满足 10词/15分钟 规则',
+            createdAt: Date.now()
+        });
+
+        // 商店积分明细
+        qaqPushPointLedger({
+            id: 'pl_' + Date.now() + Math.random().toString(36).slice(2, 6),
+            app: 'shop',
+            source: 'wordbank',
+            points: canGain,
+            title: qaqFormatDateTime(Date.now()) + ' 词库APP所得',
+            detail: '来源：背单词奖励 · 来自词库APP',
+            createdAt: Date.now()
+        });
+
+        qaqToast('背单词奖励 +' + canGain + ' 积分');
+    }
+
+    qaqSaveDailyWordPointProgress(progressAll);
+}
 
 // ---- 积分 ----
 
@@ -7497,17 +7655,20 @@ function qaqLogStudySession(bookName, wordCount, durationMinutes) {
     var today = qaqDateKey(new Date());
     var log = qaqGetStudyLog();
     if (!log[today]) log[today] = { words: 0, time: 0, rounds: 0, books: {} };
+
     log[today].words += wordCount || 0;
     log[today].time += durationMinutes || 0;
     log[today].rounds += 1;
+
     if (bookName) {
         if (!log[today].books[bookName]) log[today].books[bookName] = 0;
         log[today].books[bookName] += wordCount || 0;
     }
+
     qaqSaveStudyLog(log);
 
-    // 奖励积分: 每个单词 1 积分
-    qaqAddPoints(wordCount || 0);
+    // 新积分规则
+    qaqRewardWordStudyPoints(bookName, wordCount, durationMinutes);
 }
 
 // ---- 收藏分类 ----
@@ -7775,9 +7936,22 @@ document.getElementById('qaq-mine-stats-header').addEventListener('click', funct
 });
 
 document.getElementById('qaq-mine-points-header').addEventListener('click', function () {
-    qaqShopPageSource = 'wordbank';
-    qaqRenderShopPage();
-    qaqSwitchTo(document.getElementById('qaq-mine-shop-page'));
+    qaqRenderPointDetailPage('wordbank');
+    qaqSwitchTo(document.getElementById('qaq-wordbank-point-detail-page'));
+});
+
+document.getElementById('qaq-wordbank-point-detail-back').addEventListener('click', function () {
+    qaqGoBackTo(wordbankPage, document.getElementById('qaq-wordbank-point-detail-page'));
+    qaqSwitchWordbankTab('mine');
+});
+
+document.getElementById('qaq-shop-balance-badge').addEventListener('click', function () {
+    qaqRenderPointDetailPage('shop');
+    qaqSwitchTo(document.getElementById('qaq-shop-point-detail-page'));
+});
+
+document.getElementById('qaq-shop-point-detail-back').addEventListener('click', function () {
+    qaqGoBackTo(document.getElementById('qaq-mine-shop-page'), document.getElementById('qaq-shop-point-detail-page'));
 });
 
 document.getElementById('qaq-mine-garden-back').addEventListener('click', function () {
@@ -8252,6 +8426,16 @@ resolve(model);
 }
 
 /* ===== 3D 设置与缓存 ===== */
+function qaqGetPetSettings() {
+    return qaqCacheGet('qaq-pet-settings', {
+        use3D: false
+    });
+}
+
+function qaqSavePetSettings(data) {
+    qaqCacheSet('qaq-pet-settings', data || { use3D: false });
+}
+
 function qaqGet3DSettings() {
     return qaqCacheGet('qaq-3d-settings', {
         askBeforeRender: true,   // 查看详情前是否询问
@@ -9245,50 +9429,227 @@ function qaq3DClickBounce(mainGroup, scene) {
     animBurst();
 }
 
+function qaqGetPetFloatState() {
+    return qaqCacheGet('qaq-pet-float-state', {
+        wordbank: { right: 14, bottom: 90, scale: 1 },
+        review: { right: 14, bottom: 90, scale: 1 }
+    });
+}
+
+function qaqSavePetFloatState(data) {
+    qaqCacheSet('qaq-pet-float-state', data || {
+        wordbank: { right: 14, bottom: 90, scale: 1 },
+        review: { right: 14, bottom: 90, scale: 1 }
+    });
+}
+
+function qaqBindPetFloatDragAndScale(floatId, pageKey) {
+    var el = document.getElementById(floatId);
+    if (!el || el.dataset.bound === '1') return;
+    el.dataset.bound = '1';
+
+    var stateAll = qaqGetPetFloatState();
+    var state = stateAll[pageKey] || { right: 14, bottom: 90, scale: 1 };
+
+    el.style.right = state.right + 'px';
+    el.style.bottom = state.bottom + 'px';
+    el.style.transform = 'scale(' + (state.scale || 1) + ')';
+
+    var startX = 0;
+    var startY = 0;
+    var startRight = 0;
+    var startBottom = 0;
+    var dragging = false;
+
+    function onStart(clientX, clientY) {
+        dragging = true;
+        el.classList.add('qaq-pet-dragging');
+        startX = clientX;
+        startY = clientY;
+
+        var latest = qaqGetPetFloatState()[pageKey] || { right: 14, bottom: 90, scale: 1 };
+        startRight = latest.right;
+        startBottom = latest.bottom;
+    }
+
+    function onMove(clientX, clientY) {
+        if (!dragging) return;
+
+        var dx = clientX - startX;
+        var dy = clientY - startY;
+
+        var newRight = Math.max(0, startRight - dx);
+        var newBottom = Math.max(70, startBottom - dy);
+
+        el.style.right = newRight + 'px';
+        el.style.bottom = newBottom + 'px';
+    }
+
+    function onEnd() {
+        if (!dragging) return;
+        dragging = false;
+        el.classList.remove('qaq-pet-dragging');
+
+        var right = parseFloat(el.style.right) || 14;
+        var bottom = parseFloat(el.style.bottom) || 90;
+        var all = qaqGetPetFloatState();
+        if (!all[pageKey]) all[pageKey] = {};
+        all[pageKey].right = right;
+        all[pageKey].bottom = bottom;
+        all[pageKey].scale = all[pageKey].scale || 1;
+        qaqSavePetFloatState(all);
+    }
+
+    el.addEventListener('mousedown', function (e) {
+        onStart(e.clientX, e.clientY);
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function (e) {
+        onMove(e.clientX, e.clientY);
+    });
+
+    document.addEventListener('mouseup', onEnd);
+
+    el.addEventListener('touchstart', function (e) {
+        if (!e.touches || !e.touches[0]) return;
+        onStart(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function (e) {
+        if (!dragging || !e.touches || !e.touches[0]) return;
+        onMove(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+
+    document.addEventListener('touchend', onEnd);
+
+    // 双击放大/缩小
+    var lastTap = 0;
+    el.addEventListener('click', function () {
+        var now = Date.now();
+        if (now - lastTap < 260) {
+            var all = qaqGetPetFloatState();
+            if (!all[pageKey]) all[pageKey] = { right: 14, bottom: 90, scale: 1 };
+
+            var cur = all[pageKey].scale || 1;
+            var next = cur >= 1.4 ? 1 : 1.25;
+            all[pageKey].scale = next;
+            qaqSavePetFloatState(all);
+            el.style.transform = 'scale(' + next + ')';
+            qaqToast(next > 1 ? '桌宠已放大' : '桌宠恢复默认大小');
+        }
+        lastTap = now;
+    });
+}
+
+
 /*===== 桌宠设置（设置页入口） ===== */
+var petSettings = qaqGetPetSettings();
 document.getElementById('qaq-set-pet').addEventListener('click', function () {
-    var owned = qaqGetOwnedItems().filter(function (x) { return x.type === 'animal' || x.type === 'seed'; });
+    var owned = qaqGetOwnedItems().filter(function (x) {
+        return x.type === 'animal' || x.type === 'seed';
+    });
+
+    var currentPet = qaqGetActivePet();
+    var currentId = currentPet ? currentPet.id : '';
+    var petSettings = qaqGetPetSettings();
 
     modalTitle.textContent = '桌宠设置';
 
     if (!owned.length) {
-        modalBody.innerHTML = '<div style="text-align:center;font-size:13px;color:#999;line-height:1.8;">还没有可设置的桌宠<br>去商店兑换动物或种子吧</div>';
-        modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-modal-cancel">关闭</button>';
+        modalBody.innerHTML =
+            '<div style="text-align:center;font-size:13px;color:#999;line-height:1.8;">' +
+                '还没有可设置的桌宠<br>去商店兑换动物或种子吧' +
+            '</div>' +
+            '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,0.06);">' +
+                '<div class="qaq-settings-item" id="qaq-pet-3d-toggle-row" style="padding:8px 0;">' +
+                    '<div class="qaq-settings-item-text">使用 3D 桌宠</div>' +
+                    '<div class="qaq-toggle' + (petSettings.use3D ? ' qaq-toggle-on' : '') + '" id="qaq-pet-3d-toggle">' +
+                        '<div class="qaq-toggle-knob"></div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+
+        modalBtns.innerHTML =
+            '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-modal-cancel">关闭</button>';
+
         qaqOpenModal();
+
         document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
+
+        var pet3dRowEmpty = document.getElementById('qaq-pet-3d-toggle-row');
+        if (pet3dRowEmpty) {
+            pet3dRowEmpty.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var s = qaqGetPetSettings();
+                s.use3D = !s.use3D;
+                qaqSavePetSettings(s);
+                document.getElementById('qaq-pet-3d-toggle').classList.toggle('qaq-toggle-on', s.use3D);
+                qaqToast(s.use3D ? '已开启 3D 桌宠' : '已关闭 3D 桌宠');
+            });
+        }
         return;
     }
 
-    var currentPet = qaqGetActivePet();
-    var currentId = currentPet ? currentPet.id : '';
-
-    modalBody.innerHTML = '<div class="qaq-custom-select-list">' +
-        owned.map(function (item) {
-            var catItem = qaqShopCatalog.animals.concat(qaqShopCatalog.seeds).find(function (x) { return x.id === item.id; });
-            var isActive = item.id === currentId;
-            return '<div class="qaq-custom-select-option' + (isActive ? ' qaq-custom-select-active' : '') + '" data-pet-id="' + item.id + '">' +
-                '<span>' + (catItem ? catItem.name : item.name) + '</span>' +
-                (isActive ? '<span style="color:#c47068;">✓</span>' : '') +
+    modalBody.innerHTML =
+        '<div class="qaq-custom-select-list">' +
+            owned.map(function (item) {
+                var catItem = qaqShopCatalog.animals.concat(qaqShopCatalog.seeds).find(function (x) {
+                    return x.id === item.id;
+                });
+                var isActive = item.id === currentId;
+                return '<div class="qaq-custom-select-option' + (isActive ? ' qaq-custom-select-active' : '') + '" data-pet-id="' + item.id + '">' +
+                    '<span>' + (catItem ? catItem.name : item.name) + '</span>' +
+                    (isActive ? '<span style="color:#c47068;">✓</span>' : '') +
                 '</div>';
-        }).join('') +
-        '<div class="qaq-custom-select-option" data-pet-id=""><span style="color:#aaa;">不设置桌宠</span></div>' +
+            }).join('') +
+            '<div class="qaq-custom-select-option" data-pet-id=""><span style="color:#aaa;">不设置桌宠</span></div>' +
+        '</div>' +
+        '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,0.06);">' +
+            '<div class="qaq-settings-item" id="qaq-pet-3d-toggle-row" style="padding:8px 0;">' +
+                '<div class="qaq-settings-item-text">使用 3D 桌宠</div>' +
+                '<div class="qaq-toggle' + (petSettings.use3D ? ' qaq-toggle-on' : '') + '" id="qaq-pet-3d-toggle">' +
+                    '<div class="qaq-toggle-knob"></div>' +
+                '</div>' +
+            '</div>' +
         '</div>';
 
-    modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>';
+    modalBtns.innerHTML =
+        '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>';
+
     qaqOpenModal();
     document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
 
-    modalBody.querySelectorAll('.qaq-custom-select-option').forEach(function (opt) {
+    var pet3dRow = document.getElementById('qaq-pet-3d-toggle-row');
+    if (pet3dRow) {
+        pet3dRow.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var s = qaqGetPetSettings();
+            s.use3D = !s.use3D;
+            qaqSavePetSettings(s);
+            document.getElementById('qaq-pet-3d-toggle').classList.toggle('qaq-toggle-on', s.use3D);
+            qaqToast(s.use3D ? '已开启 3D 桌宠' : '已关闭 3D 桌宠');
+        });
+    }
+
+    modalBody.querySelectorAll('.qaq-custom-select-option[data-pet-id]').forEach(function (opt) {
         opt.addEventListener('click', function () {
             var petId = this.dataset.petId;
+
             if (!petId) {
                 qaqSaveActivePet(null);
-                document.getElementById('qaq-settings-pet-preview').textContent = '未设置';} else {
+                document.getElementById('qaq-settings-pet-preview').textContent = '未设置';
+            } else {
                 qaqSaveActivePet({ id: petId });
-                var catItem = qaqShopCatalog.animals.concat(qaqShopCatalog.seeds).find(function (x) { return x.id === petId; });
+                var catItem = qaqShopCatalog.animals.concat(qaqShopCatalog.seeds).find(function (x) {
+                    return x.id === petId;
+                });
                 document.getElementById('qaq-settings-pet-preview').textContent = catItem ? catItem.name : '已设置';
             }
+
             qaqCloseModal();
+            qaqRenderWordbankPetFloat();
+            qaqRenderReviewPetFloat();
             qaqToast(petId ? '桌宠已设置' : '桌宠已取消');
         });
     });
@@ -10376,6 +10737,205 @@ function qaqOpenImportModal() {
 
 })();
 
+function qaqRenderPetFloatTo(floatId, avatarId) {
+    var pet = qaqGetActivePet();
+    var floatEl = document.getElementById(floatId);
+    var avatarEl = document.getElementById(avatarId);
+
+    if (!floatEl || !avatarEl) return;
+
+    if (!pet || !pet.id) {
+        floatEl.style.display = 'none';
+        return;
+    }
+
+    var item = qaqShopCatalog.animals.concat(qaqShopCatalog.seeds).find(function (x) {
+        return x.id === pet.id;
+    });
+
+    if (!item) {
+        floatEl.style.display = 'none';
+        return;
+    }
+
+    floatEl.style.display = '';
+
+    var petSettings = qaqGetPetSettings();
+    if (petSettings.use3D && qaqThreeReady) {
+        var ok = qaqRenderPet3DTo(floatId, avatarId, item.id);
+        if (ok) return;
+    }
+
+    if (petSettings.use3D && !qaqThreeReady) {
+        qaqEnsureThreeJS(null, function () {
+            var latestPetSettings = qaqGetPetSettings();
+            if (latestPetSettings.use3D) {
+                var ok2 = qaqRenderPet3DTo(floatId, avatarId, item.id);
+                if (ok2) return;
+            }
+
+            if (qaqAnimalSVGs[item.id]) {
+                avatarEl.innerHTML = qaqAnimalSVGs[item.id](0.9);
+            } else if (qaqPlantSVGs[item.id]) {
+                avatarEl.innerHTML = qaqPlantSVGs[item.id](0.9);
+            } else {
+                avatarEl.innerHTML = item.svg || '';
+            }
+        });
+        return;
+    }
+
+    if (qaqAnimalSVGs[item.id]) {
+        avatarEl.innerHTML = qaqAnimalSVGs[item.id](0.9);
+    } else if (qaqPlantSVGs[item.id]) {
+        avatarEl.innerHTML = qaqPlantSVGs[item.id](0.9);
+    } else {
+        avatarEl.innerHTML = item.svg || '';
+    }
+}
+
+function qaqRenderWordbankPetFloat() {
+    qaqRenderPetFloatTo('qaq-wordbank-pet-float', 'qaq-wordbank-pet-avatar');
+    qaqBindPetFloatDragAndScale('qaq-wordbank-pet-float', 'wordbank');
+}
+
+function qaqRenderReviewPetFloat() {
+    qaqRenderPetFloatTo('qaq-review-pet-float', 'qaq-review-pet-avatar');
+    qaqBindPetFloatDragAndScale('qaq-review-pet-float', 'review');
+}
+
+function qaqGetPetModelUrl(itemId) {
+    return qaqGet3DModelUrl(itemId);
+}
+
+function qaqRenderPet3DTo(floatId, avatarId, itemId) {
+    var avatarEl = document.getElementById(avatarId);
+    if (!avatarEl) return;
+
+    var modelUrl = qaqGetPetModelUrl(itemId);
+    if (!modelUrl) {
+        // 没模型就回退 2D
+        return false;
+    }
+
+    avatarEl.innerHTML = '<canvas id="' + avatarId + '-canvas"></canvas>';
+
+    var canvas = document.getElementById(avatarId + '-canvas');
+    if (!canvas || typeof THREE === 'undefined') return false;
+
+    var w = avatarEl.clientWidth || 54;
+    var h = avatarEl.clientHeight || 54;
+
+    var renderer = new THREE.WebGLRenderer({
+        canvas: canvas,
+        antialias: true,
+        alpha: true
+    });
+    renderer.setSize(w, h);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+    var scene = new THREE.Scene();
+
+    var camera = new THREE.PerspectiveCamera(35, w / h, 0.1, 100);
+    camera.position.set(0, 1.1, 3.4);
+    camera.lookAt(0, 0.9, 0);
+
+    var ambient = new THREE.AmbientLight(0xffffff, 1);
+    scene.add(ambient);
+
+    var dir = new THREE.DirectionalLight(0xffffff, 1.2);
+    dir.position.set(2, 3, 2);
+    scene.add(dir);
+
+    var group = new THREE.Group();
+    scene.add(group);
+
+    qaq3DLoadGLB({ id: itemId, type: 'pet', name: 'pet' }, group).then(function () {
+        function animate() {
+            if (!document.body.contains(canvas)) {
+                try { renderer.dispose(); } catch (e) {}
+                return;
+            }
+            group.rotation.y += 0.015;
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        animate();
+    }).catch(function () {
+        try { renderer.dispose(); } catch (e) {}
+    });
+
+    return true;
+}
+
+var qaqPetEncourageTexts = [
+    '好棒，继续冲呀！',
+    '我就知道你可以！',
+    '又记住一个啦！',
+    '今天状态真不错～',
+    '继续保持这个节奏！',
+    '太厉害了，稳稳进步！',
+    '你正在一点点变强！',
+    '再来一个也没问题！'
+];
+
+var _qaqPetBubbleTimer = null;
+
+function qaqShowPetEncourageBubble(level, wordObj) {
+    var bubbleEl = null;
+    var floatEl = null;
+
+    var reviewFloat = document.getElementById('qaq-review-pet-float');
+    var wordbankFloat = document.getElementById('qaq-wordbank-pet-float');
+
+    if (reviewFloat && reviewFloat.style.display !== 'none' && qaqWordReviewPage.classList.contains('qaq-page-show')) {
+        floatEl = reviewFloat;
+        bubbleEl = document.getElementById('qaq-review-pet-bubble');
+    } else if (wordbankFloat && wordbankFloat.style.display !== 'none' && wordbankPage.classList.contains('qaq-page-show')) {
+        floatEl = wordbankFloat;
+        bubbleEl = document.getElementById('qaq-wordbank-pet-bubble');
+    }
+
+    if (!floatEl || !bubbleEl) return;
+
+    var fallbackMap = {
+        known: [
+            '太棒了，这个你掌握得很好！',
+            '厉害呀，这个词你已经很熟啦！',
+            '表现真好，继续保持！'
+        ],
+        vague: [
+            '没关系，已经有印象了，再来几次就稳了。',
+            '你已经在进步啦，再看一眼就会更牢。',
+            '别急，这种状态最容易提升。'
+        ],
+        unknown: [
+            '没关系，我们一个个来。',
+            '不会也正常，我陪你继续记。',
+            '别灰心，这个词下次就会熟一点。'
+        ]
+    };
+
+    var text = '';
+    if (wordObj) {
+        if (level === 'known') text = wordObj.petMsgKnown || '';
+        if (level === 'vague') text = wordObj.petMsgVague || '';
+        if (level === 'unknown') text = wordObj.petMsgUnknown || '';
+    }
+
+    if (!text) {
+        var arr = fallbackMap[level] || fallbackMap.known;
+        text = arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    bubbleEl.textContent = text;
+    bubbleEl.style.display = '';
+
+    clearTimeout(_qaqPetBubbleTimer);
+    _qaqPetBubbleTimer = setTimeout(function () {
+        bubbleEl.style.display = 'none';
+    }, 2200);
+}
 
 // 替换原有的导出导入事件
 document.getElementById('qaq-set-export').addEventListener('click', function() {

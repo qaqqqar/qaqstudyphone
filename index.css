@@ -7365,3 +7365,147 @@ body {
 .qaq-shop-card {
     min-width: 0;
 }
+
+.qaq-mine-point-detail-page {
+    background: linear-gradient(160deg, #f6e9c9 0%, #faebd7 25%, #fce8e2 50%, #fed2e0 75%, #f6e9c9 100%);
+    z-index: 71;
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    transform: translate3d(100%, 0, 0);
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform var(--qaq-page-duration) var(--qaq-page-ease), visibility 0s linear var(--qaq-page-duration);
+}
+
+.qaq-mine-point-detail-page.qaq-page-show {
+    transform: translate3d(0, 0, 0);
+    visibility: visible;
+    pointer-events: auto;
+    transition: transform var(--qaq-page-duration) var(--qaq-page-ease), visibility 0s;
+}
+
+.qaq-mine-point-detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.qaq-point-detail-card {
+    background: rgba(255,255,255,0.82);
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.qaq-point-detail-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+}
+
+.qaq-point-detail-detail {
+    font-size: 11px;
+    color: #888;
+    line-height: 1.6;
+}
+
+.qaq-point-detail-points {
+    font-size: 15px;
+    font-weight: 700;
+    color: #e8c34f;
+}
+
+.qaq-theme-dark .qaq-mine-point-detail-page {
+    background: linear-gradient(160deg, #121212 0%, #1a1a1a 25%, #161616 50%, #1c1c1c 75%, #121212 100%);
+}
+
+.qaq-theme-dark .qaq-point-detail-card {
+    background: rgba(40,40,40,0.85);
+    border-color: rgba(60,60,60,0.5);
+}
+
+.qaq-theme-dark .qaq-point-detail-title {
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-point-detail-detail {
+    color: #888;
+}
+.qaq-wordbank-pet-float {
+    position: absolute;
+    right: 14px;
+    bottom: 90px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    pointer-events: auto;
+}
+
+.qaq-wordbank-pet-avatar {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.92);
+    border: 1px solid rgba(255,255,255,0.8);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    animation: qaq-pet-float 2.6s ease-in-out infinite;
+}
+
+.qaq-wordbank-pet-avatar svg {
+    width: 42px;
+    height: 42px;
+}
+
+.qaq-wordbank-pet-bubble {
+    max-width: 180px;
+    background: rgba(255,255,255,0.96);
+    color: #555;
+    font-size: 12px;
+    line-height: 1.6;
+    padding: 8px 10px;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    animation: qaq-pet-bubble-in 0.22s ease;
+}
+
+@keyframes qaq-pet-float {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+
+@keyframes qaq-pet-bubble-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.qaq-theme-dark .qaq-wordbank-pet-avatar {
+    background: rgba(40,40,40,0.95);
+    border-color: rgba(60,60,60,0.5);
+}
+
+.qaq-theme-dark .qaq-wordbank-pet-bubble {
+    background: rgba(42,42,42,0.96);
+    color: #ddd;
+}
+
+.qaq-wordbank-pet-avatar canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+    border-radius: 50%;
+}
+
+.qaq-wordbank-pet-float.qaq-pet-dragging {
+    transition: none !important;
+}

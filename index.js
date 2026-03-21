@@ -7456,7 +7456,13 @@ function qaqSaveActivePet(pet) {
 var qaqShopCatalog = {
     seeds: [
         { id: 'seed-sunflower', name: '向日葵', price: 30, type: 'seed', svg: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e8c34f" stroke-width="1.5"><circle cx="12" cy="10" r="4"/><path d="M12 14v8" stroke-linecap="round"/><path d="M8 18h8" stroke-linecap="round"/><path d="M12 2v4M7 4l23M17 4l-2 3M4 8l3 1M20 8l-3 1" stroke-linecap="round" opacity="0.6"/></svg>' },
-        { id: 'seed-rose', name: '玫瑰', price: 50, type: 'seed', svg: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e05565" stroke-width="1.5"><path d="M12 3c-22-4 4-4 7 0 32 5 4 5s4-2 4-5c0-3-2-5-4-7z" stroke-linejoin="round"/><path d="M12 15v7" stroke-linecap="round"/><path d="M9 19l3-2 3 2" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
+        {
+    id: 'seed-rose',
+    name: '玫瑰',
+    price: 50,
+    type: 'seed',
+    svg: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e05565" stroke-width="1.5"><path d="M12 3c-2 2-4 4-4 7 0 4 3 6 4 6s4-2 4-6c0-3-2-5-4-7z" fill="#e05565" stroke-linejoin="round"/><path d="M12 15v7" stroke="#4a7a32" stroke-linecap="round"/><path d="M9 19l3-2 3 2" stroke="#4a7a32" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="9.5" cy="10.5" rx="1.2" ry="0.8" fill="#f3a0aa" opacity="0.5"/></svg>'
+},
         { id: 'seed-cactus', name: '仙人掌', price: 20, type: 'seed', svg: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7bab6e" stroke-width="1.5"><rect x="9" y="6" width="6" height="14" rx="3" stroke-linejoin="round"/><path d="M9 12H6a2 2 0 01-2-2V8" stroke-linecap="round"/><path d="M15 10h3a2 2 0 002-2V6" stroke-linecap="round"/><line x1="8" y1="20" x2="16" y2="20" stroke-linecap="round"/></svg>' },
     ],
     animals: [
@@ -7991,7 +7997,8 @@ function qaqGet3DModelUrl(itemId) {
     var map = {
         'animal-dog': 'assets/models/dog1.glb',
         'animal-cat': 'assets/models/cat1.glb',
-        'animal-rabbit': 'assets/models/rabbit1.glb'
+        'animal-rabbit': 'assets/models/rabbit1.glb',
+        'seed-rose': 'assets/models/rose1.glb'
     };
     return map[itemId] || '';
 }
@@ -8237,8 +8244,8 @@ async function qaq3DInit(item) {
 
         // ---- 相机 ----
         var camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
-        camera.position.set(0, 1.15, 4.6);
-camera.lookAt(0, 0.62, 0);
+        camera.position.set(0, 1.35, 4.2);
+camera.lookAt(0, 1.0, 0);
         qaq3D.camera = camera;
 
         // ---- 控制器（容错） ----
@@ -8253,7 +8260,7 @@ camera.lookAt(0, 0.62, 0);
             controls.maxDistance = 8;
             controls.maxPolarAngle = Math.PI * 0.58;
             controls.minPolarAngle = Math.PI * 0.2;
-            controls.target.set(0, 0.6, 0);
+            controls.target.set(0, 1.0, 0);
             controls.update();
         } else {
             console.warn('[3D] OrbitControls 未加载，跳过控制器');
@@ -8430,15 +8437,71 @@ function qaq3DSunflower(g) {
 }
 
 function qaq3DRose(g) {
-    var stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 1.6, 8), new THREE.MeshStandardMaterial({ color: 0x3a6828, roughness: 0.8 }));
-    stem.position.y = 0.8; stem.castShadow = true; g.add(stem);
-    var layers = [0.35, 0.28, 0.2, 0.12];
-    var colors = [0xc84050, 0xd04858, 0xd85868, 0xe06878];
-    for (var l = 0; l < layers.length; l++) {
-        var rp = new THREE.Mesh(new THREE.SphereGeometry(layers[l], 12, 12, 0, Math.PI * 2,0, Math.PI * 0.6), new THREE.MeshStandardMaterial({ color: colors[l], roughness: 0.45, side: THREE.DoubleSide }));
-        rp.position.y = 1.65 + l * 0.05; rp.rotation.x = l *0.15; rp.castShadow = true; g.add(rp);
-    }
-    qaq3DAddPot(g, 0xb86050);
+    var stemMat = new THREE.MeshStandardMaterial({
+        color: 0x6f9638,
+        roughness: 0.72
+    });
+
+    var leafMat = new THREE.MeshStandardMaterial({
+        color: 0x57a132,
+        roughness: 0.68
+    });
+
+    var petalMat = new THREE.MeshStandardMaterial({
+        color: 0xe05565,
+        roughness: 0.55,
+        side: THREE.DoubleSide
+    });
+
+    // 茎
+    var stem = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.03, 0.045, 1.4, 10),
+        stemMat
+    );
+    stem.position.y = 0.7;
+    stem.castShadow = true;
+    g.add(stem);
+
+    // 叶子
+    var leaf1 = new THREE.Mesh(
+        new THREE.SphereGeometry(0.18, 14, 14),
+        leafMat
+    );
+    leaf1.scale.set(1.8, 0.32, 0.8);
+    leaf1.position.set(0.18, 0.95, 0.02);
+    leaf1.rotation.z = -0.7;
+    g.add(leaf1);
+
+    var leaf2 = new THREE.Mesh(
+        new THREE.SphereGeometry(0.18, 14, 14),
+        leafMat
+    );
+    leaf2.scale.set(1.8, 0.32, 0.8);
+    leaf2.position.set(-0.2, 0.6, -0.02);
+    leaf2.rotation.z = 0.7;
+    g.add(leaf2);
+
+    // 花头（简单版）
+    var flower = new THREE.Mesh(
+        new THREE.SphereGeometry(0.32, 20, 20),
+        petalMat
+    );
+    flower.scale.set(1.2, 0.95, 1.1);
+    flower.position.set(0, 1.55, 0);
+    flower.castShadow = true;
+    g.add(flower);
+
+    // 内层
+    var core = new THREE.Mesh(
+        new THREE.SphereGeometry(0.18, 16, 16),
+        new THREE.MeshStandardMaterial({
+            color: 0xb92f42,
+            roughness: 0.5
+        })
+    );
+    core.position.set(0, 1.58, 0.06);
+    core.castShadow = true;
+    g.add(core);
 }
 
 function qaq3DCactus(g) {
@@ -8787,14 +8850,16 @@ var qaqPlantSVGs = {
             '</svg>';
     },
     'seed-rose': function(scale) {
-        return '<svg width="' + (40 * scale) + '" height="' + (60 * scale) + '" viewBox="0 0 40 60">' +
-            '<line x1="20" y1="28" x2="20" y2="56" stroke="#4a7a32" stroke-width="2.5" stroke-linecap="round"/>' +
-            '<ellipse cx="14" cy="40" rx="6" ry="3" fill="#5a9840" opacity="0.7" transform="rotate(-25,14,40)"/>' +
-            '<path d="M20 8 C20 8 12 14 12 20 C12 26 20 28 20 28 C20 28 28 26 28 20 C28 14 20 8 20 8Z" fill="#e05565"/>' +
-            '<path d="M20 12 C18 12 15 16 15 20 C15 23 18 26 20 26" fill="#c84050" opacity="0.6"/>' +
-            '<circle cx="20" cy="18" r="3" fill="#d04858" opacity="0.4"/>' +
-            '</svg>';
-    },
+    return '<svg width="' + (40 * scale) + '" height="' + (60 * scale) + '" viewBox="0 0 40 60">' +
+        '<line x1="20" y1="26" x2="20" y2="56" stroke="#4a7a32" stroke-width="2.5" stroke-linecap="round"/>' +
+        '<ellipse cx="14" cy="38" rx="6" ry="3" fill="#5a9840" opacity="0.7" transform="rotate(-25,14,38)"/>' +
+        '<ellipse cx="26" cy="44" rx="6" ry="3" fill="#5a9840" opacity="0.65" transform="rotate(25,26,44)"/>' +
+        '<path d="M20 8 C15 10 12 14 12 19 C12 24 16 28 20 28 C24 28 28 24 28 19 C28 14 25 10 20 8 Z" fill="#e05565"/>' +
+        '<path d="M20 12 C17.5 13.5 16 16.5 16 19.5 C16 22.5 18 25 20 26" fill="#c84050" opacity="0.65"/>' +
+        '<path d="M20 12 C22.5 13.5 24 16.5 24 19.5 C24 22.5 22 25 20 26" fill="#ea6a78" opacity="0.55"/>' +
+        '<circle cx="20" cy="18" r="2.8" fill="#d04858" opacity="0.55"/>' +
+        '</svg>';
+},
     'seed-cactus': function(scale) {
         return '<svg width="' + (36 * scale) + '" height="' + (56 * scale) + '" viewBox="0 0 36 56">' +
             '<rect x="13" y="10" width="10" height="40" rx="5" fill="#5a9848"/>' +

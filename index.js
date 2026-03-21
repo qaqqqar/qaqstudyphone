@@ -8023,7 +8023,7 @@ function qaq3DLoadGLB(item, group) {
                 var scale = 1.7 / maxDim;
                 model.scale.setScalar(scale);
 
-                model.position.y += 0.8;
+                model.position.y += 0.35;
 
                 model.traverse(function(obj) {
                     if (obj.isMesh) {
@@ -8225,8 +8225,8 @@ async function qaq3DInit(item) {
 
         // ---- 相机 ----
         var camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
-        camera.position.set(0, 1.6, 4.0);
-camera.lookAt(0, 0.9, 0);
+        camera.position.set(0, 1.15, 4.6);
+camera.lookAt(0, 0.62, 0);
         qaq3D.camera = camera;
 
         // ---- 控制器（容错） ----

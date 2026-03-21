@@ -6,6 +6,194 @@
         document.title = 'ERR: ' + e.message;
         console.error('[QAQ Global Error]', e.message, e.filename, e.lineno);
     });
+    
+    // ===== 1. localStorage 缓存层 =====
+// 在IIFE 顶部添加，替代所有直接 localStorage 调用
+
+var qaqCache = {};
+
+function qaqCacheGet(key, fallback) {
+    if (qaqCache[key] !== undefined) return qaqCache[key];
+    var raw = localStorage.getItem(key);
+    var val = raw ? JSON.parse(raw) : fallback;
+    qaqCache[key] = val;
+    return val;
+}
+
+function qaqCacheSet(key, val) {
+    qaqCache[key] = val;
+    localStorage.setItem(key, JSON.stringify(val));
+}
+
+function qaqCacheInvalidate(key) {
+    delete qaqCache[key];
+}
+
+// 替换高频调用的函数：
+function qaqGetWordbooks() {
+    return qaqCacheGet('qaq-wordbooks', []);
+}
+
+function qaqSaveWordbooks(books) {
+    qaqCacheSet('qaq-wordbooks', books);
+}
+
+function qaqGetAllPlans() {
+    return qaqCacheGet('qaq-plans', {});
+}
+
+function qaqSavePlans(plans) {
+    qaqCacheSet('qaq-plans', plans);
+}
+
+function qaqGetReviewSettings() {
+    return qaqCacheGet('qaq-word-review-settings', {
+        roundCount: 20, random: true, autoPronounce: false,
+        speechRate: 0.9, showPhonetic: true, showExample: true,
+        skipMarked: true, storyMode: 'story',
+        storyBilingualMode: 'summary-cn', storyWordCount: 800,
+        apiProvider: 'openai', apiUrl: '', apiKey: '',
+        apiModel: '', minimaxGroupId: ''
+    });
+}
+
+function qaqSaveReviewSettings(settings) {
+    qaqCacheSet('qaq-word-review-settings', settings);
+}
+
+function qaqGetCategories() {
+    return qaqCacheGet('qaq-plan-categories', [
+        { name: '学习', color: '#5b9bd5' },
+        { name: '生活', color: '#7bab6e' },
+        { name: '运动', color: '#e88d4f' },
+        { name: '工作', color: '#8b6cc1' },
+        { name: '其他', color: '#999999' }
+    ]);
+}
+
+function qaqSaveCategories(cats) {
+    qaqCacheSet('qaq-plan-categories', cats);
+}
+
+function qaqGetOwnedItems() {
+    return qaqCacheGet('qaq-mine-owned-items', []);
+}
+
+function qaqSaveOwnedItems(items) {
+    qaqCacheSet('qaq-mine-owned-items', items);
+}
+
+function qaqGetPoints() {
+    return qaqCacheGet('qaq-mine-points', 9999999);
+}
+
+function qaqSavePoints(n) {
+    qaqCacheSet('qaq-mine-points', Math.max(0, n));
+}
+
+function qaqGetStudyLog() {
+    return qaqCacheGet('qaq-study-log', {});
+}
+
+function qaqSaveStudyLog(log) {
+    qaqCacheSet('qaq-study-log', log);
+}
+
+function qaqGetReviewFavorites() {
+    return qaqCacheGet('qaq-word-review-favorites', []);
+}
+
+function qaqSaveReviewFavorites(items) {
+    qaqCacheSet('qaq-word-review-favorites', items);
+}
+
+function qaqGetMarkedWords() {
+    return qaqCacheGet('qaq-word-review-marked', {});
+}
+
+function qaqSaveMarkedWords(data) {
+    qaqCacheSet('qaq-word-review-marked', data);
+}
+
+function qaqGetPlanTheme() {
+    return qaqCacheGet('qaq-plan-theme', {
+        wallpaper: '', wallpaperOpacity: 30, accent: '',
+        cardBg: '', cardOpacity: 55, widgetBg: '', widgetOpacity: 45
+    });
+}
+
+function qaqSavePlanTheme(theme) {
+    qaqCacheSet('qaq-plan-theme', theme);
+}
+
+function qaqGetWordbankTheme() {
+    return qaqCacheGet('qaq-wordbank-theme', {
+        appBg: '', appOpacity: 30, cardBg: '', cardOpacity: 55
+    });
+}
+
+function qaqSaveWordbankTheme(theme) {
+    qaqCacheSet('qaq-wordbank-theme', theme);
+}
+
+function qaqGetStatusBarSettings() {
+    return qaqCacheGet('qaq-statusbar-settings', {
+        visible: true, batteryFollow: false, showToken: false
+    });
+}
+
+function qaqSaveStatusBarSettings(s) {
+    qaqCacheSet('qaq-statusbar-settings', s);
+}
+
+function qaqGetMineProfile() {
+    return qaqCacheGet('qaq-mine-profile', {
+        nickname: '学习者', signature: '每天进步一点点',
+        status: '学习中', avatar: ''
+    });
+}
+
+function qaqSaveMineProfile(p) {
+    qaqCacheSet('qaq-mine-profile', p);
+}
+
+    /*===== Live2D / PixiJS 懒加载 ===== */
+var qaqLive2DReady = false;
+var qaqLive2DLoading = false;
+var qaqLive2DCallbacks = [];
+
+function qaqEnsureLive2D(callback) {
+    if (qaqLive2DReady) { if (callback) callback(); return; }
+    if (callback) qaqLive2DCallbacks.push(callback);
+    if (qaqLive2DLoading) return;
+    qaqLive2DLoading = true;
+
+    var scripts = [
+        'https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.10/browser/pixi.min.js',
+        'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/dist/cubism4.min.js',
+        'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/dist/index.min.js'
+    ];
+    var loaded = 0;
+
+    function loadNext() {
+        if (loaded >= scripts.length) {
+            qaqLive2DReady = true;
+            qaqLive2DLoading = false;
+            qaqLive2DCallbacks.forEach(function(cb) { try { cb(); } catch(e) { console.error(e); } });
+            qaqLive2DCallbacks = [];
+            return;
+        }
+        var s = document.createElement('script');
+        s.src = scripts[loaded];
+        s.onload = function() { loaded++; loadNext(); };
+        s.onerror = function() {
+            console.error('Failed to load: ' + scripts[loaded]);
+            loaded++; loadNext();
+        };
+        document.head.appendChild(s);
+    }
+    loadNext();
+}
 
     /* ===== 时间更新 ===== */
     function qaqUpdateClock() {
@@ -18,16 +206,6 @@
     qaqUpdateClock();
     setInterval(qaqUpdateClock, 15000);
     
-    /* ===== 状态栏设置 ===== */
-function qaqGetStatusBarSettings() {
-    var s = localStorage.getItem('qaq-statusbar-settings');
-    return s ? JSON.parse(s) : { visible: true, batteryFollow: false, showToken: false };
-}
-
-function qaqSaveStatusBarSettings(s) {
-    localStorage.setItem('qaq-statusbar-settings', JSON.stringify(s));
-}
-
 var qaqTokenTotal = parseInt(localStorage.getItem('qaq-token-total') || '0', 10);
 
 function qaqAddTokens(n) {
@@ -161,6 +339,44 @@ document.getElementById('qaq-sb-token-reset').addEventListener('click', function
 qaqApplyStatusBar();
 qaqInitBattery();
 
+/* ===== 性能优化工具 ===== */
+function qaqDebounce(fn, delay) {
+    var timer = null;
+    return function () {
+        var ctx = this;
+        var args = arguments;
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+            fn.apply(ctx, args);
+        }, delay || 120);
+    };
+}
+
+function qaqThrottle(fn, delay) {
+    var last = 0;
+    var timer = null;
+    return function () {
+        var now = Date.now();
+        var ctx = this;
+        var args = arguments;
+
+        if (now - last >= delay) {
+            last = now;
+            fn.apply(ctx, args);
+        } else {
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+                last = Date.now();
+                fn.apply(ctx, args);
+            }, delay - (now - last));
+        }
+    };
+}
+
+function qaqSafeText(v) {
+    return String(v == null ? '' : v);
+}
+
     /* ===== Toast ===== */
     var qaqToastTimeout = null;
     function qaqToast(msg) {
@@ -189,6 +405,16 @@ var qaqImportCtrl = {
     busy: false
 };
 
+function qaqRefreshXiaoyuanView() {
+    if (!qaqXiaoyuanPage) return;
+    if (qaqXiaoyuanPage.classList.contains('qaq-page-show')) {
+        if (qaqXiaoyuanCurrentTab === 'garden') {
+            qaqRenderXiaoyuanGarden();
+        } else {
+            qaqRenderXiaoyuanZoo();
+        }
+    }
+}
 
 function qaqIsImportCancelled() {
     return !!qaqImportCtrl.cancelled;
@@ -855,83 +1081,28 @@ function qaqGetCurrentPage() {
     return document.querySelector('[class*="qaq-"].qaq-page-show');
 }
 
-function qaqSetPageSwitching(on) {
-    var frame = document.querySelector('.qaq-phone-frame');
-    if (!frame) return;
-    frame.classList.toggle('qaq-page-switching', !!on);
-}
-
-function qaqSwitchTo(pageEl) {
-    if (!pageEl || qaqPageLock) return;
-    if (pageEl.classList.contains('qaq-page-show')) return;
-
-    qaqPageLock = true;
-    qaqSetPageSwitching(true);
-
-    var current = qaqGetCurrentPage();
-
-    // ★ 只在同级或向下切换时移除旧页面
-    // 如果新页面z-index更高，说明是子页面叠上来，不要移除父页面
-    if (current && current !== pageEl) {
-        var currentZ = parseInt(getComputedStyle(current).zIndex, 10) || 0;
-        var newZ = parseInt(getComputedStyle(pageEl).zIndex, 10) || 0;
-
-        if (newZ <= currentZ) {
-            // 同级切换（如词库tab之间），移除旧页面
-            current.classList.remove('qaq-page-show');
-        }
-        // 否则是子页面打开，保留父页面在下面
-    }
-
-    requestAnimationFrame(function () {
-        pageEl.classList.add('qaq-page-show');
-
-        clearTimeout(qaqSwitchTimer);
-        qaqSwitchTimer = setTimeout(function () {
-            qaqPageLock = false;
-            qaqSetPageSwitching(false);
-        }, 200);
-    });
-}
-
-function qaqClosePage(pageEl) {
-    if (!pageEl || qaqPageLock) return;
-
-    qaqPageLock = true;
-    qaqSetPageSwitching(true);
-    pageEl.classList.remove('qaq-page-show');
-
-    clearTimeout(qaqSwitchTimer);
-    qaqSwitchTimer = setTimeout(function () {
-        qaqPageLock = false;
-        qaqSetPageSwitching(false);
-    }, 200);
-}
-
 function qaqGoBackTo(parentPageEl, childPageEl) {
     if (!parentPageEl || !childPageEl || qaqPageLock) return;
 
     qaqPageLock = true;
-    qaqSetPageSwitching(true);
+    //★ 删掉下面这行（函数不存在，会报错导致锁死）
+    // qaqSetPageSwitching(true);
 
-    // ★ 关键：禁用父页面过渡，让它瞬间就位（不滑入）
     parentPageEl.style.transition = 'none';
     parentPageEl.classList.add('qaq-page-show');
 
-    // 强制浏览器应用无过渡状态
     void parentPageEl.offsetHeight;
 
-    // 恢复过渡能力（下次切换时仍有动画）
     parentPageEl.style.transition = '';
 
-    // 子页面正常带动画滑出
     requestAnimationFrame(function () {
         childPageEl.classList.remove('qaq-page-show');
 
         clearTimeout(qaqSwitchTimer);
         qaqSwitchTimer = setTimeout(function () {
             qaqPageLock = false;
-            qaqSetPageSwitching(false);
+            // ★ 同样删掉下面这行
+            // qaqSetPageSwitching(false);
         }, 200);
     });
 }
@@ -2006,13 +2177,6 @@ function qaqWordbookId() {
     return 'book_' + Date.now() + Math.random().toString(36).slice(2, 7);
 }
 
-function qaqGetWordbooks() {
-    return JSON.parse(localStorage.getItem('qaq-wordbooks') || '[]');
-}
-
-function qaqSaveWordbooks(books) {
-    localStorage.setItem('qaq-wordbooks', JSON.stringify(books));
-}
 
 function qaqFormatImportTime(ts) {
     var d = new Date(ts);
@@ -2182,6 +2346,7 @@ function qaqOpenWordbankPage() {
         qaqSwitchWordbankTab('books');
         document.getElementById('qaq-wordbook-search').value = '';
         qaqRenderWordbookHome('');
+        qaqApplyWordbankCardThemeDebounced();
     });
 }
 
@@ -2198,6 +2363,7 @@ function qaqOpenWordbookDetail(bookId) {
     requestAnimationFrame(function () {
         document.getElementById('qaq-wordbook-detail-search').value = '';
         qaqRenderWordbookDetail(bookId, '');
+        qaqApplyWordbankCardThemeDebounced();
     });
 }
 
@@ -2227,7 +2393,9 @@ function qaqSwitchWordbankTab(tab) {
     }
 }
 
-/* ===== 词库首页渲染 ===== */
+// ===== 2. 列表渲染优化：DocumentFragment +限制渲染数量 =====
+
+// 替换 qaqRenderWordbookHome
 function qaqRenderWordbookHome(keyword) {
     var listEl = document.getElementById('qaq-wordbook-list');
     var statsEl = document.getElementById('qaq-wordbook-stats');
@@ -2242,62 +2410,386 @@ function qaqRenderWordbookHome(keyword) {
         books = books.filter(function (book) {
             return (book.name || '').toLowerCase().indexOf(kw) > -1;
         });
-        
     }
 
-    statsEl.textContent = '共 ' + books.length + ' 本' + (qaqWordbookSelectMode ? ' · 已选 ' + qaqSelectedWordbookIds.length + ' 本' : '');
+    statsEl.textContent = '共 ' + books.length + ' 本' +
+        (qaqWordbookSelectMode ? ' · 已选 ' + qaqSelectedWordbookIds.length + ' 本' : '');
     batchBar.style.display = qaqWordbookSelectMode ? 'flex' : 'none';
-    listEl.innerHTML = '';
 
     if (!books.length) {
+        listEl.innerHTML = '';
         emptyEl.style.display = 'block';
         return;
     }
-
     emptyEl.style.display = 'none';
 
-    books.forEach(function (book) {
+    //★ 限制首屏渲染数量
+    var MAX_RENDER = 30;
+    var renderBooks = books.slice(0, MAX_RENDER);
+
+    var frag = document.createDocumentFragment();
+
+    renderBooks.forEach(function (book) {
         var selected = qaqSelectedWordbookIds.indexOf(book.id) > -1;
         var div = document.createElement('div');
         div.className = 'qaq-wordbook-card' + (selected ? ' qaq-card-selected' : '');
+        div.dataset.bookId = book.id;
         var bookColor = book.color || '#5b9bd5';
 
         if (qaqWordbookSelectMode) {
             div.innerHTML =
                 '<div class="qaq-wordbook-card-top">' +
-                    '<div class="qaq-select-check' + (selected ? ' qaq-select-check-on' : '') + '" data-book-id="' + book.id + '"></div>' +
-                    '<div style="flex:1;min-width:0;">' +
-                        '<div style="display:flex;align-items:center;gap:8px;">' +
-                            '<div style="width:10px;height:10px;border-radius:50%;background:' + bookColor + ';flex-shrink:0;"></div>' +
-                            '<div class="qaq-wordbook-card-name">' + book.name + '</div>' +
-                        '</div>' +
-                        '<div class="qaq-wordbook-card-meta">导入时间：' + qaqFormatImportTime(book.importedAt) + '</div>' +
-                        '<div class="qaq-wordbook-card-count">共 ' + (book.words ? book.words.length : 0) + ' 条</div>' +
-                    '</div>' +
-                '</div>';
-
-            div.addEventListener('click', function () {
-                qaqToggleInArray(qaqSelectedWordbookIds, book.id);
-                qaqRenderWordbookHome(document.getElementById('qaq-wordbook-search').value);
-            });
+                '<div class="qaq-select-check' + (selected ? ' qaq-select-check-on' : '') + '"></div>' +
+                '<div style="flex:1;min-width:0;">' +
+                '<div style="display:flex;align-items:center;gap:8px;">' +
+                '<div style="width:10px;height:10px;border-radius:50%;background:' + bookColor + ';flex-shrink:0;"></div>' +
+                '<div class="qaq-wordbook-card-name">' + book.name + '</div></div>' +
+                '<div class="qaq-wordbook-card-meta">导入：' + qaqFormatImportTime(book.importedAt) + '</div>' +
+                '<div class="qaq-wordbook-card-count">共 ' + (book.words ? book.words.length : 0) + ' 条</div>' +
+                '</div></div>';
         } else {
             div.innerHTML =
                 '<div style="display:flex;align-items:center;gap:8px;">' +
-                    '<div style="width:10px;height:10px;border-radius:50%;background:' + bookColor + ';flex-shrink:0;"></div>' +
-                    '<div class="qaq-wordbook-card-name">' + book.name + '</div>' +
-                '</div>' +
-                '<div class="qaq-wordbook-card-meta">导入时间：' + qaqFormatImportTime(book.importedAt) + '</div>' +
+                '<div style="width:10px;height:10px;border-radius:50%;background:' + bookColor + ';"></div>' +
+                '<div class="qaq-wordbook-card-name">' + book.name + '</div></div>' +
+                '<div class="qaq-wordbook-card-meta">导入：' + qaqFormatImportTime(book.importedAt) + '</div>' +
                 '<div class="qaq-wordbook-card-count">共 ' + (book.words ? book.words.length : 0) + ' 条</div>';
+        }
+        frag.appendChild(div);
+    });
 
-            div.addEventListener('click', function () {
-                qaqOpenWordbookDetail(book.id);
-            });
+    listEl.innerHTML = '';
+    listEl.appendChild(frag);
+
+    // ★ 事件委托（不再给每个卡片绑事件）
+    // 见下方事件委托优化
+}
+
+// 替换 qaqRenderWordbookDetail - 同样用Fragment + 限制
+function qaqRenderWordbookDetail(bookId, keyword) {
+    var books = qaqGetWordbooks();
+    var book = books.find(function (b) { return b.id === bookId; });
+    if (!book) return;
+
+    document.getElementById('qaq-wordbook-detail-title').textContent = book.name;
+
+    var listEl = document.getElementById('qaq-wordbook-detail-list');
+    var statsEl = document.getElementById('qaq-wordbook-detail-stats');
+    var emptyEl = document.getElementById('qaq-wordbook-detail-empty');
+    var batchBar = document.getElementById('qaq-word-entry-batchbar');
+
+    var items = (book.words || []);
+    var kw = (keyword || '').trim().toLowerCase();
+
+    if (kw) {
+        items = items.filter(function (item) {
+            return (item.word || '').toLowerCase().indexOf(kw) > -1 ||
+                   (item.meaning || '').toLowerCase().indexOf(kw) > -1;
+        });
+    }
+
+    statsEl.textContent = '共 ' + items.length + ' 条' +
+        (qaqWordEntrySelectMode ? ' · 已选 ' + qaqSelectedWordIds.length + ' 条' : '');
+    batchBar.style.display = qaqWordEntrySelectMode ? 'flex' : 'none';
+
+    if (!items.length) {
+        listEl.innerHTML = '';
+        emptyEl.style.display = 'block';
+        return;
+    }
+    emptyEl.style.display = 'none';
+
+    // ★ 限制首屏渲染
+    var MAX_RENDER = 50;
+    var renderItems = items.slice(0, MAX_RENDER);
+
+    var frag = document.createDocumentFragment();
+
+    renderItems.forEach(function (item) {
+        var selected = qaqSelectedWordIds.indexOf(item.id) > -1;
+        var div = document.createElement('div');
+        div.className = 'qaq-word-entry-card' + (selected ? ' qaq-card-selected' : '');
+        div.dataset.wordId = item.id;
+
+        if (qaqWordEntrySelectMode) {
+            div.innerHTML =
+                '<div class="qaq-word-entry-card-top">' +
+                '<div class="qaq-select-check' + (selected ? ' qaq-select-check-on' : '') + '"></div>' +
+                '<div class="qaq-word-entry-main">' +
+                '<div class="qaq-word-entry-word">' + item.word + '</div>' +
+                '<div class="qaq-word-entry-meaning">' + item.meaning + '</div>' +
+                '</div></div>';
+        } else {
+            div.innerHTML =
+                '<div class="qaq-word-entry-main">' +
+                '<div class="qaq-word-entry-word">' + item.word + '</div>' +
+                '<div class="qaq-word-entry-meaning">' + item.meaning + '</div>' +
+                '</div><div class="qaq-word-entry-actions">' +
+                '<button class="qaq-word-entry-btn qaq-word-entry-btn-edit" data-id="' + item.id + '">✎</button>' +
+                '<button class="qaq-word-entry-btn qaq-word-entry-btn-del" data-id="' + item.id + '">✕</button>' +
+                '</div>';
+        }
+        frag.appendChild(div);
+    });
+
+    listEl.innerHTML = '';
+    listEl.appendChild(frag);
+
+    // ★ 如果有更多数据，滚动时懒加载
+    if (items.length > MAX_RENDER) {
+        var sentinel = document.createElement('div');
+        sentinel.className = 'qaq-wordbank-empty';
+        sentinel.textContent = '下滑加载更多（共 ' + items.length + ' 条）';
+        sentinel.style.padding = '20px';
+        listEl.appendChild(sentinel);
+
+        var loaded = MAX_RENDER;
+        var scrollParent = listEl.closest('.qaq-wordbook-detail-content');
+        if (scrollParent) {
+            var loadMoreHandler = qaqThrottle(function () {
+                if (loaded >= items.length) return;
+                var rect = sentinel.getBoundingClientRect();
+                var parentRect = scrollParent.getBoundingClientRect();
+                if (rect.top< parentRect.bottom + 200) {
+                    var batch = items.slice(loaded, loaded + 30);
+                    var bFrag = document.createDocumentFragment();
+                    batch.forEach(function (item) {
+                        var div = document.createElement('div');
+                        div.className = 'qaq-word-entry-card';
+                        div.dataset.wordId = item.id;
+                        div.innerHTML =
+                            '<div class="qaq-word-entry-main">' +
+                            '<div class="qaq-word-entry-word">' + item.word + '</div>' +
+                            '<div class="qaq-word-entry-meaning">' + item.meaning + '</div>' +
+                            '</div><div class="qaq-word-entry-actions">' +
+                            '<button class="qaq-word-entry-btn qaq-word-entry-btn-edit" data-id="' + item.id + '">✎</button>' +
+                            '<button class="qaq-word-entry-btn qaq-word-entry-btn-del" data-id="' + item.id + '">✕</button>' +
+                            '</div>';
+                        bFrag.appendChild(div);
+                    });
+                    listEl.insertBefore(bFrag, sentinel);
+                    loaded += batch.length;
+                    if (loaded >= items.length) sentinel.remove();
+                }
+            }, 150);
+            scrollParent._qaqLoadMore = loadMoreHandler;
+            scrollParent.addEventListener('scroll', loadMoreHandler);
+        }
+    }
+}
+
+// ===== 3. 事件委托优化 =====
+// 替代给每个卡片单独绑事件，改用父级委托
+
+// 词库首页点击委托
+document.getElementById('qaq-wordbook-list').addEventListener('click', function (e) {
+    var card = e.target.closest('.qaq-wordbook-card');
+    if (!card) return;
+    var bookId = card.dataset.bookId;
+    if (!bookId) return;
+
+    if (qaqWordbookSelectMode) {
+        qaqToggleInArray(qaqSelectedWordbookIds, bookId);
+        qaqRenderWordbookHome(document.getElementById('qaq-wordbook-search').value);
+    } else {
+        qaqOpenWordbookDetail(bookId);
+    }
+});
+
+// ===== 4. 防抖渲染：合并多次渲染请求 =====
+var _qaqPendingRenders = {};
+
+function qaqScheduleRender(key, fn, delay) {
+    clearTimeout(_qaqPendingRenders[key]);
+    _qaqPendingRenders[key] = setTimeout(fn, delay || 50);
+}
+
+// ===== 5. 计划卡片渲染优化 =====
+// 替换 qaqRenderPlanCards中构建卡片的方式
+
+function qaqRenderPlanCards() {
+    var container = document.getElementById('qaq-plan-card-list');
+    var rawItems = qaqGetDayPlans(qaqPlanSelectedDate);
+
+    if (!rawItems.length) {
+        container.innerHTML =
+            '<div class="qaq-plan-empty"><div>' +
+            qaqFormatDate(qaqPlanSelectedDate) +
+            '暂无计划</div></div>';
+        return;
+    }
+
+    // 排序
+    var items = rawItems.slice().sort(function (a, b) {
+        if (!a.time && !b.time) return 0;
+        if (!a.time) return 1;
+        if (!b.time) return -1;
+        return a.time.localeCompare(b.time);
+    });
+
+    // 分组
+    var catMap = {};
+    var catOrder = [];
+    items.forEach(function (item) {
+        var cat = item.category || '未分类';
+        if (!catMap[cat]) { catMap[cat] = []; catOrder.push(cat); }
+        catMap[cat].push(item);
+    });
+
+    //★ 用 Fragment 一次性插入
+    var frag = document.createDocumentFragment();
+
+    catOrder.forEach(function (cat) {
+        var catItems = catMap[cat];
+        var catColor = qaqCategoryColor(cat);
+        var catDone = catItems.filter(function (x) { return x.done; }).length;
+
+        var group = document.createElement('div');
+        group.className = 'qaq-category-group';
+
+        var header = document.createElement('div');
+        header.className = 'qaq-category-header';
+        header.innerHTML =
+            '<div class="qaq-category-color-dot" style="background:' + catColor + '"></div>' +
+            '<span class="qaq-category-name">' + cat + '</span>' +
+            '<span class="qaq-category-count">' + catDone + '/' + catItems.length + '</span>';
+
+        var body = document.createElement('div');
+        body.className = 'qaq-category-body';
+
+        catItems.forEach(function (item) {
+            var card = document.createElement('div');
+            card.className = 'qaq-plan-card' + (item.done ? ' qaq-plan-card-done' : '');
+            card.dataset.planId = item.id;
+
+            card.innerHTML =
+                '<div class="qaq-plan-card-color" style="background:' + (item.color || '#deb3be') + '"></div>' +
+                '<div class="qaq-plan-card-body">' +
+                '<div class="qaq-plan-card-name">' + item.name + '</div>' +
+                (item.desc ? '<div class="qaq-plan-card-desc">' + item.desc + '</div>' : '') +
+                '</div>' +
+                '<div class="qaq-plan-card-actions">' +
+                '<button class="qaq-plan-card-check" data-plan-id="' + item.id + '">' +
+                (item.done ? '✓' : '') + '</button>' +
+                '<button class="qaq-plan-card-del" data-plan-id="' + item.id + '">✕</button>' +
+                '</div>';
+
+            body.appendChild(card);
+        });
+
+        header.addEventListener('click', function () {
+            this.classList.toggle('qaq-collapsed');
+            body.classList.toggle('qaq-cat-hidden');
+        });
+
+        group.appendChild(header);
+        group.appendChild(body);
+        frag.appendChild(group);
+    });
+
+    container.innerHTML = '';
+    container.appendChild(frag);
+
+    // ★ 事件委托替代逐个绑定
+    container.onclick = function (e) {
+        var checkBtn = e.target.closest('.qaq-plan-card-check');
+        if (checkBtn) {
+            e.stopPropagation();
+            var id = checkBtn.dataset.planId;
+            var dayItems = qaqGetDayPlans(qaqPlanSelectedDate);
+            var hit = dayItems.find(function (x) { return x.id === id; });
+            if (hit) {
+                hit.done = !hit.done;
+                qaqSaveDayPlans(qaqPlanSelectedDate, dayItems);qaqScheduleRender('planCards', qaqRenderPlanCards, 50);
+                qaqScheduleRender('widgetPlans', qaqRenderWidgetPlans, 100);
+            }
+            return;
         }
 
-        listEl.appendChild(div);
-    });
-    qaqApplyWordbankCardThemeDebounced();
+        var delBtn = e.target.closest('.qaq-plan-card-del');
+        if (delBtn) {
+            e.stopPropagation();
+            var id2 = delBtn.dataset.planId;
+            qaqConfirm('删除计划', '确认删除？', function () {
+                var dayItems2 = qaqGetDayPlans(qaqPlanSelectedDate);
+                var idx = dayItems2.findIndex(function (x) { return x.id === id2; });
+                if (idx > -1) {
+                    dayItems2.splice(idx, 1);
+                    qaqSaveDayPlans(qaqPlanSelectedDate, dayItems2);
+                    qaqScheduleRender('planCards', qaqRenderPlanCards, 230);
+                    qaqScheduleRender('widgetPlans', qaqRenderWidgetPlans, 280);
+                }
+            });
+            return;
+        }
+
+        var card = e.target.closest('.qaq-plan-card');
+        if (card && card.dataset.planId) {
+            qaqEditPlan(qaqPlanSelectedDate, card.dataset.planId);
+        }
+    };
 }
+
+// ===== 6. SVG 缓存 =====
+// 避免每次渲染都重新拼接 SVG 字符串
+
+var _qaqSvgCache = {};
+
+function qaqCachedPlantSVG(id, scale) {
+    var key = id + '_' + scale;
+    if (_qaqSvgCache[key]) return _qaqSvgCache[key];
+    var fn = qaqPlantSVGs[id];
+    if (!fn) return '';
+    var svg = fn(scale);
+    _qaqSvgCache[key] = svg;
+    return svg;
+}
+
+function qaqCachedAnimalSVG(id, scale) {
+    var key = id + '_' + scale;
+    if (_qaqSvgCache[key]) return _qaqSvgCache[key];
+    var fn = qaqAnimalSVGs[id];
+    if (!fn) return '';
+    var svg = fn(scale);
+    _qaqSvgCache[key] = svg;
+    return svg;
+}
+
+// ===== 7. 页面切换优化 =====
+// 关闭页面时延迟清理而非立即渲染
+
+function qaqClosePage(pageEl) {
+    if (!pageEl || qaqPageLock) return;
+
+    qaqPageLock = true;
+    pageEl.classList.remove('qaq-page-show');
+
+    clearTimeout(qaqSwitchTimer);
+    qaqSwitchTimer = setTimeout(function () {
+        qaqPageLock = false;
+    }, 200);//★ 不再设置 qaq-page-switching class，减少重绘
+}
+
+function qaqSwitchTo(pageEl) {
+    if (!pageEl) return;
+    if (qaqPageLock) {
+        clearTimeout(qaqSwitchTimer);
+        qaqPageLock = false;
+    }
+    if (pageEl.classList.contains('qaq-page-show')) return;
+
+    qaqPageLock = true;
+
+    // ★ 直接添加 class，不做额外的 z-index 比较
+    requestAnimationFrame(function () {
+        pageEl.classList.add('qaq-page-show');
+        clearTimeout(qaqSwitchTimer);
+        qaqSwitchTimer = setTimeout(function () {
+            qaqPageLock = false;
+        }, 200);
+    });
+}
+/* ===== 词库首页渲染 ===== */
 
 function qaqEditWordbookMeta(bookId) {
     var books = qaqGetWordbooks();
@@ -2399,88 +2891,35 @@ document.getElementById('qaq-wordbook-more-btn').addEventListener('click', funct
 });
 
 /* ===== 词库详情渲染 ===== */
-function qaqRenderWordbookDetail(bookId, keyword) {
-    var books = qaqGetWordbooks();
-    var book = books.find(function (b) { return b.id === bookId; });
-    if (!book) return;
 
-    document.getElementById('qaq-wordbook-detail-title').textContent = book.name;
+document.getElementById('qaq-wordbook-detail-list').addEventListener('click', function (e) {
+    if (!qaqCurrentWordbookId) return;
 
-    var listEl = document.getElementById('qaq-wordbook-detail-list');
-    var statsEl = document.getElementById('qaq-wordbook-detail-stats');
-    var emptyEl = document.getElementById('qaq-wordbook-detail-empty');
-    var batchBar = document.getElementById('qaq-word-entry-batchbar');
-
-    var items = (book.words || []).slice();
-    var kw = (keyword || '').trim().toLowerCase();
-
-    if (kw) {
-        items = items.filter(function (item) {
-            return (item.word || '').toLowerCase().indexOf(kw) > -1 ||
-                   (item.meaning || '').toLowerCase().indexOf(kw) > -1;
-        });
-    }
-
-    statsEl.textContent = '共 ' + items.length + ' 条' + (qaqWordEntrySelectMode ? ' · 已选 ' + qaqSelectedWordIds.length + ' 条' : '');
-    batchBar.style.display = qaqWordEntrySelectMode ? 'flex' : 'none';
-    listEl.innerHTML = '';
-
-    if (!items.length) {
-        emptyEl.style.display = 'block';
+    var editBtn = e.target.closest('.qaq-word-entry-btn-edit');
+    if (editBtn) {
+        e.stopPropagation();
+        qaqEditWordEntry(qaqCurrentWordbookId, editBtn.dataset.id);
         return;
     }
 
-    emptyEl.style.display = 'none';
-
-    items.forEach(function (item) {
-        var selected = qaqSelectedWordIds.indexOf(item.id) > -1;
-        var div = document.createElement('div');
-        div.className = 'qaq-word-entry-card' + (selected ? ' qaq-card-selected' : '');
-
-        if (qaqWordEntrySelectMode) {
-            div.innerHTML =
-                '<div class="qaq-word-entry-card-top">' +
-                    '<div class="qaq-select-check' + (selected ? ' qaq-select-check-on' : '') + '" data-id="' + item.id + '"></div>' +
-                    '<div class="qaq-word-entry-main">' +
-                        '<div class="qaq-word-entry-word">' + item.word + '</div>' +
-                        '<div class="qaq-word-entry-meaning">' + item.meaning + '</div>' +
-                    '</div>' +
-                '</div>';
-
-            div.addEventListener('click', function () {
-                qaqToggleInArray(qaqSelectedWordIds, item.id);
-                qaqRenderWordbookDetail(bookId, document.getElementById('qaq-wordbook-detail-search').value);
-            });
-        } else {
-            div.innerHTML =
-                '<div class="qaq-word-entry-main">' +
-                    '<div class="qaq-word-entry-word">' + item.word + '</div>' +
-                    '<div class="qaq-word-entry-meaning">' + item.meaning + '</div>' +
-                '</div>' +
-                '<div class="qaq-word-entry-actions">' +
-                    '<button class="qaq-word-entry-btn qaq-word-entry-btn-edit" data-id="' + item.id + '">✎</button>' +
-                    '<button class="qaq-word-entry-btn qaq-word-entry-btn-del" data-id="' + item.id + '">✕</button>' +
-                '</div>';
-        }
-
-        listEl.appendChild(div);
-    });
-
-    if (!qaqWordEntrySelectMode) {
-        listEl.querySelectorAll('.qaq-word-entry-btn-edit').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                qaqEditWordEntry(bookId, this.dataset.id);
-            });
-        });
-
-        listEl.querySelectorAll('.qaq-word-entry-btn-del').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                qaqDeleteWordEntry(bookId, this.dataset.id);
-            });
-        });
+    var delBtn = e.target.closest('.qaq-word-entry-btn-del');
+    if (delBtn) {
+        e.stopPropagation();
+        qaqDeleteWordEntry(qaqCurrentWordbookId, delBtn.dataset.id);
+        return;
     }
-    qaqApplyWordbankCardThemeDebounced();
-}
+
+    if (qaqWordEntrySelectMode) {
+        var card = e.target.closest('.qaq-word-entry-card');
+        if (!card) return;
+
+        var wordId = card.dataset.wordId;
+        if (!wordId) return;
+
+        qaqToggleInArray(qaqSelectedWordIds, wordId);
+        qaqRenderWordbookDetail(qaqCurrentWordbookId, document.getElementById('qaq-wordbook-detail-search').value);
+    }
+});
 
 /* ===== 词库首页：选择模式 ===== */
 document.getElementById('qaq-wordbank-select-btn').addEventListener('click', function () {
@@ -3476,15 +3915,15 @@ document.querySelectorAll('.qaq-wordbank-tab').forEach(function (btn) {
     });
 });
 
-document.getElementById('qaq-wordbook-search').addEventListener('input', function () {
+document.getElementById('qaq-wordbook-search').addEventListener('input', qaqDebounce(function () {
     qaqRenderWordbookHome(this.value);
-});
+}, 160));
 
-document.getElementById('qaq-wordbook-detail-search').addEventListener('input', function () {
+document.getElementById('qaq-wordbook-detail-search').addEventListener('input', qaqDebounce(function () {
     if (qaqCurrentWordbookId) {
         qaqRenderWordbookDetail(qaqCurrentWordbookId, this.value);
     }
-});
+}, 160));
 
 document.getElementById('qaq-wordbook-add-word-btn').addEventListener('click', function () {
     qaqAddWordEntryToCurrentBook();
@@ -3629,14 +4068,6 @@ var qaqDefaultCategories = [
     { name: '其他', color: '#999999' }
 ];
 
-function qaqGetCategories() {
-    var saved = localStorage.getItem('qaq-plan-categories');
-    if (saved) return JSON.parse(saved);
-    return qaqDefaultCategories.slice();
-}
-function qaqSaveCategories(cats) {
-    localStorage.setItem('qaq-plan-categories', JSON.stringify(cats));
-}
 function qaqCategoryColor(catName) {
     var cats = qaqGetCategories();
     var found = cats.find(function (c) { return c.name === catName; });
@@ -3870,8 +4301,7 @@ function qaqOpenCatManage() {
         var parts = dateStr.split('-');
         return parseInt(parts[1], 10) + '月' + parseInt(parts[2], 10) + '日';
     }
-    function qaqGetAllPlans() { return JSON.parse(localStorage.getItem('qaq-plans') || '{}'); }
-    function qaqSavePlans(plans) { localStorage.setItem('qaq-plans', JSON.stringify(plans)); }
+    
     function qaqGetDayPlans(dateKey) {
         var all = qaqGetAllPlans();
         return all[dateKey] || [];
@@ -4003,160 +4433,6 @@ function qaqOpenCatManage() {
             if (active) active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         }, 360);
     }
-
-    function qaqRenderPlanCards() {
-    var container = document.getElementById('qaq-plan-card-list');
-    var rawItems = qaqGetDayPlans(qaqPlanSelectedDate);
-    container.innerHTML = '';
-
-    var changed = false;
-    rawItems.forEach(function (it) { if (!it.id) { it.id = qaqPlanId(); changed = true; } });
-    if (changed) qaqSaveDayPlans(qaqPlanSelectedDate, rawItems);
-
-    if (!rawItems.length) {
-        container.innerHTML =
-            '<div class="qaq-plan-empty">' +
-            '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.2">' +
-            '<rect x="3" y="4" width="18" height="18" rx="2" stroke-linejoin="round"/>' +
-            '<line x1="3" y1="10" x2="21" y2="10"/>' +
-            '<line x1="8" y1="2" x2="8" y2="6" stroke-linecap="round"/>' +
-            '<line x1="16" y1="2" x2="16" y2="6" stroke-linecap="round"/>' +
-            '</svg><div>' + qaqFormatDate(qaqPlanSelectedDate) + ' 暂无计划</div>' +
-            '<div style="font-size:11px;margin-top:4px;color:#ccc;">点击右上角 + 添加</div></div>';
-        return;
-    }
-
-    var items = rawItems.slice().sort(function (a, b) {
-        if (!a.time && !b.time) return 0;
-        if (!a.time) return 1;
-        if (!b.time) return -1;
-        return a.time.localeCompare(b.time);
-    });
-
-    var catMap = {};
-    var catOrder = [];
-    items.forEach(function (item) {
-        var cat = item.category || '未分类';
-        if (!catMap[cat]) { catMap[cat] = []; catOrder.push(cat); }
-        catMap[cat].push(item);
-    });
-
-    catOrder.forEach(function (cat) {
-        var catItems = catMap[cat];
-        var catColor = qaqCategoryColor(cat);
-        var catDone = catItems.filter(function (x) { return x.done; }).length;
-
-        var group = document.createElement('div');
-        group.className = 'qaq-category-group';
-
-        var header = document.createElement('div');
-        header.className = 'qaq-category-header';
-        header.innerHTML =
-            '<div class="qaq-category-color-dot" style="background:' + catColor + ';"></div>' +
-            '<svg class="qaq-category-arrow" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2.5">' +
-            '<polyline points="6,9 12,15 18,9" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
-            '<span class="qaq-category-name">' + cat + '</span>' +
-            '<span class="qaq-category-count">' + catDone + '/' + catItems.length + '</span>';
-
-        var body = document.createElement('div');
-        body.className = 'qaq-category-body';
-
-        catItems.forEach(function (item, idx) {
-            var card = document.createElement('div');
-            card.className = 'qaq-plan-card' + (item.done ? ' qaq-plan-card-done' : '');
-            
-
-            var timeHtml = item.time ? '<div class="qaq-plan-card-time">' + item.time + '</div>' : '';
-            var durationHtml = item.duration ? '<div class="qaq-plan-card-duration">' + item.duration + '</div>' : '';
-            var descHtml = item.desc ? '<div class="qaq-plan-card-desc">' + item.desc + '</div>' : '';
-            var thoughtHtml = item.thought ? '<div class="qaq-plan-card-thought">' + item.thought + '</div>' : '';
-
-            /* 卡片自定义背景 */
-var planTheme = qaqGetPlanTheme();
-var cardBgHtml = '';
-if (planTheme.cardBg) {
-    card.classList.add('qaq-has-custom-bg');
-    var cardBgOp = (planTheme.cardOpacity || 55) / 100;
-    var isDark = document.querySelector('.qaq-phone-frame').classList.contains('qaq-theme-dark');
-    var cardOverlay = isDark
-        ? 'rgba(0,0,0,' + cardBgOp + ')'
-        : 'rgba(255,255,255,' + cardBgOp + ')';
-
-    cardBgHtml = '<div class="qaq-plan-card-custom-bg"><img src="' + planTheme.cardBg + '"><div style="position:absolute;inset:0;background:' + cardOverlay + ';"></div></div>';
-    card.style.background = 'transparent';
-    card.style.border = isDark
-        ? '1px solid rgba(255,255,255,0.08)'
-        : '1px solid rgba(255,255,255,0.3)';
-}
-
-            card.innerHTML =
-    cardBgHtml +
-            
-                '<div class="qaq-plan-card-color" style="background:' + (item.color || '#deb3be') + ';"></div>' +
-                '<div class="qaq-plan-card-body">' +
-'<div class="qaq-plan-card-name">' + item.name + '</div>' +
-descHtml +
-thoughtHtml +
-'<div class="qaq-plan-card-meta">' + timeHtml + durationHtml + '</div>' +
-'</div>' +
-                '<div class="qaq-plan-card-actions">' +
-                '<button class="qaq-plan-card-check" data-plan-id="' + item.id + '">' + (item.done ? '✓' : '') + '</button>' +
-                '<button class="qaq-plan-card-del" data-plan-id="' + item.id + '">✕</button>' +
-                '</div>';
-                
-                /* 点击空白处编辑 */
-card.addEventListener('click', function () {
-    qaqEditPlan(qaqPlanSelectedDate, item.id);
-});
-
-            body.appendChild(card);
-        });
-
-        header.addEventListener('click', function () {
-            this.classList.toggle('qaq-collapsed');
-            body.classList.toggle('qaq-cat-hidden');
-        });
-
-        group.appendChild(header);
-        group.appendChild(body);
-        container.appendChild(group);
-    });
-
-    container.querySelectorAll('.qaq-plan-card-check').forEach(function (btn) {
-        btn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            var id = this.dataset.planId;
-            var dayItems = qaqGetDayPlans(qaqPlanSelectedDate);
-            var hit = dayItems.find(function (x) { return x.id === id; });
-            if (!hit) return;
-            hit.done = !hit.done;
-            qaqSaveDayPlans(qaqPlanSelectedDate, dayItems);
-            qaqRenderPlanCards();
-            qaqRenderWidgetPlans();
-        });
-    });
-
-    container.querySelectorAll('.qaq-plan-card-del').forEach(function (btn) {
-    btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        var id = this.dataset.planId;
-        qaqConfirm('删除计划', '确认删除这条计划吗？', function () {
-            var dayItems = qaqGetDayPlans(qaqPlanSelectedDate);
-            var idx = dayItems.findIndex(function (x) { return x.id === id; });
-            if (idx > -1) {
-                dayItems.splice(idx, 1);
-                qaqSaveDayPlans(qaqPlanSelectedDate, dayItems);
-                // ★ 延迟渲染，等弹窗关闭动画结束
-                setTimeout(function () {
-                    qaqRenderPlanCards();
-                    qaqRenderWidgetPlans();
-                }, 230);
-                qaqToast('已删除');
-            }
-        });
-    });
-});
-}
 
     function qaqOpenPlanPage() {
     qaqPlanSelectedDate = qaqDateKey(new Date());
@@ -4747,17 +5023,19 @@ document.getElementById('qaq-plan-cat-manage-btn').addEventListener('click', fun
     if (t === 'cool') phoneFrame.classList.add('qaq-theme-cool');
     if (t === 'dark') phoneFrame.classList.add('qaq-theme-dark');
 
-    // 动态更新系统状态栏颜色
     var themeColors = {
         'default': '#f6e9c9',
         'cool': '#ebeef3',
         'dark': '#121212'
     };
-    var color = themeColors[t] || themeColors['default'];
+    var color = themeColors[t] || themes['default'];
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) {
         meta.setAttribute('content', color);
     }
+
+    qaqApplyXiaoyuanThemeClass();
+    qaqRefreshXiaoyuanView();
 }
 
     document.querySelectorAll('[data-theme]').forEach(function (item) {
@@ -4825,17 +5103,235 @@ document.getElementById('qaq-plan-cat-manage-btn').addEventListener('click', fun
 
     /* ===== 底部导航 ===== */
     var navItems = document.querySelectorAll('.qaq-nav-item');
-    var navLabels = { zoo: '动物园', 'theme-store': '主题商店', game: '游戏', settings: '设置' };
+    var navLabels = { xiaoyuan: '小院', shop: '商店', game: '游戏', settings: '设置' };
     navItems.forEach(function (item) {
-        item.addEventListener('click', function () {
-            navItems.forEach(function (n) { n.classList.remove('qaq-nav-active'); });
-            this.classList.add('qaq-nav-active');
+    item.addEventListener('click', function () {
+        navItems.forEach(function (n) { n.classList.remove('qaq-nav-active'); });
+        this.classList.add('qaq-nav-active');
 
-            if (this.dataset.nav === 'settings') qaqOpenSettings();
-            else qaqToast(navLabels[this.dataset.nav] || this.dataset.nav);
-        });
+        //★ 强制解锁，防止之前的页面切换残留锁
+        qaqPageLock = false;
+
+        if (this.dataset.nav === 'settings') qaqOpenSettings();
+        else if (this.dataset.nav === 'xiaoyuan') qaqOpenXiaoyuanPage();
+        else if (this.dataset.nav === 'shop') qaqOpenGlobalShopPage();
+        else qaqToast(navLabels[this.dataset.nav] || this.dataset.nav);
     });
+});
 
+/* ===== 小院页面 ===== */
+var qaqXiaoyuanPage = document.getElementById('qaq-xiaoyuan-page');
+var qaqXiaoyuanCurrentTab = 'garden';
+
+function qaqOpenXiaoyuanPage() {
+    qaqApplyXiaoyuanThemeClass();   // ★ 新增
+    qaqSwitchTo(qaqXiaoyuanPage);
+    requestAnimationFrame(function () {
+        qaqSwitchXiaoyuanTab(qaqXiaoyuanCurrentTab || 'garden');
+        qaqRefreshXiaoyuanView();
+    });
+}
+function qaqSwitchXiaoyuanTab(tab) {
+    qaqXiaoyuanCurrentTab = tab;
+    document.querySelectorAll('[data-xiaoyuan-tab]').forEach(function (btn) {
+        btn.classList.toggle('qaq-wordbank-tab-active', btn.dataset.xiaoyuanTab === tab);
+    });
+    document.getElementById('qaq-xiaoyuan-panel-garden').style.display = tab === 'garden' ? '' : 'none';
+    document.getElementById('qaq-xiaoyuan-panel-zoo').style.display = tab === 'zoo' ? '' : 'none';
+
+    if (tab === 'garden') qaqRenderXiaoyuanGarden();
+    else qaqRenderXiaoyuanZoo();
+}
+
+document.getElementById('qaq-xiaoyuan-back').addEventListener('click', function () {
+    qaqClosePage(qaqXiaoyuanPage);
+});
+
+document.querySelectorAll('[data-xiaoyuan-tab]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        qaqSwitchXiaoyuanTab(this.dataset.xiaoyuanTab);
+    });
+});
+
+function qaqRenderXiaoyuanGarden() {
+    var owned = qaqGetOwnedItems().filter(function (x) { return x.type === 'seed'; });
+    var gridEl = document.getElementById('qaq-xy-garden-grid');
+    var emptyEl = document.getElementById('qaq-xy-garden-empty');
+    var sceneEl = document.getElementById('qaq-xy-garden-scene');
+
+    gridEl.innerHTML = '';
+    sceneEl.querySelectorAll('.qaq-sprite-container, .qaq-scene-tip').forEach(function (el) { el.remove(); });
+
+    if (!owned.length) {
+        emptyEl.style.display = '';
+        sceneEl.style.display = 'none';
+        return;
+    }
+    emptyEl.style.display = 'none';
+    sceneEl.style.display = '';
+
+    var tip = document.createElement('div');
+    tip.className = 'qaq-scene-tip';
+    tip.textContent = '点击植物可浇水';
+    sceneEl.appendChild(tip);
+
+    var sceneWidth = sceneEl.clientWidth || 300;
+    var spacing = sceneWidth / (owned.length + 1);
+
+    owned.forEach(function (item, idx) {
+        var catItem = qaqShopCatalog.seeds.find(function (x) { return x.id === item.id; });
+        var state = qaqGetSpriteState(item.id);
+        var growth = state.growth || 0;
+        var growthStage = growth< 30 ? 0.7 : (growth < 70 ? 0.85 : 1);
+
+        var svgFn = qaqPlantSVGs[item.id];
+        if (svgFn) {
+            qaqCreateSpriteInScene(sceneEl, svgFn(growthStage),
+                spacing * (idx + 1) - 20, 10,
+                catItem ? catItem.name : item.name, item.id, 'plant');
+        }
+
+        var card = document.createElement('div');
+        card.className = 'qaq-garden-card';
+
+        var bloomSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e05565" stroke-width="1.8" style="vertical-align:-2px;margin-right:2px;"><circle cx="12" cy="12" r="4" fill="#e05565" opacity="0.3"/><circle cx="12" cy="5" r="2.5" fill="#f8b0b8"/><circle cx="12" cy="19" r="2.5" fill="#f8b0b8"/><circle cx="5" cy="12" r="2.5" fill="#f8b0b8"/><circle cx="19" cy="12" r="2.5" fill="#f8b0b8"/></svg>';
+        var growSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7bab6e" stroke-width="1.8" style="vertical-align:-2px;margin-right:2px;"><path d="M12 22V12" stroke-linecap="round"/><path d="M8 16c0-4 2-6 4-7" stroke-linecap="round"/><path d="M16 14c0-3-2-5-4-6" stroke-linecap="round"/></svg>';
+        var seedSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.8" style="vertical-align:-2px;margin-right:2px;"><path d="M12 22v-8" stroke-linecap="round"/><path d="M12 14c-3 0-5-2-5-5s4-7 5-7 5 4 5 7-2 5-5 5z" fill="#b8dfbf" opacity="0.3"/></svg>';
+        var statusText = growth >= 100 ? bloomSvg + '盛开' : (growth >= 50 ? growSvg + '成长中' : seedSvg + '幼苗');
+        var statusColor = growth >= 100 ? '#e05565' : (growth >= 50 ? '#7bab6e' : '#999');
+
+        card.innerHTML =
+            '<div class="qaq-garden-card-icon">' +
+                (catItem ? catItem.svg.replace(/width="32"/g, 'width="48"').replace(/height="32"/g, 'height="48"') : '') +
+            '</div>' +
+            '<div class="qaq-garden-card-name">' + (catItem ? catItem.name : item.name) + '</div>' +
+            '<div class="qaq-garden-card-status" style="color:' + statusColor + ';">' + statusText + '</div>' +
+            '<div class="qaq-garden-card-growth"><div class="qaq-garden-card-growth-fill" style="width:' + growth + '%;"></div></div>';
+
+        card.addEventListener('click', function () {
+            qaqWaterPlant(
+                sceneEl.querySelector('[data-item-id="' + item.id + '"]') || card,
+                item.id
+            );
+            setTimeout(qaqRenderXiaoyuanGarden, 300);
+        });
+
+        gridEl.appendChild(card);
+    });
+}
+
+function qaqRenderXiaoyuanZoo() {
+    var owned = qaqGetOwnedItems().filter(function (x) { return x.type === 'animal'; });
+    var gridEl = document.getElementById('qaq-xy-zoo-grid');
+    var emptyEl = document.getElementById('qaq-xy-zoo-empty');
+    var sceneEl = document.getElementById('qaq-xy-zoo-scene');
+
+    gridEl.innerHTML = '';
+    sceneEl.querySelectorAll('.qaq-sprite-container, .qaq-scene-tip').forEach(function (el) { el.remove(); });
+
+    if (!owned.length) {
+        emptyEl.style.display = '';
+        sceneEl.style.display = 'none';
+        return;
+    }
+    emptyEl.style.display = 'none';
+    sceneEl.style.display = '';
+
+    var tip = document.createElement('div');
+    tip.className = 'qaq-scene-tip';
+    tip.textContent = '点击动物互动';
+    sceneEl.appendChild(tip);
+
+    var sceneWidth = sceneEl.clientWidth || 300;
+    var spacing = sceneWidth / (owned.length + 1);
+
+    owned.forEach(function (item, idx) {
+        var catItem = qaqShopCatalog.animals.find(function (x) { return x.id === item.id; });
+        var state = qaqGetSpriteState(item.id);
+        var mood = state.mood || 50;
+
+        var happySvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e8c34f" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="9" cy="10" r="1.2" fill="#e8c34f" stroke="none"/><circle cx="15" cy="10" r="1.2" fill="#e8c34f" stroke="none"/><path d="M8 15s1.5 24 2 4-2 4-2" stroke-linecap="round"/></svg>';
+        var neutralSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e88d4f" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="9" cy="10" r="1.2" fill="#e88d4f" stroke="none"/><circle cx="15" cy="10" r="1.2" fill="#e88d4f" stroke="none"/><line x1="9" y1="15" x2="15" y2="15" stroke-linecap="round"/></svg>';
+        var sadSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="9" cy="10" r="1.2" fill="#999" stroke="none"/><circle cx="15" cy="10" r="1.2" fill="#999" stroke="none"/><path d="M8 17s1.5-2 4-2 4 2 4 2" stroke-linecap="round"/></svg>';
+        var moodEmoji = mood >= 80 ? happySvg : (mood >= 50 ? neutralSvg : sadSvg);
+
+        var svgFn = qaqAnimalSVGs[item.id];
+        if (svgFn) {
+            qaqCreateSpriteInScene(sceneEl, svgFn(1),
+                spacing * (idx + 1) - 20, 10,
+                catItem ? catItem.name : item.name, item.id, 'animal');
+        }
+
+        var card = document.createElement('div');
+        card.className = 'qaq-garden-card';
+        card.innerHTML =
+            '<div class="qaq-garden-card-icon">' +
+                (catItem ? catItem.svg.replace(/width="32"/g, 'width="48"').replace(/height="32"/g, 'height="48"') : '') +
+            '</div>' +
+            '<div class="qaq-garden-card-name">' + (catItem ? catItem.name : item.name) + '</div>' +
+            '<div class="qaq-garden-card-mood">' + moodEmoji + '</div>' +
+            '<div class="qaq-garden-card-status">心情 ' + mood + '%</div>';
+
+        card.addEventListener('click', function () {
+            qaqPetAnimal(
+                sceneEl.querySelector('[data-item-id="' + item.id + '"]') || card,
+                item.id
+            );
+            setTimeout(qaqRenderXiaoyuanZoo, 300);
+        });
+
+        gridEl.appendChild(card);
+    });
+}
+
+// 全部浇水/喂食（小院版）
+document.getElementById('qaq-xy-water-all-btn').addEventListener('click', function () {
+    var owned = qaqGetOwnedItems().filter(function (x) { return x.type === 'seed'; });
+    if (!owned.length) return qaqToast('没有可浇水的植物');
+    owned.forEach(function (item) {
+        var state = qaqGetSpriteState(item.id);
+        state.growth = Math.min(100, (state.growth || 0) + 10);
+        state.lastWater = Date.now();
+        qaqSaveSpriteState(item.id, state);
+    });
+    qaqAddPoints(owned.length);
+    qaqRenderXiaoyuanGarden();qaqToast('全部浇水完成 +' + owned.length + ' 积分');
+});
+
+document.getElementById('qaq-xy-feed-all-btn').addEventListener('click', function () {
+    var owned = qaqGetOwnedItems().filter(function (x) { return x.type === 'animal'; });
+    if (!owned.length) return qaqToast('没有可喂食的动物');
+    owned.forEach(function (item) {
+        var state = qaqGetSpriteState(item.id);
+        state.mood = Math.min(100, (state.mood || 50) + 10);
+        state.lastFeed = Date.now();
+        qaqSaveSpriteState(item.id, state);
+    });
+    qaqAddPoints(owned.length);
+    qaqRenderXiaoyuanZoo();
+    qaqToast('全部喂食完成 +' + owned.length + ' 积分');
+});
+
+/* ===== 全局商店（底部导航入口） ===== */
+function qaqOpenGlobalShopPage() {
+    qaqShopPageSource = 'global';
+    qaqRenderShopPage();
+    qaqSwitchTo(document.getElementById('qaq-mine-shop-page'));
+}
+
+// 商店页返回时回到主页而非词库页
+// 需在商店页back按钮处判断来源
+var qaqShopPageSource = 'wordbank'; // 'wordbank' | 'global'
+
+document.getElementById('qaq-mine-shop-back').addEventListener('click', function () {
+    if (qaqShopPageSource === 'global') {
+        qaqClosePage(document.getElementById('qaq-mine-shop-page'));
+    } else {
+        qaqGoBackTo(wordbankPage, document.getElementById('qaq-mine-shop-page'));
+        qaqSwitchWordbankTab('mine');
+    }
+    qaqShopPageSource = 'wordbank';
+});
     /* ===== 数据导出导入清除 ===== */
 
     document.getElementById('qaq-set-clearall').addEventListener('click', function () {
@@ -4959,7 +5455,19 @@ document.getElementById('qaq-time-clear').addEventListener('click', function () 
     if (qaqTimeCallback) qaqTimeCallback('');
     qaqCloseTimePicker();
 });
+function qaqApplyXiaoyuanThemeClass() {
+    var page = document.getElementById('qaq-xiaoyuan-page');
+    var frame = document.querySelector('.qaq-phone-frame');
+    if (!page || !frame) return;
 
+    page.classList.remove('qaq-theme-dark', 'qaq-theme-cool');
+
+    if (frame.classList.contains('qaq-theme-dark')) {
+        page.classList.add('qaq-theme-dark');
+    } else if (frame.classList.contains('qaq-theme-cool')) {
+        page.classList.add('qaq-theme-cool');
+    }
+}
 /* ===== QAQ 自定义颜色选择器（HSV） ===== */
 function qaqHsvToHex(h, s, v) {
     var c = v * s;
@@ -5154,24 +5662,6 @@ var qaqPlanAccentPresets = [
     { name: '石墨', color: '#666666' }
 ];
 
-function qaqGetPlanTheme() {
-    var saved = localStorage.getItem('qaq-plan-theme');
-    if (saved) return JSON.parse(saved);
-    return {
-        wallpaper: '',
-        wallpaperOpacity: 30,
-        accent: '',
-        cardBg: '',
-        cardOpacity: 55,
-        widgetBg: '',
-        widgetOpacity: 45
-    };
-}
-
-function qaqSavePlanTheme(theme) {
-    localStorage.setItem('qaq-plan-theme', JSON.stringify(theme));
-}
-
 function qaqApplyWidgetBg() {
     var widget = document.getElementById('qaq-plan-widget');
     if (!widget) return;
@@ -5346,13 +5836,15 @@ document.getElementById('qaq-pt-wp-clear').addEventListener('click', function ()
 /* 壁纸透明度 */
 document.getElementById('qaq-pt-wp-opacity').addEventListener('input', function () {
     document.getElementById('qaq-pt-wp-opacity-val').textContent = this.value + '%';
+    var overlay = document.getElementById('qaq-pt-wp-overlay');
+    if (overlay) overlay.style.background = 'rgba(0,0,0,' + (this.value / 100) + ')';
+});
+
+document.getElementById('qaq-pt-wp-opacity').addEventListener('change', function () {
     var theme = qaqGetPlanTheme();
     theme.wallpaperOpacity = parseInt(this.value, 10);
     qaqSavePlanTheme(theme);
     qaqApplyPlanTheme();
-    /* 同步预览遮罩 */
-    var overlay = document.getElementById('qaq-pt-wp-overlay');
-    if (overlay) overlay.style.background = 'rgba(0,0,0,' + (this.value / 100) + ')';
 });
 
 /* 卡片背景上传 */
@@ -5377,12 +5869,14 @@ document.getElementById('qaq-pt-card-clear').addEventListener('click', function 
 /* 卡片透明度 */
 document.getElementById('qaq-pt-card-opacity').addEventListener('input', function () {
     document.getElementById('qaq-pt-card-opacity-val').textContent = this.value + '%';
+    var overlay = document.getElementById('qaq-pt-card-overlay');
+    if (overlay) overlay.style.background = 'rgba(255,255,255,' + (this.value / 100) + ')';
+});
+
+document.getElementById('qaq-pt-card-opacity').addEventListener('change', function () {
     var theme = qaqGetPlanTheme();
     theme.cardOpacity = parseInt(this.value, 10);
     qaqSavePlanTheme(theme);
-    /* 同步预览遮罩 */
-    var overlay = document.getElementById('qaq-pt-card-overlay');
-    if (overlay) overlay.style.background = 'rgba(255,255,255,' + (this.value / 100) + ')';
 });
 
 /* ===== 小组件背景上传 ===== */
@@ -5408,13 +5902,15 @@ document.getElementById('qaq-pt-widget-clear').addEventListener('click', functio
 
 document.getElementById('qaq-pt-widget-opacity').addEventListener('input', function () {
     document.getElementById('qaq-pt-widget-opacity-val').textContent = this.value + '%';
+    var overlay = document.getElementById('qaq-pt-widget-overlay');
+    if (overlay) overlay.style.background = 'rgba(255,255,255,' + (this.value / 100) + ')';
+});
+
+document.getElementById('qaq-pt-widget-opacity').addEventListener('change', function () {
     var theme = qaqGetPlanTheme();
     theme.widgetOpacity = parseInt(this.value, 10);
     qaqSavePlanTheme(theme);
     qaqApplyWidgetBg();
-    /* 同步预览遮罩 */
-    var overlay = document.getElementById('qaq-pt-widget-overlay');
-    if (overlay) overlay.style.background = 'rgba(255,255,255,' + (this.value / 100) + ')';
 });
 
 /* 色系选择 */
@@ -5475,21 +5971,6 @@ document.getElementById('qaq-pt-reset').addEventListener('click', function () {
 /* ===== 词库主题系统 ===== */
 var qaqWordbankThemePage = document.getElementById('qaq-wordbank-theme-page');
 
-function qaqGetWordbankTheme() {
-    var saved = localStorage.getItem('qaq-wordbank-theme');
-    if (saved) return JSON.parse(saved);
-    return {
-        appBg: '',
-        appOpacity: 30,
-        cardBg: '',
-        cardOpacity: 55
-    };
-}
-
-function qaqSaveWordbankTheme(theme) {
-    localStorage.setItem('qaq-wordbank-theme', JSON.stringify(theme));
-}
-
 function qaqApplyWordbankTheme() {
     var theme = qaqGetWordbankTheme();
 
@@ -5538,31 +6019,46 @@ function qaqApplyWordbankCardThemeDebounced() {
 }
 function qaqApplyWordbankCardTheme() {
     var theme = qaqGetWordbankTheme();
+    var cardBg = theme.cardBg || '';
     var opacity = (theme.cardOpacity != null ? theme.cardOpacity : 55) / 100;
     var isDark = document.querySelector('.qaq-phone-frame').classList.contains('qaq-theme-dark');
-    var overlayColor = isDark
-        ? 'rgba(0,0,0,__OP__)'
-        : 'rgba(255,255,255,__OP__)';
+    var overlayColor = isDark ? 'rgba(0,0,0,' + opacity + ')' : 'rgba(255,255,255,' + opacity + ')';
 
     function applyToCards(selector) {
-        document.querySelectorAll(selector).forEach(function (card) {
-            var old = card.querySelector('.qaq-wordbank-card-custom-bg');
-            if (old) old.remove();
-            card.classList.remove('qaq-has-custom-bg');
-            card.style.background = '';
-            card.style.border = '';
+        var cards = document.querySelectorAll(selector);
+        cards.forEach(function (card) {
+            var oldBg = card.querySelector('.qaq-wordbank-card-custom-bg');
 
-            if (theme.cardBg) {
-                card.classList.add('qaq-has-custom-bg');
-                var bg = document.createElement('div');
-                bg.className = 'qaq-wordbank-card-custom-bg';
-                bg.innerHTML =
-                    '<img src="' + theme.cardBg + '">' +
-                    '<div style="position:absolute;inset:0;background:' + overlayColor.replace('__OP__', opacity) + ';"></div>';
-                card.insertBefore(bg, card.firstChild);
-                card.style.background = 'transparent';
-                card.style.border = '1px solid rgba(255,255,255,0.3)';
+            if (!cardBg) {
+                if (oldBg) oldBg.remove();
+                card.classList.remove('qaq-has-custom-bg');
+                card.style.background = '';
+                card.style.border = '';
+                return;
             }
+
+            if (!oldBg) {
+                oldBg = document.createElement('div');
+                oldBg.className = 'qaq-wordbank-card-custom-bg';
+                oldBg.innerHTML =
+                    '<img src="' + cardBg + '">' +
+                    '<div class="qaq-wordbank-card-custom-overlay"></div>';
+                card.insertBefore(oldBg, card.firstChild);
+            } else {
+                var img = oldBg.querySelector('img');
+                if (img && img.getAttribute('src') !== cardBg) {
+                    img.setAttribute('src', cardBg);
+                }
+            }
+
+            var overlay = oldBg.querySelector('.qaq-wordbank-card-custom-overlay');
+            if (overlay) {
+                overlay.style.background = overlayColor;
+            }
+
+            card.classList.add('qaq-has-custom-bg');
+            card.style.background = 'transparent';
+            card.style.border = '1px solid rgba(255,255,255,0.3)';
         });
     }
 
@@ -5654,13 +6150,15 @@ document.getElementById('qaq-wbt-app-clear').addEventListener('click', function 
 
 document.getElementById('qaq-wbt-app-opacity').addEventListener('input', function () {
     document.getElementById('qaq-wbt-app-opacity-val').textContent = this.value + '%';
+    var overlay = document.getElementById('qaq-wbt-app-overlay');
+    if (overlay) overlay.style.background = 'rgba(0,0,0,' + (this.value / 100) + ')';
+});
+
+document.getElementById('qaq-wbt-app-opacity').addEventListener('change', function () {
     var theme = qaqGetWordbankTheme();
     theme.appOpacity = parseInt(this.value, 10);
     qaqSaveWordbankTheme(theme);
     qaqApplyWordbankTheme();
-
-    var overlay = document.getElementById('qaq-wbt-app-overlay');
-    if (overlay) overlay.style.background = 'rgba(0,0,0,' + (this.value / 100) + ')';
 });
 
 /* 卡片背景上传 */
@@ -5696,22 +6194,20 @@ document.getElementById('qaq-wbt-card-clear').addEventListener('click', function
 
 document.getElementById('qaq-wbt-card-opacity').addEventListener('input', function () {
     document.getElementById('qaq-wbt-card-opacity-val').textContent = this.value + '%';
-    var theme = qaqGetWordbankTheme();
-    theme.cardOpacity = parseInt(this.value, 10);
-    qaqSaveWordbankTheme(theme);
 
     var overlay = document.getElementById('qaq-wbt-card-overlay');
     if (overlay) {
-    var isDark = document.querySelector('.qaq-phone-frame').classList.contains('qaq-theme-dark');
-    overlay.style.background = isDark
-        ? 'rgba(0,0,0,' + (this.value / 100) + ')'
-        : 'rgba(255,255,255,' + (this.value / 100) + ')';
-}
-
-    qaqRenderWordbookHome(document.getElementById('qaq-wordbook-search').value);
-    if (qaqCurrentWordbookId) {
-        qaqRenderWordbookDetail(qaqCurrentWordbookId, document.getElementById('qaq-wordbook-detail-search').value);
+        var isDark = document.querySelector('.qaq-phone-frame').classList.contains('qaq-theme-dark');
+        overlay.style.background = isDark
+            ? 'rgba(0,0,0,' + (this.value / 100) + ')'
+            : 'rgba(255,255,255,' + (this.value / 100) + ')';
     }
+});
+
+document.getElementById('qaq-wbt-card-opacity').addEventListener('change', function () {
+    var theme = qaqGetWordbankTheme();
+    theme.cardOpacity = parseInt(this.value, 10);
+    qaqSaveWordbankTheme(theme);
     qaqApplyWordbankCardThemeDebounced();
 });
 
@@ -5875,48 +6371,6 @@ document.getElementById('qaq-rs-fetch-models-btn').addEventListener('click', asy
         document.getElementById(id).classList.toggle('qaq-toggle-on');
     });
 });
-
-function qaqGetReviewSettings() {
-    var saved = localStorage.getItem('qaq-word-review-settings');
-    if (saved) {
-        var parsed = JSON.parse(saved);
-        return {
-            roundCount: parsed.roundCount != null ? parsed.roundCount : 20,
-            random: parsed.random != null ? parsed.random : true,
-            autoPronounce: parsed.autoPronounce != null ? parsed.autoPronounce : false,
-            speechRate: parsed.speechRate != null ? parsed.speechRate : 0.9,
-            showPhonetic: parsed.showPhonetic != null ? parsed.showPhonetic : true,
-            showExample: parsed.showExample != null ? parsed.showExample : true,
-            skipMarked: parsed.skipMarked != null ? parsed.skipMarked : true,
-            storyMode: parsed.storyMode || 'story',
-            storyBilingualMode: parsed.storyBilingualMode || 'summary-cn',
-            storyWordCount: parsed.storyWordCount != null ? parsed.storyWordCount : 800,
-            apiProvider: parsed.apiProvider || 'openai',
-            apiUrl: parsed.apiUrl || '',
-            apiKey: parsed.apiKey || '',
-            apiModel: parsed.apiModel || '',
-            minimaxGroupId: parsed.minimaxGroupId || ''
-        };
-    }
-
-    return {
-        roundCount: 20,
-        random: true,
-        autoPronounce: false,
-        speechRate: 0.9,
-        showPhonetic: true,
-        showExample: true,
-        skipMarked: true,
-        storyMode: 'story',
-        storyBilingualMode: 'summary-cn',
-        storyWordCount: 800,
-        apiProvider: 'openai',
-        apiUrl: '',
-        apiKey: '',
-        apiModel: '',
-        minimaxGroupId: ''
-    };
-}
 
 /* ===== 背单词会话存储 ===== */
 function qaqSaveCurrentReviewSession() {
@@ -6084,10 +6538,6 @@ if ('speechSynthesis' in window) {
             qaqLoadSpeechVoices();
         };
     }
-}
-
-function qaqSaveReviewSettings(settings) {
-    localStorage.setItem('qaq-word-review-settings', JSON.stringify(settings));
 }
 
 function qaqShuffle(arr) {
@@ -6406,6 +6856,9 @@ function qaqReviewRequeue(item, level) {
 }
 
 function qaqReviewGoNext() {
+if (!qaqReviewSession._startTime) {
+    qaqReviewSession._startTime = Date.now();
+}
     if (!qaqReviewSession.queue.length) {
         qaqReviewFinishRound();
         return;
@@ -6470,6 +6923,14 @@ function qaqReviewFinishRound() {
         stats: qaqReviewSession.stats,
         finishedAt: Date.now()
     });
+    
+    // ★ 记录学习数据并奖励积分
+var sessionDuration = Math.round((Date.now() - (qaqReviewSession._startTime || Date.now())) / 60000) || 1;
+qaqLogStudySession(
+    qaqReviewSession.bookName,
+    finishedWords.length,
+    sessionDuration
+);
 
     qaqClearCurrentReviewSession();
 
@@ -6888,14 +7349,6 @@ function qaqGetReviewApiConfig() {
 
 /* ===== 背单词第二阶段：收藏 / 标记 / 我的页面 ===== */
 
-function qaqGetReviewFavorites() {
-    return JSON.parse(localStorage.getItem('qaq-word-review-favorites') || '[]');
-}
-
-function qaqSaveReviewFavorites(items) {
-    localStorage.setItem('qaq-word-review-favorites', JSON.stringify(items));
-}
-
 function qaqIsFavoriteWord(wordId, bookId) {
     var favs = qaqGetReviewFavorites();
     return favs.some(function (item) {
@@ -6929,14 +7382,6 @@ function qaqToggleFavoriteWord(wordObj) {
     }
 }
 
-function qaqGetMarkedWords() {
-    return JSON.parse(localStorage.getItem('qaq-word-review-marked') || '{}');
-}
-
-function qaqSaveMarkedWords(data) {
-    localStorage.setItem('qaq-word-review-marked', JSON.stringify(data));
-}
-
 function qaqIsMarkedWord(bookId, wordId) {
     var marked = qaqGetMarkedWords();
     var list = marked[bookId] || [];
@@ -6960,64 +7405,1862 @@ function qaqToggleMarkedWord(bookId, wordId) {
     }
 }
 
-function qaqRenderMinePanel(keyword) {
-    var listEl = document.getElementById('qaq-mine-fav-list');
-    var statsEl = document.getElementById('qaq-mine-fav-stats');
-    var emptyEl = document.getElementById('qaq-mine-fav-empty');
-    if (!listEl) return;
+/* ===== 我的页面 - 完整重构===== */
 
+// ---- 用户资料 ----
+
+// ---- 积分 ----
+
+function qaqAddPoints(n) {
+    if (n <= 0) return;
+    qaqSavePoints(qaqGetPoints() + n);
+}
+
+// ---- 学习记录 ----
+function qaqLogStudySession(bookName, wordCount, durationMinutes) {
+    var today = qaqDateKey(new Date());
+    var log = qaqGetStudyLog();
+    if (!log[today]) log[today] = { words: 0, time: 0, rounds: 0, books: {} };
+    log[today].words += wordCount || 0;
+    log[today].time += durationMinutes || 0;
+    log[today].rounds += 1;
+    if (bookName) {
+        if (!log[today].books[bookName]) log[today].books[bookName] = 0;
+        log[today].books[bookName] += wordCount || 0;
+    }
+    qaqSaveStudyLog(log);
+
+    // 奖励积分: 每个单词 1 积分
+    qaqAddPoints(wordCount || 0);
+}
+
+// ---- 收藏分类 ----
+function qaqGetFavCategories() {
+    return JSON.parse(localStorage.getItem('qaq-mine-fav-categories') || '["全部","单词","句子","段落"]');
+}
+
+function qaqSaveFavCategories(cats) {
+    localStorage.setItem('qaq-mine-fav-categories', JSON.stringify(cats));
+}
+
+// ---- 商店系统 ----
+
+function qaqGetActivePet() {
+    return JSON.parse(localStorage.getItem('qaq-mine-active-pet') ||'null');
+}
+
+function qaqSaveActivePet(pet) {
+    localStorage.setItem('qaq-mine-active-pet', JSON.stringify(pet));
+}
+
+var qaqShopCatalog = {
+    seeds: [
+        { id: 'seed-sunflower', name: '向日葵', price: 30, type: 'seed', svg: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e8c34f" stroke-width="1.5"><circle cx="12" cy="10" r="4"/><path d="M12 14v8" stroke-linecap="round"/><path d="M8 18h8" stroke-linecap="round"/><path d="M12 2v4M7 4l23M17 4l-2 3M4 8l3 1M20 8l-3 1" stroke-linecap="round" opacity="0.6"/></svg>' },
+        { id: 'seed-rose', name: '玫瑰', price: 50, type: 'seed', svg: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e05565" stroke-width="1.5"><path d="M12 3c-22-4 4-4 7 0 32 5 4 5s4-2 4-5c0-3-2-5-4-7z" stroke-linejoin="round"/><path d="M12 15v7" stroke-linecap="round"/><path d="M9 19l3-2 3 2" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
+        { id: 'seed-cactus', name: '仙人掌', price: 20, type: 'seed', svg: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7bab6e" stroke-width="1.5"><rect x="9" y="6" width="6" height="14" rx="3" stroke-linejoin="round"/><path d="M9 12H6a2 2 0 01-2-2V8" stroke-linecap="round"/><path d="M15 10h3a2 2 0 002-2V6" stroke-linecap="round"/><line x1="8" y1="20" x2="16" y2="20" stroke-linecap="round"/></svg>' },
+    ],
+    animals: [
+        { id: 'animal-cat', name: '小猫', price: 80, type: 'animal', svg: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e88d4f" stroke-width="1.5"><path d="M5 9l2-5h2l1 3h4l1-3h2l2 5" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="12" cy="15" rx="7" ry="6"/><circle cx="9" cy="14" r="1" fill="#e88d4f" stroke="none"/><circle cx="15" cy="14" r="1" fill="#e88d4f" stroke="none"/><path d="M10 17s11 2 1 2-1 2-1" stroke-linecap="round"/></svg>' },
+        { id: 'animal-dog', name: '小狗', price: 80, type: 'animal', svg: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8b6cc1" stroke-width="1.5"><path d="M4 10c0-2 1-4 3-4h1l1-3h6l1 3h1c2 0 3 2 3 4" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="12" cy="15" rx="7" ry="6"/><circle cx="9" cy="14" r="1" fill="#8b6cc1" stroke="none"/><circle cx="15" cy="14" r="1" fill="#8b6cc1" stroke="none"/><ellipse cx="12" cy="17" rx="2" ry="1.2" fill="#8b6cc1" stroke="none" opacity="0.3"/></svg>' },
+        { id: 'animal-rabbit', name: '兔子', price: 60, type: 'animal', svg: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#c47068" stroke-width="1.5"><ellipse cx="9" cy="6" rx="2" ry="5"/><ellipse cx="15" cy="6" rx="2" ry="5"/><circle cx="12" cy="15" r="6"/><circle cx="10" cy="14" r="1" fill="#c47068" stroke="none"/><circle cx="14" cy="14" r="1" fill="#c47068" stroke="none"/><path d="M11 17h2" stroke-linecap="round"/></svg>' },
+    ],
+    items: [
+        { id: 'item-fertilizer', name: '普通肥料', price: 10, type: 'item', svg: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7bab6e" stroke-width="1.5"><path d="M12 3v9M8 7l4 54-5" stroke-linecap="round" stroke-linejoin="round"/><rect x="6" y="14" width="12" height="7" rx="2"/></svg>' },
+        { id: 'item-food-basic', name: '基础粮食', price: 15, type: 'item', svg: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e88d4f" stroke-width="1.5"><path d="M4 16h16l-2 5H6l-2-5z" stroke-linejoin="round"/><path d="M6 16c0-43-8 6-1032 6 6 6 10" stroke-linejoin="round"/></svg>' },
+        { id: 'item-bed', name: '小窝', price: 40, type: 'item', svg: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#5b9bd5" stroke-width="1.5"><rect x="2" y="12" width="20" height="8" rx="3"/><path d="M5 12V8a3 3 0 013-3h8a3 3 0 013 3v4" stroke-linejoin="round"/></svg>' },
+    ]
+};
+
+// ---- 渲染我的页面主面板 ----
+function qaqRenderMinePanel() {
+    var profile = qaqGetMineProfile();
+    var favs = qaqGetReviewFavorites();
+    var log = qaqGetStudyLog();
+    var today = qaqDateKey(new Date());
+    var todayLog = log[today] || { words: 0, time: 0, rounds: 0, books: {} };
+
+    // 头像
+    var avatarEl = document.getElementById('qaq-mine-avatar');
+    if (profile.avatar) {
+        avatarEl.innerHTML = '<img src="' + profile.avatar + '">';
+    }
+
+    document.getElementById('qaq-mine-nickname').textContent = profile.nickname || '学习者';
+    document.getElementById('qaq-mine-status-text').textContent = profile.status || '学习中';
+    document.getElementById('qaq-mine-signature').textContent = profile.signature || '每天进步一点点';
+
+    document.getElementById('qaq-mine-fav-count').textContent = favs.length;
+    document.getElementById('qaq-mine-today-words').textContent = '今日 ' + todayLog.words + ' 词';
+    document.getElementById('qaq-mine-points-balance').textContent = qaqGetPoints();
+
+    // ★ 更新今日概览（新位置的元素）
+    var ovWordsEl = document.getElementById('qaq-mine-ov-words');
+    var ovTimeEl = document.getElementById('qaq-mine-ov-time');
+    var ovRoundsEl = document.getElementById('qaq-mine-ov-rounds');
+    var ovBooksEl = document.getElementById('qaq-mine-ov-books');
+    if (ovWordsEl) ovWordsEl.textContent = todayLog.words || 0;
+    if (ovTimeEl) ovTimeEl.textContent = todayLog.time || 0;
+    if (ovRoundsEl) ovRoundsEl.textContent = todayLog.rounds || 0;
+    if (ovBooksEl) ovBooksEl.textContent = Object.keys(todayLog.books || {}).length;
+
+    var owned = qaqGetOwnedItems();
+var plantCount = owned.filter(function (x) { return x.type === 'seed'; }).length;
+var animalCount = owned.filter(function (x) { return x.type === 'animal'; }).length;
+
+var plantCountEl = document.getElementById('qaq-mine-plant-count');
+var animalCountEl = document.getElementById('qaq-mine-animal-count');
+
+if (plantCountEl) plantCountEl.textContent = plantCount + ' 株';
+if (animalCountEl) animalCountEl.textContent = animalCount + ' 只';
+}
+
+// ---- 用户资料编辑 ----
+document.getElementById('qaq-mine-edit-btn').addEventListener('click', function () {
+    var profile = qaqGetMineProfile();
+
+    modalTitle.textContent = '编辑资料';
+    modalBody.innerHTML =
+        '<div class="qaq-plan-form">' +
+            '<div class="qaq-plan-form-label">昵称</div>' +
+            '<input class="qaq-plan-form-input" id="qaq-mine-edit-nick" type="text" value="' + (profile.nickname || '').replace(/"/g, '&quot;') + '">' +
+            '<div class="qaq-plan-form-label">状态</div>' +
+            '<input class="qaq-plan-form-input" id="qaq-mine-edit-status" type="text" value="' + (profile.status || '').replace(/"/g, '&quot;') +'" placeholder="学习中 / 休息中">' +
+            '<div class="qaq-plan-form-label">个性签名</div>' +
+            '<input class="qaq-plan-form-input" id="qaq-mine-edit-sig" type="text" value="' + (profile.signature || '').replace(/"/g, '&quot;') + '">' +
+        '</div>';
+
+    modalBtns.innerHTML =
+        '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">取消</button>' +
+        '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-modal-confirm">保存</button>';
+
+    qaqOpenModal();
+
+    document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
+    document.getElementById('qaq-modal-confirm').onclick = function () {
+        profile.nickname = document.getElementById('qaq-mine-edit-nick').value.trim() || '学习者';
+        profile.status = document.getElementById('qaq-mine-edit-status').value.trim() || '学习中';
+        profile.signature = document.getElementById('qaq-mine-edit-sig').value.trim() || '每天进步一点点';
+        qaqSaveMineProfile(profile);
+        qaqCloseModal();
+        qaqRenderMinePanel();qaqToast('资料已更新');
+    };
+});
+
+document.getElementById('qaq-mine-avatar').addEventListener('click', function () {
+    var profile = qaqGetMineProfile();
+    qaqEditImage('更换头像', function (src) {
+        profile.avatar = src;
+        qaqSaveMineProfile(profile);
+        document.getElementById('qaq-mine-avatar').innerHTML = '<img src="' + src + '">';
+        qaqToast('头像已更新');
+    });
+});
+
+// ---- 收藏子页面 ----
+var qaqMineFavSelectedCat = '全部';
+
+document.getElementById('qaq-mine-fav-header').addEventListener('click', function () {
+    qaqMineFavSelectedCat = '全部';
+    qaqRenderMineFavPage('');qaqSwitchTo(document.getElementById('qaq-mine-fav-page'));
+});
+
+document.getElementById('qaq-mine-fav-back').addEventListener('click', function () {
+    qaqGoBackTo(wordbankPage, document.getElementById('qaq-mine-fav-page'));
+    qaqSwitchWordbankTab('mine');
+});
+
+document.getElementById('qaq-mine-fav-search').addEventListener('input', function () {
+    qaqRenderMineFavPage(this.value);
+});
+
+document.getElementById('qaq-mine-fav-add-cat-btn').addEventListener('click', function () {
+    qaqEditText('新建收藏分类', '', false, function (val) {
+        var cats = qaqGetFavCategories();
+        if (cats.indexOf(val) > -1) return qaqToast('分类已存在');
+        cats.push(val);
+        qaqSaveFavCategories(cats);
+        qaqRenderMineFavPage(document.getElementById('qaq-mine-fav-search').value);
+        qaqToast('分类已创建');
+    });
+});
+
+function qaqRenderMineFavPage(keyword) {
+    var cats = qaqGetFavCategories();
     var favs = qaqGetReviewFavorites().slice();
     var kw = (keyword || '').trim().toLowerCase();
+    var listEl = document.getElementById('qaq-mine-fav-list');
+    var catsEl = document.getElementById('qaq-mine-fav-cats');
+    var emptyEl = document.getElementById('qaq-mine-fav-empty');
 
+    // 分类标签
+    catsEl.innerHTML = '';
+    cats.forEach(function (cat) {
+        var chip = document.createElement('div');
+        chip.className = 'qaq-mine-fav-cat-chip' + (cat === qaqMineFavSelectedCat ? ' qaq-active' : '');
+        chip.textContent = cat;
+        chip.addEventListener('click', function () {
+            qaqMineFavSelectedCat = cat;
+            qaqRenderMineFavPage(document.getElementById('qaq-mine-fav-search').value);
+        });
+        catsEl.appendChild(chip);
+    });
+
+    // 过滤
+    var filtered = favs;
+    if (qaqMineFavSelectedCat !== '全部') {
+        filtered = filtered.filter(function (item) {
+            return (item.favCategory || '单词') === qaqMineFavSelectedCat;
+        });
+    }
     if (kw) {
-        favs = favs.filter(function (item) {
+        filtered = filtered.filter(function (item) {
             return (item.word || '').toLowerCase().indexOf(kw) > -1 ||
-                   (item.meaning || '').toLowerCase().indexOf(kw) > -1 ||
-                   (item.bookName || '').toLowerCase().indexOf(kw) > -1;
+                   (item.meaning || '').toLowerCase().indexOf(kw) > -1;
         });
     }
 
-    statsEl.textContent = '我的收藏 · 共 ' + favs.length + ' 条';
     listEl.innerHTML = '';
 
-    if (!favs.length) {
-        emptyEl.style.display = 'block';
+    if (!filtered.length) {
+        emptyEl.style.display = '';
+        return;
+    }
+    emptyEl.style.display = 'none';
+
+    filtered.forEach(function (item) {
+        var card = document.createElement('div');
+        card.className = 'qaq-mine-fav-card';
+        card.innerHTML =
+            '<div class="qaq-mine-fav-card-top">' +
+                '<div class="qaq-mine-fav-card-word">' + qaqEscapeHtml(item.word || '') + '</div>' +
+                '<div class="qaq-mine-fav-card-cat">' + qaqEscapeHtml(item.favCategory || '单词') + '</div>' +
+            '</div>' +
+            '<div class="qaq-mine-fav-card-meaning">' + qaqEscapeHtml(item.meaning || '') + '</div>' +
+            '<div class="qaq-mine-fav-card-meta">' +
+                '<span>来自：' + qaqEscapeHtml(item.bookName || '未知') + '</span>' +'</div>' +
+            '<div class="qaq-mine-fav-card-actions">' +
+                '<button class="qaq-import-ghost-btn" data-fav-move="1" style="font-size:11px;padding:4px 10px;">移动分类</button>' +
+                '<button class="qaq-import-ghost-btn" data-fav-del="1" style="font-size:11px;padding:4px 10px;color:#c44;">移除</button>' +
+            '</div>';
+
+        card.querySelector('[data-fav-del]').addEventListener('click', function () {
+            var favsList = qaqGetReviewFavorites().filter(function (f) {
+                return !(f.id === item.id && f.bookId === item.bookId);
+            });
+            qaqSaveReviewFavorites(favsList);
+            qaqRenderMineFavPage(document.getElementById('qaq-mine-fav-search').value);
+            qaqToast('已移除');
+        });
+
+        card.querySelector('[data-fav-move]').addEventListener('click', function () {
+            var cats2 = qaqGetFavCategories().filter(function (c) { return c !== '全部'; });
+            modalTitle.textContent = '选择分类';
+            modalBody.innerHTML = '<div class="qaq-custom-select-list">' +
+                cats2.map(function (c) {
+                    return '<div class="qaq-custom-select-option" data-cat="' + c + '"><span>' + c + '</span></div>';
+                }).join('') + '</div>';
+            modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">取消</button>';
+            qaqOpenModal();
+            document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
+            modalBody.querySelectorAll('.qaq-custom-select-option').forEach(function (opt) {
+                opt.addEventListener('click', function () {
+                    var newCat = this.dataset.cat;
+                    var allFavs = qaqGetReviewFavorites();
+                    var hit = allFavs.find(function (f) { return f.id === item.id && f.bookId === item.bookId; });
+                    if (hit) hit.favCategory = newCat;
+                    qaqSaveReviewFavorites(allFavs);
+                    qaqCloseModal();
+                    qaqRenderMineFavPage(document.getElementById('qaq-mine-fav-search').value);
+                    qaqToast('已移至「' + newCat + '」');
+                });
+            });
+        });
+
+        listEl.appendChild(card);
+    });
+}
+
+// ---- 学习数据子页面 ----
+var qaqCalendarYear = new Date().getFullYear();
+var qaqCalendarMonth = new Date().getMonth();
+var qaqCalendarSelectedDay = '';
+
+document.getElementById('qaq-mine-stats-header').addEventListener('click', function () {
+    qaqCalendarYear = new Date().getFullYear();
+    qaqCalendarMonth = new Date().getMonth();
+    qaqCalendarSelectedDay = '';
+    qaqRenderStatsPage();qaqSwitchTo(document.getElementById('qaq-mine-stats-page'));
+});
+
+document.getElementById('qaq-mine-points-header').addEventListener('click', function () {
+    qaqShopPageSource = 'wordbank';
+    qaqRenderShopPage();
+    qaqSwitchTo(document.getElementById('qaq-mine-shop-page'));
+});
+
+document.getElementById('qaq-mine-garden-back').addEventListener('click', function () {
+    qaqGoBackTo(wordbankPage, document.getElementById('qaq-mine-garden-page'));
+    qaqSwitchWordbankTab('mine');
+});
+
+document.getElementById('qaq-mine-zoo-back').addEventListener('click', function () {
+    qaqGoBackTo(wordbankPage, document.getElementById('qaq-mine-zoo-page'));
+    qaqSwitchWordbankTab('mine');
+});
+
+document.getElementById('qaq-mine-stats-back').addEventListener('click', function () {
+    qaqGoBackTo(wordbankPage, document.getElementById('qaq-mine-stats-page'));
+    qaqSwitchWordbankTab('mine');
+});
+
+document.getElementById('qaq-calendar-prev').addEventListener('click', function () {
+    qaqCalendarMonth--;
+    if (qaqCalendarMonth < 0) { qaqCalendarMonth = 11; qaqCalendarYear--; }
+    qaqRenderCalendar();
+});
+
+document.getElementById('qaq-calendar-next').addEventListener('click', function () {
+    qaqCalendarMonth++;
+    if (qaqCalendarMonth > 11) { qaqCalendarMonth = 0; qaqCalendarYear++; }
+    qaqRenderCalendar();
+});
+
+function qaqRenderStatsPage() {
+    var log = qaqGetStudyLog();
+    var today = qaqDateKey(new Date());
+
+    // ★ 删掉今日overview的DOM操作（元素已从学习数据页删除）
+
+    // 总体
+    var totalWords = 0, totalTime = 0, totalDays = 0;
+    Object.keys(log).forEach(function (key) {
+        totalWords += log[key].words || 0;
+        totalTime += log[key].time || 0;
+        if (log[key].words > 0) totalDays++;
+    });
+
+    // 连续天数
+    var streak = 0;
+    var d = new Date();
+    while (true) {
+        var key = qaqDateKey(d);
+        if (log[key] && log[key].words > 0) {
+            streak++;
+            d.setDate(d.getDate() -1);
+        } else break;
+    }
+
+    document.getElementById('qaq-stats-total-words').textContent = totalWords;
+    document.getElementById('qaq-stats-total-time').textContent = totalTime;
+    document.getElementById('qaq-stats-total-days').textContent = totalDays;
+    document.getElementById('qaq-stats-total-streak').textContent = streak;
+
+    qaqRenderCalendar();
+}
+
+function qaqRenderCalendar() {
+    var log = qaqGetStudyLog();
+    var gridEl = document.getElementById('qaq-calendar-grid');
+    var labelEl = document.getElementById('qaq-calendar-month-label');
+    var detailEl = document.getElementById('qaq-calendar-day-detail');
+
+    labelEl.textContent = qaqCalendarYear + '年' + (qaqCalendarMonth + 1) + '月';
+    detailEl.style.display = 'none';
+
+    var firstDay = new Date(qaqCalendarYear, qaqCalendarMonth, 1).getDay();
+    var daysInMonth = new Date(qaqCalendarYear, qaqCalendarMonth + 1, 0).getDate();
+    var todayKey = qaqDateKey(new Date());
+
+    // 找出本月最高学习量
+    var maxWords = 1;
+    for (var i = 1; i <= daysInMonth; i++) {
+        var k = qaqCalendarYear + '-' + (qaqCalendarMonth + 1 < 10 ? '0' : '') + (qaqCalendarMonth + 1) + '-' + (i < 10 ? '0' : '') + i;
+        if (log[k] && log[k].words > maxWords) maxWords = log[k].words;
+    }
+
+    gridEl.innerHTML = '';
+
+    // 空白占位
+    for (var e = 0; e < firstDay; e++) {
+        var emptyCell = document.createElement('div');
+        emptyCell.className = 'qaq-calendar-cell qaq-calendar-empty';
+        gridEl.appendChild(emptyCell);
+    }
+
+    for (var d = 1; d <= daysInMonth; d++) {
+        var key = qaqCalendarYear + '-' + (qaqCalendarMonth + 1 < 10 ? '0' : '') + (qaqCalendarMonth + 1) + '-' + (d < 10 ? '0' : '') + d;
+        var dayLog = log[key];
+        var words = dayLog ? (dayLog.words || 0) : 0;
+
+        var cell = document.createElement('div');
+        cell.className = 'qaq-calendar-cell';
+        cell.textContent = d;
+        cell.dataset.dateKey = key;
+
+        if (key === todayKey) cell.classList.add('qaq-calendar-today');
+        if (key === qaqCalendarSelectedDay) cell.classList.add('qaq-calendar-selected');
+
+        // 热力颜色
+        if (words > 0) {
+            var ratio = Math.min(words / maxWords, 1);
+            if (ratio <= 0.33) cell.style.background = '#f0e4d6';
+            else if (ratio <= 0.66) cell.style.background = '#e0c4a8';
+            else cell.style.background = '#d4a088';
+            cell.style.color = ratio > 0.5 ? '#fff' : '#555';
+        } else {
+            cell.style.background = 'rgba(0,0,0,0.02)';
+        }
+
+        cell.addEventListener('click', function () {
+            var dk = this.dataset.dateKey;
+            qaqCalendarSelectedDay = dk;
+            gridEl.querySelectorAll('.qaq-calendar-cell').forEach(function (c) { c.classList.remove('qaq-calendar-selected'); });
+            this.classList.add('qaq-calendar-selected');
+
+            var dl = qaqGetStudyLog()[dk];
+            if (dl && dl.words > 0) {
+                detailEl.style.display = '';
+                document.getElementById('qaq-calendar-detail-title').textContent = qaqFormatDate(dk) + ' 学习概览';
+                var html = '学习 ' + dl.words + ' 个单词 · 用时 ' + (dl.time || 0) + ' 分钟 · ' + (dl.rounds || 0) + ' 轮';
+                if (dl.books) {
+                    html += '<br>';
+                    Object.keys(dl.books).forEach(function (name) {
+                        html += '<br>' + qaqEscapeHtml(name) + '：' + dl.books[name] + ' 词';
+                    });
+                }
+                document.getElementById('qaq-calendar-detail-body').innerHTML = html;
+            } else {
+                detailEl.style.display = '';
+                document.getElementById('qaq-calendar-detail-title').textContent = qaqFormatDate(dk);
+                document.getElementById('qaq-calendar-detail-body').innerHTML = '当天无学习记录';
+            }
+        });
+
+        gridEl.appendChild(cell);
+    }
+}
+
+function qaqRenderShopPage() {
+    var owned = qaqGetOwnedItems();
+    var ownedIds = owned.map(function (x) { return x.id; });
+    var points = qaqGetPoints();
+
+    document.getElementById('qaq-shop-balance').textContent = points;
+
+    function renderGrid(gridId, items) {
+        var gridEl = document.getElementById(gridId);
+        gridEl.innerHTML = '';
+        items.forEach(function (item) {
+            var isOwned = ownedIds.indexOf(item.id) > -1;
+            var card = document.createElement('div');
+            card.className = 'qaq-shop-card' + (isOwned ? ' qaq-shop-owned' : '');
+
+            var iconHtml = '';
+            if (qaqPlantSVGs[item.id]) {
+                iconHtml = '<div class="qaq-shop-card-icon qaq-plant-sprite">' + qaqPlantSVGs[item.id](0.6) + '</div>';
+            } else if (qaqAnimalSVGs[item.id]) {
+                iconHtml = '<div class="qaq-shop-card-icon qaq-animal-sprite">' + qaqAnimalSVGs[item.id](0.7) + '</div>';
+            } else if (qaqItemSVGs[item.id]) {
+                iconHtml = '<div class="qaq-shop-card-icon qaq-item-sprite">' + qaqItemSVGs[item.id](0.7) + '</div>';
+            } else {
+                iconHtml = '<div class="qaq-shop-card-icon">' + item.svg + '</div>';
+            }
+
+            card.innerHTML =
+                iconHtml +
+                '<div class="qaq-shop-card-name">' + item.name + '</div>' +
+                (isOwned
+                    ? '<div class="qaq-shop-card-owned">已拥有</div>'
+                    : '<div class="qaq-shop-card-price">' + item.price + ' 积分</div>') +
+                '<button class="qaq-shop-detail-btn" data-detail-id="' + item.id + '">查看详情</button>';
+
+            // 购买点击（点卡片非按钮区域）
+            card.addEventListener('click', function (e) {
+    if (e.target.closest('.qaq-shop-detail-btn')) return;
+    if (isOwned) return qaqToast('已拥有该物品');
+
+    qaqConfirm('确认兑换', '花费 ' + item.price + ' 积分兑换「' + item.name + '」？', function () {
+        try {
+            var latestPoints = qaqGetPoints();
+            if (latestPoints < item.price) {
+                return qaqToast('积分不足');
+            }
+
+            var ownedList = qaqGetOwnedItems() || [];
+
+            // 防重复购买
+            if (ownedList.some(function (x) { return x.id === item.id; })) {
+                qaqToast('已拥有该物品');
+                qaqRenderShopPage();
+                return;
+            }
+
+            ownedList.push({
+                id: item.id,
+                name: item.name,
+                type: item.type,
+                obtainedAt: Date.now()
+            });
+
+            // 先保存拥有物品，再扣积分
+            qaqSaveOwnedItems(ownedList);
+            qaqSavePoints(latestPoints - item.price);
+
+            // 刷新所有相关页面
+            qaqRenderShopPage();
+            qaqRenderMinePanel();
+            if (typeof qaqRenderGardenPage === 'function') qaqRenderGardenPage();
+            if (typeof qaqRenderZooPage === 'function') qaqRenderZooPage();
+            if (typeof qaqRenderXiaoyuanGarden === 'function') qaqRenderXiaoyuanGarden();
+            if (typeof qaqRenderXiaoyuanZoo === 'function') qaqRenderXiaoyuanZoo();
+
+            qaqToast('兑换成功');
+        } catch (err) {
+            console.error('购买失败：', err);
+            qaqToast('购买失败：' + (err.message || '未知错误'));
+        }
+    });
+});
+
+            gridEl.appendChild(card);
+        });
+
+        //绑定「查看详情」
+        gridEl.querySelectorAll('.qaq-shop-detail-btn').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var id = this.dataset.detailId;
+                qaqOpenShopItemDetail(id);
+            });
+        });
+    }
+
+    renderGrid('qaq-shop-seeds-grid', qaqShopCatalog.seeds);
+    renderGrid('qaq-shop-animals-grid', qaqShopCatalog.animals);
+    renderGrid('qaq-shop-items-grid', qaqShopCatalog.items);
+}
+
+/*===== Three.js 懒加载 ===== */
+var qaqThreeReady = false;
+var qaqThreeLoading = false;
+var qaqThreeCallbacks = [];
+
+function qaqEnsureThreeJS(onProgress, callback) {
+    if (qaqThreeReady) { if (callback) callback(); return; }
+    if (callback) qaqThreeCallbacks.push(callback);
+    if (qaqThreeLoading) return;
+    qaqThreeLoading = true;
+
+    var scripts = [
+    'https://cdn.jsdelivr.net/npm/three@0.142.0/build/three.min.js',
+    'https://cdn.jsdelivr.net/npm/three@0.142.0/examples/js/controls/OrbitControls.js'
+];
+    var loaded = 0;
+    var total = scripts.length;
+
+    function loadNext() {
+        if (loaded >= total) {
+            qaqThreeReady = true;
+            qaqThreeLoading = false;
+            if (onProgress) onProgress(100);
+            qaqThreeCallbacks.forEach(function (cb) { try { cb(); } catch (e) { console.error(e); } });
+            qaqThreeCallbacks = [];
+            return;
+        }
+        var s = document.createElement('script');
+        s.src = scripts[loaded];
+        s.onload = function () {
+            loaded++;
+            if (onProgress) onProgress(Math.round((loaded / total) * 90));
+            loadNext();
+        };
+        s.onerror = function () {
+            console.error('Failed to load: ' + scripts[loaded]);
+            loaded++;
+            loadNext();
+        };
+        document.head.appendChild(s);
+    }
+
+    if (onProgress) onProgress(5);
+    loadNext();
+}
+
+/* ===== Three.js 3D 状态 ===== */
+var qaq3D = {
+    renderer: null, scene: null, camera: null, controls: null,
+    animId: null, mainGroup: null, clock: null, particles: null, destroyed: false
+};
+
+function qaq3DPreviewDestroy() {
+    qaq3D.destroyed = true;
+    if (qaq3D.animId) { cancelAnimationFrame(qaq3D.animId); qaq3D.animId = null; }
+    if (qaq3D.controls) { qaq3D.controls.dispose(); qaq3D.controls = null; }
+    if (qaq3D.renderer) { qaq3D.renderer.dispose(); qaq3D.renderer.domElement.remove(); qaq3D.renderer = null; }
+    qaq3D.scene = null; qaq3D.camera = null; qaq3D.mainGroup = null;
+    qaq3D.clock = null; qaq3D.particles = null;
+}
+
+function qaqOpenShopItemDetail(itemId) {
+    var allItems = qaqShopCatalog.seeds.concat(qaqShopCatalog.animals, qaqShopCatalog.items);
+    var item = allItems.find(function (x) { return x.id === itemId; });
+    if (!item) return;
+
+    var owned = qaqGetOwnedItems();
+    var isOwned = owned.some(function (x) { return x.id === itemId; });
+    var typeNames = { seed: '种子', animal: '动物', item: '道具' };
+    var typeName = typeNames[item.type] || '物品';
+
+    //★ 如果 Three.js 还没加载，先显示加载进度弹窗
+    if (!qaqThreeReady) {
+        modalTitle.textContent = '加载 3D 引擎';
+        modalBody.innerHTML =
+            '<div style="text-align:center;">' +
+                '<div style="font-size:13px;color:#888;margin-bottom:12px;">正在下载 3D 渲染模块…</div>' +
+                '<div class="qaq-import-progress-bar" style="margin:0 auto;width:80%;">' +
+                    '<div class="qaq-import-progress-fill" id="qaq-3d-load-fill" style="width:0%;"></div>' +
+                '</div>' +
+                '<div id="qaq-3d-load-text" style="font-size:11px;color:#aaa;margin-top:8px;">0%</div>' +
+            '</div>';
+        modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">取消</button>';
+        qaqOpenModal();
+        document.getElementById('qaq-modal-cancel').onclick = function () {
+            qaqCloseModal();
+        };
+
+        qaqEnsureThreeJS(
+            function (pct) {
+                var fill = document.getElementById('qaq-3d-load-fill');
+                var text = document.getElementById('qaq-3d-load-text');
+                if (fill) fill.style.width = pct + '%';
+                if (text) text.textContent = pct + '%';
+            },
+            function () {
+                qaqCloseModal();
+                setTimeout(function () {
+                    qaqOpenShopItemDetail3D(item, isOwned, typeName);
+                }, 200);
+            }
+        );return;
+    }
+
+    qaqOpenShopItemDetail3D(item, isOwned, typeName);
+}
+
+function qaqOpenShopItemDetail3D(item, isOwned, typeName) {
+    modalTitle.textContent = item.name;
+    modalBody.innerHTML =
+        '<div class="qaq-shop-detail-modal">' +
+            '<div class="qaq-shop-detail-stage qaq-3d-stage" id="qaq-3d-stage">' +
+                '<canvas id="qaq-3d-canvas"></canvas>' +
+                '<div class="qaq-3d-hint">拖动旋转 ·滚轮缩放 · 点击互动</div>' +
+            '</div>' +
+            '<div class="qaq-shop-detail-info">' +
+                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">类型</span><span>' + typeName + '</span></div>' +
+                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">价格</span><span style="color:#e8c34f;font-weight:600;">' + item.price + ' 积分</span></div>' +
+                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">状态</span><span style="color:' + (isOwned ? '#7bab6e' : '#999') + ';">' + (isOwned ? '已拥有' : '未拥有') + '</span></div>' +
+            '</div>' +
+        '</div>';
+
+    if (isOwned) {
+        modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-modal-cancel" style="flex:1;">关闭</button>';
+    } else {
+        modalBtns.innerHTML =
+            '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>' +
+            '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-shop-detail-buy">兑换</button>';
+    }
+
+    qaqOpenModal();
+
+    setTimeout(function () { qaq3DInit(item); }, 150);
+
+    document.getElementById('qaq-modal-cancel').onclick = function () {
+        qaq3DPreviewDestroy(); qaqCloseModal();
+    };
+
+    var buyBtn = document.getElementById('qaq-shop-detail-buy');
+    if (buyBtn) {
+        buyBtn.onclick = function () {
+    try {
+        var points = qaqGetPoints();
+        if (points < item.price) return qaqToast('积分不足');
+
+        var ownedList = qaqGetOwnedItems() || [];
+
+        if (ownedList.some(function (x) { return x.id === item.id; })) {
+            qaq3DPreviewDestroy();
+            qaqCloseModal();
+            return qaqToast('已拥有该物品');
+        }
+
+        ownedList.push({
+            id: item.id,
+            name: item.name,
+            type: item.type,
+            obtainedAt: Date.now()
+        });
+
+        // 先保存拥有，再扣积分
+        qaqSaveOwnedItems(ownedList);
+        qaqSavePoints(points - item.price);
+
+        qaq3DPreviewDestroy();
+        qaqCloseModal();
+
+        qaqRenderShopPage();
+        qaqRenderMinePanel();
+        if (typeof qaqRenderGardenPage === 'function') qaqRenderGardenPage();
+        if (typeof qaqRenderZooPage === 'function') qaqRenderZooPage();
+        if (typeof qaqRenderXiaoyuanGarden === 'function') qaqRenderXiaoyuanGarden();
+        if (typeof qaqRenderXiaoyuanZoo === 'function') qaqRenderXiaoyuanZoo();
+
+        qaqToast('兑换成功');
+    } catch (err) {
+        console.error('详情页购买失败：', err);
+        qaqToast('购买失败：' + (err.message || '未知错误'));
+    }
+};
+    }
+}
+
+/* ===== Three.js 3D 场景初始化 ===== */
+function qaq3DInit(item) {
+    qaq3DPreviewDestroy();
+    qaq3D.destroyed = false;
+
+    var canvas = document.getElementById('qaq-3d-canvas');
+    var container = document.getElementById('qaq-3d-stage');
+    if (!canvas || !container) {
+        console.error('[3D] canvas或 container 不存在');
+        return;
+    }
+
+    if (typeof THREE === 'undefined') {
+        console.error('[3D] THREE 未定义');
+        return;
+    }
+
+    try {
+        var w = container.clientWidth || 280;
+        var h = container.clientHeight || 220;
+        var isDark = document.querySelector('.qaq-phone-frame').classList.contains('qaq-theme-dark');
+
+        //----渲染器 ----
+        var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+        renderer.setSize(w, h);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        if (renderer.toneMapping !== undefined) {
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+        }
+        qaq3D.renderer = renderer;
+
+        // ---- 场景 ----
+        var scene = new THREE.Scene();
+        qaq3D.scene = scene;
+
+        // ---- 相机 ----
+        var camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+        camera.position.set(0, 2, 5);
+        camera.lookAt(0, 0.5, 0);
+        qaq3D.camera = camera;
+
+        // ---- 控制器（容错） ----
+        var controls = null;
+        if (THREE.OrbitControls) {
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.08;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 2;
+            controls.minDistance = 2.5;
+            controls.maxDistance = 8;
+            controls.maxPolarAngle = Math.PI * 0.58;
+            controls.minPolarAngle = Math.PI * 0.2;
+            controls.target.set(0, 0.6, 0);
+            controls.update();
+        } else {
+            console.warn('[3D] OrbitControls 未加载，跳过控制器');
+        }
+        qaq3D.controls = controls;
+
+        qaq3D.clock = new THREE.Clock();
+
+        // ---- 灯光 ----
+        scene.add(new THREE.AmbientLight(isDark ? 0x334455 : 0x8899aa, 0.8));
+        var dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        dirLight.position.set(3, 5, 4);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.set(512, 512);
+        if (dirLight.shadow.radius !== undefined) dirLight.shadow.radius = 4;
+        scene.add(dirLight);
+
+        var fillLight = new THREE.DirectionalLight(isDark ? 0x445566 : 0xffeedd, 0.4);
+        fillLight.position.set(-2, 3, -2);
+        scene.add(fillLight);
+
+        var rim = new THREE.PointLight(0x88aaff, 0.6, 10);
+        rim.position.set(-2, 2, -3);
+        scene.add(rim);
+
+        // ---- 地面 ----
+        var ground = new THREE.Mesh(
+            new THREE.CircleGeometry(3, 64),
+            new THREE.MeshStandardMaterial({ color: isDark ? 0x222222 : 0xddccbb, roughness: 0.9 })
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.01;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // ---- 主模型 ----
+        var mainGroup = new THREE.Group();
+        scene.add(mainGroup);
+        qaq3D.mainGroup = mainGroup;
+
+        try {
+            qaq3DBuild(item, mainGroup, isDark);
+        } catch (buildErr) {
+            console.error('[3D] 模型构建失败:', buildErr);
+            // 放一个兜底球体
+            var fallbackMesh = new THREE.Mesh(
+                new THREE.SphereGeometry(0.6, 32, 32),
+                new THREE.MeshStandardMaterial({ color: 0xc47068, roughness: 0.3, metalness: 0.5 })
+            );
+            fallbackMesh.position.y = 0.8;
+            fallbackMesh.castShadow = true;
+            mainGroup.add(fallbackMesh);
+        }
+
+        // ---- 粒子 ----
+        try {
+            qaq3DParticles(scene, item.type, isDark);
+        } catch (partErr) {
+            console.warn('[3D] 粒子创建失败:', partErr);
+        }
+
+        // ---- 点击交互 ----
+        var raycaster = new THREE.Raycaster();
+        var mouse = new THREE.Vector2();
+        canvas.addEventListener('click', function (e) {
+            var rect = canvas.getBoundingClientRect();
+            mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            if (raycaster.intersectObjects(mainGroup.children, true).length > 0) {
+                qaq3DClickBounce(mainGroup, scene);
+            }
+        });
+
+        // ---- 动画循环 ----
+        function animate() {
+            if (qaq3D.destroyed) return;
+            qaq3D.animId = requestAnimationFrame(animate);
+
+            try {
+                var t = qaq3D.clock.getElapsedTime();
+                if (controls) controls.update();
+                if (mainGroup) mainGroup.position.y = Math.sin(t * 1.5) * 0.06;
+
+                if (qaq3D.particles) {
+                    qaq3D.particles.rotation.y += 0.002;
+                    var pos = qaq3D.particles.geometry.attributes.position.array;
+                    for (var i = 1; i < pos.length; i += 3) {
+                        pos[i] += Math.sin(t * 2+ i) * 0.002;
+                    }
+                    qaq3D.particles.geometry.attributes.position.needsUpdate = true;
+                }
+
+                renderer.render(scene, camera);
+            } catch (animErr) {
+                console.error('[3D] 渲染帧出错:', animErr);
+                cancelAnimationFrame(qaq3D.animId);
+            }
+        }
+        animate();
+
+        console.log('[3D] 初始化成功, 模型子节点:', mainGroup.children.length);} catch (err) {
+        console.error('[3D] 初始化失败:', err);qaqToast('3D 渲染失败: ' + (err.message || '未知错误'));
+    }
+}
+
+/* ===== 3D 模型构建 ===== */
+function qaq3DBuild(item, group, isDark) {
+    var id = item.id;
+    var builders = {
+        'seed-sunflower': qaq3DSunflower,
+        'seed-rose': qaq3DRose,
+        'seed-cactus': qaq3DCactus,
+        'animal-cat': qaq3DCat,
+        'animal-dog': qaq3DDog,
+        'animal-rabbit': qaq3DRabbit,
+        'item-fertilizer': qaq3DFertilizer,
+        'item-food-basic': qaq3DFoodBowl,
+        'item-bed': qaq3DBed
+    };
+    var fn = builders[id];
+    if (fn) { fn(group); } else {
+        var m = new THREE.Mesh(new THREE.SphereGeometry(0.6, 32, 32), new THREE.MeshStandardMaterial({ color:0xc47068, roughness: 0.3, metalness: 0.5 }));
+        m.position.y = 0.8; m.castShadow = true; group.add(m);
+    }
+}
+
+function qaq3DAddPot(g, color) {
+    var pot = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.3, 0.35, 16), new THREE.MeshStandardMaterial({ color: color, roughness: 0.7 }));
+    pot.position.y = 0.175; pot.castShadow = true; pot.receiveShadow = true; g.add(pot);
+    var rim = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.04, 8, 24), new THREE.MeshStandardMaterial({ color: color, roughness: 0.7 }));
+    rim.position.y = 0.35; rim.rotation.x = Math.PI / 2; g.add(rim);
+}
+
+function qaq3DSunflower(g) {
+    var mat = new THREE.MeshStandardMaterial({ color: 0x4a8838, roughness: 0.8 });
+    var stem = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 1.8, 8), mat);
+    stem.position.y = 0.9; stem.castShadow = true; g.add(stem);
+    for (var i = 0; i < 2; i++) {
+        var lf = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), new THREE.MeshStandardMaterial({ color: 0x5a9840, roughness: 0.7 }));
+        lf.scale.set(1, 0.2, 0.6); lf.position.set(i === 0 ? -0.25 : 0.25, 0.5+ i * 0.4, 0); lf.rotation.z = i === 0 ? 0.6 : -0.6; g.add(lf);
+    }
+    var center = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.12, 32), new THREE.MeshStandardMaterial({ color: 0x8B6914, roughness: 0.6 }));
+    center.position.y = 1.85; center.castShadow = true; g.add(center);
+    for (var j = 0; j < 12; j++) {
+        var a = (j / 12) * Math.PI * 2;
+        var p = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), new THREE.MeshStandardMaterial({ color: 0xf0d060, roughness: 0.5 }));
+        p.scale.set(0.5, 0.15, 1); p.position.set(Math.cos(a) * 0.5, 1.85, Math.sin(a) * 0.5); p.lookAt(0, 1.85, 0); g.add(p);
+    }
+    qaq3DAddPot(g, 0x9a7b5a);
+}
+
+function qaq3DRose(g) {
+    var stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 1.6, 8), new THREE.MeshStandardMaterial({ color: 0x3a6828, roughness: 0.8 }));
+    stem.position.y = 0.8; stem.castShadow = true; g.add(stem);
+    var layers = [0.35, 0.28, 0.2, 0.12];
+    var colors = [0xc84050, 0xd04858, 0xd85868, 0xe06878];
+    for (var l = 0; l < layers.length; l++) {
+        var rp = new THREE.Mesh(new THREE.SphereGeometry(layers[l], 12, 12, 0, Math.PI * 2,0, Math.PI * 0.6), new THREE.MeshStandardMaterial({ color: colors[l], roughness: 0.45, side: THREE.DoubleSide }));
+        rp.position.y = 1.65 + l * 0.05; rp.rotation.x = l *0.15; rp.castShadow = true; g.add(rp);
+    }
+    qaq3DAddPot(g, 0xb86050);
+}
+
+function qaq3DCactus(g) {
+    var cMat = new THREE.MeshStandardMaterial({ color: 0x4a8838, roughness: 0.6 });
+    var body = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 1.4, 12), cMat);
+    body.position.y = 0.9; body.castShadow = true; g.add(body);
+    var a1 = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 0.7, 8), cMat);
+    a1.position.set(-0.35, 1.0, 0); a1.rotation.z = Math.PI / 4; g.add(a1);
+    var a2 = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.5, 8), cMat);
+    a2.position.set(0.3, 1.2, 0); a2.rotation.z = -Math.PI / 5; g.add(a2);
+    var fl = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), new THREE.MeshStandardMaterial({ color: 0xf0d060, emissive: 0x332200, emissiveIntensity: 0.2 }));
+    fl.position.set(0, 1.65, 0); g.add(fl);
+    qaq3DAddPot(g, 0x8a7260);
+}
+
+function qaq3DCat(g) {
+    var m = new THREE.MeshStandardMaterial({ color: 0xe8a050, roughness: 0.65 });
+    var b = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), m); b.scale.set(1, 0.8, 0.7); b.position.y = 0.5; b.castShadow = true; g.add(b);
+    var h = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), m); h.position.set(0, 1.0, 0.2); h.castShadow = true; g.add(h);
+    var eGeo = new THREE.ConeGeometry(0.12, 0.25, 4);
+    [-0.18, 0.18].forEach(function (x) { var e = new THREE.Mesh(eGeo, m); e.position.set(x, 1.32, 0.2); e.rotation.z = x< 0 ? 0.15 : -0.15; g.add(e); });
+    var eyeM = new THREE.MeshStandardMaterial({ color: 0x222222 });
+    [-0.12, 0.12].forEach(function (x) { var e = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), eyeM); e.position.set(x, 1.05, 0.5); g.add(e); });
+    var nose = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), new THREE.MeshStandardMaterial({ color: 0xd07060 }));
+    nose.position.set(0, 0.95, 0.52); g.add(nose);
+    for (var i = 0; i < 4; i++) { var pw = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), m); pw.scale.y = 0.5; pw.position.set(i< 2 ? -0.22 : 0.22, 0.08, i % 2 === 0 ? 0.2 : -0.15); pw.castShadow = true; g.add(pw); }
+    var tc = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0.4, -0.35), new THREE.Vector3(0.2, 0.7, -0.6), new THREE.Vector3(0.3, 1.0, -0.5), new THREE.Vector3(0.15, 1.15, -0.3)]);
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(tc, 20, 0.05, 8, false), m));
+}
+
+function qaq3DDog(g) {
+    var bodyMat = new THREE.MeshStandardMaterial({
+        color: 0xd8a36d,
+        roughness: 0.75,
+        metalness: 0.02
+    });
+    var earMat = new THREE.MeshStandardMaterial({
+        color: 0xb97d4f,
+        roughness: 0.8,
+        metalness: 0.02
+    });
+    var muzzleMat = new THREE.MeshStandardMaterial({
+        color: 0xf3dfc9,
+        roughness: 0.7
+    });
+    var eyeMat = new THREE.MeshStandardMaterial({
+        color: 0x222222,
+        roughness: 0.3
+    });
+    var noseMat = new THREE.MeshStandardMaterial({
+        color: 0x3a2a22,
+        roughness: 0.4
+    });
+    var blushMat = new THREE.MeshStandardMaterial({
+        color: 0xf0b0a8,
+        transparent: true,
+        opacity: 0.45,
+        roughness: 0.9
+    });
+
+    // 身体：更圆润
+    var body = new THREE.Mesh(new THREE.SphereGeometry(0.62, 24, 24), bodyMat);
+    body.scale.set(1.15, 0.9, 0.85);
+    body.position.y = 0.55;
+    body.castShadow = true;
+    g.add(body);
+
+    // 头：更大
+    var head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 24, 24), bodyMat);
+    head.position.set(0, 1.18, 0.25);
+    head.castShadow = true;
+    g.add(head);
+
+    // 嘴套
+    var muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.22, 20, 20), muzzleMat);
+    muzzle.scale.set(1.3, 0.95, 1.1);
+    muzzle.position.set(0, 1.03, 0.62);
+    muzzle.castShadow = true;
+    g.add(muzzle);
+
+    // 鼻子
+    var nose = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 12), noseMat);
+    nose.scale.set(1.2, 0.9, 1);
+    nose.position.set(0, 1.07, 0.82);
+    g.add(nose);
+
+    // 眼睛：更大更靠下
+    [-0.16, 0.16].forEach(function (x) {
+        var eye = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 12), eyeMat);
+        eye.position.set(x, 1.2, 0.62);
+        g.add(eye);
+
+        var eyeLight = new THREE.Mesh(
+            new THREE.SphereGeometry(0.02, 8, 8),
+            new THREE.MeshStandardMaterial({ color: 0xffffff })
+        );
+        eyeLight.position.set(x - 0.02, 1.23, 0.67);
+        g.add(eyeLight);
+    });
+
+    // 腮红
+    [-0.24, 0.24].forEach(function (x) {
+        var blush = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 10), blushMat);
+        blush.scale.set(1.4, 0.8, 0.4);
+        blush.position.set(x, 1.02, 0.68);
+        g.add(blush);
+    });
+
+    // 下垂耳
+    [-0.34, 0.34].forEach(function (x) {
+        var ear = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 16), earMat);
+        ear.scale.set(0.85, 1.6, 0.55);
+        ear.position.set(x, 1.18, 0.28);
+        ear.rotation.z = x < 0 ? 0.35 : -0.35;
+        ear.castShadow = true;
+        g.add(ear);
+    });
+
+    // 四只短腿
+    [
+        [-0.24, 0.12, 0.2],
+        [0.24, 0.12, 0.2],
+        [-0.24, 0.12, -0.12],
+        [0.24, 0.12, -0.12]
+    ].forEach(function (p) {
+        var leg = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), bodyMat);
+        leg.scale.set(0.95, 0.7, 0.95);
+        leg.position.set(p[0], p[1], p[2]);
+        leg.castShadow = true;
+        g.add(leg);
+    });
+
+    // 尾巴：短一点，狗感更强
+    var tailCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0.42, 0.62, -0.28),
+        new THREE.Vector3(0.62, 0.9, -0.38),
+        new THREE.Vector3(0.48, 1.15, -0.3)
+    ]);
+    var tail = new THREE.Mesh(
+        new THREE.TubeGeometry(tailCurve, 20, 0.05, 8, false),
+        bodyMat
+    );
+    tail.castShadow = true;
+    g.add(tail);
+}
+
+function qaq3DRabbit(g) {
+    var m = new THREE.MeshStandardMaterial({ color: 0xe0a8a0, roughness: 0.6 });
+    var b = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 16), m); b.scale.set(0.9, 0.85, 0.7); b.position.y = 0.45; b.castShadow = true; g.add(b);
+    var h = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), m); h.position.set(0, 1.0, 0.15); g.add(h);
+    [-0.14, 0.14].forEach(function (x) { var e = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.6, 8), m); e.position.set(x, 1.5, 0.1); g.add(e); var t = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), m); t.position.set(x, 1.82, 0.1); g.add(t); });
+    [-0.12, 0.12].forEach(function (x) { var e = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), new THREE.MeshStandardMaterial({ color: 0x222222 })); e.position.set(x, 1.02, 0.44); g.add(e); });
+    var nose = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 6), new THREE.MeshStandardMaterial({ color: 0xd08080 }));
+    nose.position.set(0, 0.92, 0.48); g.add(nose);
+    var blush = new THREE.MeshStandardMaterial({ color: 0xf0b8b0, transparent: true, opacity: 0.35 });
+    [-0.22, 0.22].forEach(function (x) { var c = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), blush); c.position.set(x, 0.95, 0.4); g.add(c); });
+    var tail = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), m); tail.position.set(0, 0.35, -0.4); g.add(tail);
+}
+
+function qaq3DFertilizer(g) {
+    var bag = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 0.9, 12), new THREE.MeshStandardMaterial({ color: 0x6a9a5e, roughness: 0.7 }));
+    bag.position.y = 0.5; bag.castShadow = true; g.add(bag);
+    var top = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.06, 8, 24), new THREE.MeshStandardMaterial({ color: 0x5a8a4e }));
+    top.position.y = 0.95; top.rotation.x = Math.PI / 2; g.add(top);
+    var label = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.25), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 }));
+    label.position.set(0, 0.5, 0.36); g.add(label);
+    var pM = new THREE.MeshStandardMaterial({ color: 0xa0c890});
+    for (var i = 0; i < 6; i++) { var p = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), pM); p.position.set((Math.random() - 0.5) * 0.8, 0.04, (Math.random() - 0.5) * 0.8); g.add(p); }
+}
+
+function qaq3DFoodBowl(g) {
+    var bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.3, 0.3, 24), new THREE.MeshStandardMaterial({ color: 0xe8d0b0, roughness: 0.5 }));
+    bowl.position.y = 0.2; bowl.castShadow = true; g.add(bowl);
+    var rim = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.04, 8, 32), new THREE.MeshStandardMaterial({ color: 0xd0b890}));
+    rim.position.y = 0.35; rim.rotation.x = Math.PI / 2; g.add(rim);
+    var food = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), new THREE.MeshStandardMaterial({ color: 0xd4a060, roughness: 0.6 }));
+    food.position.y = 0.35; food.castShadow = true; g.add(food);
+}
+
+function qaq3DBed(g) {
+    var base = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.55, 0.2, 24), new THREE.MeshStandardMaterial({ color: 0x5b9bd5, roughness: 0.5 }));
+    base.position.y = 0.1; base.castShadow = true; g.add(base);
+    var edge = new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.1, 12, 32), new THREE.MeshStandardMaterial({ color: 0x4a88c0}));
+    edge.position.y = 0.2; edge.rotation.x = Math.PI / 2; g.add(edge);
+    var cushion = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.08, 24), new THREE.MeshStandardMaterial({ color: 0xa0d0f0, roughness: 0.6 }));
+    cushion.position.y = 0.22; g.add(cushion);
+    var pillow = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), new THREE.MeshStandardMaterial({ color: 0xc0e0ff, roughness: 0.5 }));
+    pillow.scale.set(1.2, 0.5, 0.8); pillow.position.set(-0.2, 0.32, 0.15); g.add(pillow);
+}
+
+/* ===== 3D 粒子 ===== */
+function qaq3DParticles(scene, type, isDark) {
+    var count = 60;
+    var positions = new Float32Array(count * 3);
+    var colors = new Float32Array(count * 3);
+    var palette = type === 'seed'
+        ? [new THREE.Color(0xf0d060), new THREE.Color(0xb8dfbf), new THREE.Color(0xffeedd)]
+        : type === 'animal'
+        ? [new THREE.Color(0xffbbcc), new THREE.Color(0xbbddff), new THREE.Color(0xffeedd)]
+        : [new THREE.Color(0xa0c890), new THREE.Color(0xd0e0ff), new THREE.Color(0xf0d060)];
+    for (var i = 0; i < count; i++) {
+        positions[i * 3] = (Math.random() - 0.5) * 6;
+        positions[i * 3 + 1] = Math.random() * 4;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * 6;
+        var c = palette[Math.floor(Math.random() * palette.length)];
+        colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b;
+    }
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    var pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.04, vertexColors: true, transparent: true, opacity: isDark ? 0.4 : 0.6, sizeAttenuation: true }));
+    scene.add(pts);
+    qaq3D.particles = pts;
+}
+
+/* ===== 3D 点击弹跳 ===== */
+function qaq3DClickBounce(mainGroup, scene) {
+    var start = performance.now();
+    function bounce() {
+        var t = (performance.now() - start) / 500;
+        if (t > 1) { mainGroup.scale.set(1, 1, 1); return; }
+        var s = 1 +0.2 * Math.sin(t * Math.PI * 3) * (1 - t);
+        var sy = 1 + 0.15 * Math.sin(t * Math.PI * 4) * (1 - t);
+        mainGroup.scale.set(s, sy, s);
+        requestAnimationFrame(bounce);
+    }
+    bounce();
+
+    //粒子爆发
+    var burstGroup = new THREE.Group();
+    scene.add(burstGroup);
+    var burstColors = [0xe8c34f, 0xe05565, 0x5b9bd5, 0x7bab6e, 0x8b6cc1];
+    for (var i = 0; i < 15; i++) {
+        var bm = new THREE.Mesh(new THREE.SphereGeometry(0.03, 4, 4), new THREE.MeshStandardMaterial({ color: burstColors[Math.floor(Math.random() * burstColors.length)], emissive: 0x332211, emissiveIntensity: 0.3 }));
+        bm.position.set(0, 0.8, 0);
+        bm.userData.velocity = new THREE.Vector3((Math.random() - 0.5) * 0.15, 0.05+ Math.random() * 0.1, (Math.random() - 0.5) * 0.15);
+        burstGroup.add(bm);
+    }
+    var bs = performance.now();
+    function animBurst() {
+        var elapsed = (performance.now() - bs) / 1000;
+        if (elapsed > 1.5) { scene.remove(burstGroup); return; }
+        burstGroup.children.forEach(function (child) {
+            child.position.add(child.userData.velocity);
+            child.userData.velocity.y -= 0.004;
+            child.material.opacity = Math.max(0, 1 - elapsed);
+            child.material.transparent = true;
+        });
+        requestAnimationFrame(animBurst);
+    }
+    animBurst();
+}
+
+/*===== 桌宠设置（设置页入口） ===== */
+document.getElementById('qaq-set-pet').addEventListener('click', function () {
+    var owned = qaqGetOwnedItems().filter(function (x) { return x.type === 'animal' || x.type === 'seed'; });
+
+    modalTitle.textContent = '桌宠设置';
+
+    if (!owned.length) {
+        modalBody.innerHTML = '<div style="text-align:center;font-size:13px;color:#999;line-height:1.8;">还没有可设置的桌宠<br>去商店兑换动物或种子吧</div>';
+        modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-modal-cancel">关闭</button>';
+        qaqOpenModal();
+        document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
+        return;
+    }
+
+    var currentPet = qaqGetActivePet();
+    var currentId = currentPet ? currentPet.id : '';
+
+    modalBody.innerHTML = '<div class="qaq-custom-select-list">' +
+        owned.map(function (item) {
+            var catItem = qaqShopCatalog.animals.concat(qaqShopCatalog.seeds).find(function (x) { return x.id === item.id; });
+            var isActive = item.id === currentId;
+            return '<div class="qaq-custom-select-option' + (isActive ? ' qaq-custom-select-active' : '') + '" data-pet-id="' + item.id + '">' +
+                '<span>' + (catItem ? catItem.name : item.name) + '</span>' +
+                (isActive ? '<span style="color:#c47068;">✓</span>' : '') +
+                '</div>';
+        }).join('') +
+        '<div class="qaq-custom-select-option" data-pet-id=""><span style="color:#aaa;">不设置桌宠</span></div>' +
+        '</div>';
+
+    modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>';
+    qaqOpenModal();
+    document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
+
+    modalBody.querySelectorAll('.qaq-custom-select-option').forEach(function (opt) {
+        opt.addEventListener('click', function () {
+            var petId = this.dataset.petId;
+            if (!petId) {
+                qaqSaveActivePet(null);
+                document.getElementById('qaq-settings-pet-preview').textContent = '未设置';} else {
+                qaqSaveActivePet({ id: petId });
+                var catItem = qaqShopCatalog.animals.concat(qaqShopCatalog.seeds).find(function (x) { return x.id === petId; });
+                document.getElementById('qaq-settings-pet-preview').textContent = catItem ? catItem.name : '已设置';
+            }
+            qaqCloseModal();
+            qaqToast(petId ? '桌宠已设置' : '桌宠已取消');
+        });
+    });
+});
+
+// 初始化设置页桌宠预览文字
+(function () {
+    var pet = qaqGetActivePet();
+    var previewEl = document.getElementById('qaq-settings-pet-preview');
+    if (previewEl && pet) {
+        var catItem = qaqShopCatalog.animals.concat(qaqShopCatalog.seeds).find(function (x) { return x.id === pet.id; });
+        previewEl.textContent = catItem ? catItem.name : '已设置';
+    }
+})();
+
+/* ====================================================================★★★ Live2D / 动态2D 引擎 ★★★
+   ==================================================================== */
+
+// ---- 精灵状态存储 ----
+function qaqGetSpriteState(itemId) {
+    var states = JSON.parse(localStorage.getItem('qaq-sprite-states') || '{}');
+    return states[itemId] || { growth: 0, mood: 100, lastWater: 0, lastFeed: 0 };
+}
+
+function qaqSaveSpriteState(itemId, state) {
+    var states = JSON.parse(localStorage.getItem('qaq-sprite-states') || '{}');
+    states[itemId] = state;
+    localStorage.setItem('qaq-sprite-states', JSON.stringify(states));
+}
+
+// ---- 2D 精灵工厂（SVG 动画） ----
+var qaqPlantSVGs = {
+    'seed-sunflower': function(scale) {
+        return '<svg width="' + (48 * scale) + '" height="' + (64 * scale) + '" viewBox="0 0 48 64">' +
+            '<line x1="24" y1="30" x2="24" y2="60" stroke="#5a8a3e" stroke-width="3" stroke-linecap="round"/>' +
+            '<ellipse cx="18" cy="42" rx="8" ry="4" fill="#6aa84f" opacity="0.6" transform="rotate(-20,18,42)"/>' +
+            '<ellipse cx="30" cy="38" rx="7" ry="3.5" fill="#6aa84f" opacity="0.5" transform="rotate(15,30,38)"/>' +
+            '<circle cx="24" cy="20" r="10" fill="#e8c34f"/>' +
+            '<circle cx="24" cy="20" r="5" fill="#a0722a"/>' +
+            // 花瓣
+            '<ellipse cx="24" cy="8" rx="4" ry="6" fill="#f0d060"/>' +
+            '<ellipse cx="24" cy="32" rx="4" ry="6" fill="#f0d060"/>' +
+            '<ellipse cx="12" cy="20" rx="6" ry="4" fill="#f0d060"/>' +
+            '<ellipse cx="36" cy="20" rx="6" ry="4" fill="#f0d060"/>' +
+            '<ellipse cx="15" cy="11" rx="5" ry="4" fill="#f0d060" transform="rotate(-45,15,11)"/>' +
+            '<ellipse cx="33" cy="11" rx="5" ry="4" fill="#f0d060" transform="rotate(45,33,11)"/>' +
+            '<ellipse cx="15" cy="29" rx="5" ry="4" fill="#f0d060" transform="rotate(45,15,29)"/>' +
+            '<ellipse cx="33" cy="29" rx="5" ry="4" fill="#f0d060" transform="rotate(-45,33,29)"/>' +
+            '</svg>';
+    },
+    'seed-rose': function(scale) {
+        return '<svg width="' + (40 * scale) + '" height="' + (60 * scale) + '" viewBox="0 0 40 60">' +
+            '<line x1="20" y1="28" x2="20" y2="56" stroke="#4a7a32" stroke-width="2.5" stroke-linecap="round"/>' +
+            '<ellipse cx="14" cy="40" rx="6" ry="3" fill="#5a9840" opacity="0.7" transform="rotate(-25,14,40)"/>' +
+            '<path d="M20 8 C20 8 12 14 12 20 C12 26 20 28 20 28 C20 28 28 26 28 20 C28 14 20 8 20 8Z" fill="#e05565"/>' +
+            '<path d="M20 12 C18 12 15 16 15 20 C15 23 18 26 20 26" fill="#c84050" opacity="0.6"/>' +
+            '<circle cx="20" cy="18" r="3" fill="#d04858" opacity="0.4"/>' +
+            '</svg>';
+    },
+    'seed-cactus': function(scale) {
+        return '<svg width="' + (36 * scale) + '" height="' + (56 * scale) + '" viewBox="0 0 36 56">' +
+            '<rect x="13" y="10" width="10" height="40" rx="5" fill="#5a9848"/>' +
+            '<rect x="13" y="10" width="10" height="40" rx="5" fill="none" stroke="#4a8838" stroke-width="1"/>' +
+            '<path d="M13 26 L8 22 L8 18 Q8 14 12 14" fill="none" stroke="#5a9848" stroke-width="4" stroke-linecap="round"/>' +
+            '<path d="M23 20 L28 16 L28 12 Q28 8 24 8" fill="none" stroke="#5a9848" stroke-width="4" stroke-linecap="round"/>' +
+            '<circle cx="15" cy="15" r="1" fill="#f0d060"/>' +
+            '<circle cx="21" cy="30" r="1" fill="#f0d060"/>' +
+            '<line x1="13" y1="50" x2="23" y2="50" stroke="#8a7260" stroke-width="2" stroke-linecap="round"/>' +
+            '</svg>';
+    }
+};
+
+var qaqAnimalSVGs = {
+    'animal-cat': function(scale) {
+        return '<svg width="' + (52 * scale) + '" height="' + (44 * scale) + '" viewBox="0 0 52 44">' +
+            // 身体
+            '<ellipse cx="26" cy="30" rx="14" ry="10" fill="#e8a050"/>' +
+            // 头
+            '<circle cx="26" cy="18" r="10" fill="#e8a050"/>' +
+            // 耳朵
+            '<polygon points="18,12 14,2 22,8" fill="#e8a050" stroke="#d89040" stroke-width="0.5"/>' +
+            '<polygon points="34,12 38,2 30,8" fill="#e8a050" stroke="#d89040" stroke-width="0.5"/>' +
+            '<polygon points="19,11 16,4 22,8" fill="#f0b8a0" opacity="0.5"/>' +
+            '<polygon points="33,11 36,4 30,8" fill="#f0b8a0" opacity="0.5"/>' +
+            // 眼睛
+            '<ellipse cx="22" cy="17" rx="2.5" ry="3" fill="#333"/>' +
+            '<ellipse cx="30" cy="17" rx="2.5" ry="3" fill="#333"/>' +
+            '<circle cx="21" cy="16" r="1" fill="#fff"/>' +
+            '<circle cx="29" cy="16" r="1" fill="#fff"/>' +
+            // 鼻子
+            '<ellipse cx="26" cy="21" rx="1.5" ry="1" fill="#d07060"/>' +
+            // 嘴
+            '<path d="M24 22 Q26 24 28 22" fill="none" stroke="#d07060" stroke-width="0.8"/>' +
+            // 胡须
+            '<line x1="14" y1="19" x2="21" y2="20" stroke="#c88040" stroke-width="0.5"/>' +
+            '<line x1="14" y1="22" x2="21" y2="21" stroke="#c88040" stroke-width="0.5"/>' +
+            '<line x1="38" y1="19" x2="31" y2="20" stroke="#c88040" stroke-width="0.5"/>' +
+            '<line x1="38" y1="22" x2="31" y2="21" stroke="#c88040" stroke-width="0.5"/>' +
+            // 尾巴
+            '<path d="M40 28 Q48 20 44 14" fill="none" stroke="#e8a050" stroke-width="3" stroke-linecap="round"/>' +
+            //爪子
+            '<ellipse cx="18" cy="38" rx="4" ry="3" fill="#e8a050"/>' +
+            '<ellipse cx="34" cy="38" rx="4" ry="3" fill="#e8a050"/>' +
+            '</svg>';
+    },
+    'animal-dog': function(scale) {
+    return '<svg width="' + (56 * scale) + '" height="' + (48 * scale) + '" viewBox="0 0 56 48">' +
+        // 身体
+        '<ellipse cx="28" cy="33" rx="15" ry="10" fill="#d8a36d"/>' +
+
+        // 头
+        '<circle cx="28" cy="18" r="11" fill="#d8a36d"/>' +
+
+        // 下垂耳
+        '<ellipse cx="18" cy="17" rx="5" ry="9" fill="#b97d4f" transform="rotate(8,18,17)"/>' +
+        '<ellipse cx="38" cy="17" rx="5" ry="9" fill="#b97d4f" transform="rotate(-8,38,17)"/>' +
+
+        // 脸中间浅色嘴套
+        '<ellipse cx="28" cy="22" rx="7" ry="5.5" fill="#f3dfc9"/>' +
+
+        // 眼睛
+        '<circle cx="24" cy="17" r="2.3" fill="#2f2f2f"/>' +
+        '<circle cx="32" cy="17" r="2.3" fill="#2f2f2f"/>' +
+        '<circle cx="23.3" cy="16.2" r="0.9" fill="#fff"/>' +
+        '<circle cx="31.3" cy="16.2" r="0.9" fill="#fff"/>' +
+
+        // 鼻子
+        '<ellipse cx="28" cy="21.5" rx="2.3" ry="1.7" fill="#3a2a22"/>' +
+
+        // 嘴
+        '<path d="M26 23.8 Q28 25.5 30 23.8" fill="none" stroke="#8a5a46" stroke-width="0.9" stroke-linecap="round"/>' +
+
+        // 腮红
+        '<circle cx="20" cy="22" r="2.2" fill="#f0b0a8" opacity="0.35"/>' +
+        '<circle cx="36" cy="22" r="2.2" fill="#f0b0a8" opacity="0.35"/>' +
+
+        // 爪子
+        '<ellipse cx="20" cy="40" rx="4" ry="3" fill="#d8a36d"/>' +
+        '<ellipse cx="36" cy="40" rx="4" ry="3" fill="#d8a36d"/>' +
+
+        // 尾巴
+        '<path d="M42 31 Q50 25 48 18" fill="none" stroke="#d8a36d" stroke-width="3.2" stroke-linecap="round"/>' +
+        '</svg>';
+},
+    'animal-rabbit': function(scale) {
+        return '<svg width="' + (44 * scale) + '" height="' + (52 * scale) + '" viewBox="0 0 44 52">' +
+            // 耳朵
+            '<ellipse cx="16" cy="10" rx="4" ry="12" fill="#e0a8a0"/>' +
+            '<ellipse cx="28" cy="10" rx="4" ry="12" fill="#e0a8a0"/>' +
+            '<ellipse cx="16" cy="10" rx="2.5" ry="9" fill="#f0c0b8" opacity="0.6"/>' +
+            '<ellipse cx="28" cy="10" rx="2.5" ry="9" fill="#f0c0b8" opacity="0.6"/>' +
+            // 头
+            '<circle cx="22" cy="26" r="11" fill="#e0a8a0"/>' +
+            // 身体
+            '<ellipse cx="22" cy="40" rx="10" ry="8" fill="#e0a8a0"/>' +
+            // 眼睛
+            '<circle cx="18" cy="24" r="2.5" fill="#333"/>' +
+            '<circle cx="26" cy="24" r="2.5" fill="#333"/>' +
+            '<circle cx="17.5" cy="23.5" r="1" fill="#fff"/>' +
+            '<circle cx="25.5" cy="23.5" r="1" fill="#fff"/>' +
+            // 鼻子
+            '<ellipse cx="22" cy="28" rx="1.5" ry="1" fill="#d08080"/>' +
+            // 腮红
+            '<circle cx="14" cy="28" r="3" fill="#f0b8b0" opacity="0.3"/>' +
+            '<circle cx="30" cy="28" r="3" fill="#f0b8b0" opacity="0.3"/>' +
+            '</svg>';
+    }
+};
+
+var qaqItemSVGs = {
+    'item-fertilizer': function(scale) {
+        return '<svg width="' + (40 * scale) + '" height="' + (52 * scale) + '" viewBox="0 0 40 52">' +
+            //袋子
+            '<rect x="8" y="20" width="24" height="28" rx="4" fill="#7bab6e" opacity="0.85"/>' +
+            '<rect x="8" y="20" width="24" height="28" rx="4" fill="none" stroke="#5a8a4e" stroke-width="1.2"/>' +
+            // 袋口折叠
+            '<path d="M10 20 Q20 14 30 20" fill="#6a9a5e" stroke="#5a8a4e" stroke-width="0.8"/>' +
+            // 标签
+            '<rect x="13" y="28" width="14" height="10" rx="2" fill="#fff" opacity="0.7"/>' +
+            '<text x="20" y="35" text-anchor="middle" fill="#5a8a4e" font-size="6" font-weight="700">N P K</text>' +
+            // 叶子装饰
+            '<path d="M20 8 C16 8 12 12 12 16 C12 20 16 22 20 22 C20 22 20 8 20 8Z" fill="#7bab6e" opacity="0.6"/>' +
+            '<path d="M20 8 C24 8 28 12 28 16 C28 20 24 22 20 22 C20 22 20 8 20 8Z" fill="#6a9a5e" opacity="0.5"/>' +
+            '<line x1="20" y1="8" x2="20" y2="22" stroke="#5a8a4e" stroke-width="1" stroke-linecap="round"/>' +
+            // 散落的颗粒
+            '<circle cx="14" cy="44" r="1.5" fill="#a0c890" opacity="0.6"/>' +
+            '<circle cx="22" cy="46" r="1.2" fill="#90b880" opacity="0.5"/>' +
+            '<circle cx="28" cy="43" r="1.8" fill="#a0c890" opacity="0.4"/>' +
+            '</svg>';
+    },
+    'item-food-basic': function(scale) {
+        return '<svg width="' + (44 * scale) + '" height="' + (44 * scale) + '" viewBox="0 0 44 44">' +
+            // 碗
+            '<path d="M6 22 Q6 36 22 38Q38 36 38 22 Z" fill="#e8d0b0" stroke="#d0b890" stroke-width="1"/>' +
+            '<ellipse cx="22" cy="22" rx="16" ry="5" fill="#f0e0c8" stroke="#d0b890" stroke-width="0.8"/>' +
+            // 食物堆
+            '<ellipse cx="22" cy="20" rx="12" ry="4" fill="#d4a060"/>' +
+            '<ellipse cx="18" cy="18" rx="3" ry="2.5" fill="#c89050" opacity="0.7"/>' +
+            '<ellipse cx="26" cy="19" rx="3.5" ry="2" fill="#d8a868" opacity="0.6"/>' +
+            '<ellipse cx="22" cy="17" rx="2.5" ry="2" fill="#c08848" opacity="0.5"/>' +
+            // 冒热气
+            '<path d="M16 12 Q15 8 16 6" fill="none" stroke="#ddd" stroke-width="1" stroke-linecap="round" opacity="0.5"/>' +
+            '<path d="M22 10 Q21 6 22 4" fill="none" stroke="#ddd" stroke-width="1" stroke-linecap="round" opacity="0.4"/>' +
+            '<path d="M28 12 Q27 8 28 6" fill="none" stroke="#ddd" stroke-width="1" stroke-linecap="round" opacity="0.5"/>' +
+            '</svg>';
+    },
+    'item-bed': function(scale) {
+        return '<svg width="' + (48 * scale) + '" height="' + (40 * scale) + '" viewBox="0 0 48 40">' +
+            // 底座
+            '<rect x="4" y="24" width="40" height="12" rx="6" fill="#5b9bd5" opacity="0.8"/>' +
+            '<rect x="4" y="24" width="40" height="12" rx="6" fill="none" stroke="#4a88c0" stroke-width="1"/>' +
+            // 垫子
+            '<ellipse cx="24" cy="24" rx="18" ry="5" fill="#7ab8e8" opacity="0.6"/>' +
+            //靠背/边缘
+            '<path d="M8 24 Q8 14 16 12Q24 10 32 12Q40 14 40 24" fill="#6aa8d8" opacity="0.5" stroke="#4a88c0" stroke-width="0.8"/>' +
+            //枕头
+            '<ellipse cx="16" cy="20" rx="6" ry="3.5" fill="#a0d0f0" stroke="#80b8e0" stroke-width="0.6"/>' +
+            // 小爪印装饰
+            '<circle cx="30" cy="28" r="1.5" fill="#4a88c0" opacity="0.2"/>' +
+            '<circle cx="28" cy="26" r="1" fill="#4a88c0" opacity="0.15"/>' +
+            '<circle cx="32" cy="26" r="1" fill="#4a88c0" opacity="0.15"/>' +
+            '<circle cx="29" cy="24.5" r="0.8" fill="#4a88c0" opacity="0.12"/>' +
+            '<circle cx="31" cy="24.5" r="0.8" fill="#4a88c0" opacity="0.12"/>' +
+            // 小z字（睡觉）
+            '<text x="36" y="10" fill="#5b9bd5" font-size="8" font-weight="700" opacity="0.4">z</text>' +
+            '<text x="39" y="6" fill="#5b9bd5" font-size="6" font-weight="700" opacity="0.3">z</text>' +
+            '</svg>';
+    }
+};
+
+// ---- Live2D 渲染引擎 ----
+var qaqLive2DApps = {};
+
+function qaqCreateLive2DApp(canvasId, width, height) {
+    if (typeof PIXI === 'undefined') {
+        console.warn('PixiJS 未加载，请先调用 qaqEnsureLive2D');
+        return null;
+    }
+
+    var canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+
+    if (qaqLive2DApps[canvasId]) {
+        try { qaqLive2DApps[canvasId].destroy(true); } catch(e) {}
+        delete qaqLive2DApps[canvasId];
+    }
+
+    var app = new PIXI.Application({
+        view: canvas,
+        width: width || canvas.parentElement.clientWidth,
+        height: height || canvas.parentElement.clientHeight,
+        transparent: true,
+        antialias: true,
+        resolution: window.devicePixelRatio || 1,
+        autoDensity: true
+    });
+
+    qaqLive2DApps[canvasId] = app;
+    return app;
+}
+
+async function qaqLoadLive2DModel(app, modelUrl, options) {
+    if (!app || !modelUrl) return null;
+    if (typeof PIXI === 'undefined' || !PIXI.live2d) {
+        console.warn('pixi-live2d-display 未加载');
+        return null;
+    }
+
+    options = options || {};
+    var scale = options.scale || 0.15;
+    var x = options.x != null ? options.x : app.screen.width / 2;
+    var y = options.y != null ? options.y : app.screen.height * 0.85;
+
+    try {
+        var model = await PIXI.live2d.Live2DModel.from(modelUrl);
+        model.scale.set(scale);
+        model.anchor.set(0.5, 1);
+        model.x = x;
+        model.y = y;
+
+        // 可交互
+        model.interactive = true;
+        model.buttonMode = true;
+
+        // 点击交互 —— 随机动作
+        model.on('pointertap', function() {
+            var motions = Object.keys(model.internalModel.motionManager.definitions || {});
+            if (motions.length) {
+                var group = motions[Math.floor(Math.random() * motions.length)];
+                model.motion(group);
+            }
+        });
+
+        // 跟踪指针
+        model.on('pointermove', function(e) {
+            var point = e.data.global;
+            model.focus(point.x, point.y);
+        });
+
+        app.stage.addChild(model);
+        return model;
+    } catch(err) {
+        console.error('Live2D 模型加载失败:', err);
+        return null;
+    }
+}
+
+// ---- 2D 精灵渲染到场景 ----
+function qaqCreateSpriteInScene(sceneEl, spriteHtml, x, y, name, itemId, type) {
+    var container = document.createElement('div');
+    container.className = 'qaq-sprite-container';
+    container.style.left = x + 'px';
+    container.style.bottom = '10px';
+    container.dataset.itemId = itemId;
+
+    var spriteWrap = document.createElement('div');
+    spriteWrap.className = type === 'plant' ? 'qaq-plant-sprite' : 'qaq-animal-sprite';
+    if (type === 'animal') spriteWrap.classList.add('qaq-walking');
+    spriteWrap.innerHTML = spriteHtml;
+
+    var nameTag = document.createElement('div');
+    nameTag.className = 'qaq-sprite-name';
+    nameTag.textContent = name;
+
+    spriteWrap.appendChild(nameTag);
+    container.appendChild(spriteWrap);
+    sceneEl.appendChild(container);
+
+    // 交互
+    container.addEventListener('click', function() {
+        if (type === 'plant') {
+            qaqWaterPlant(container, itemId);
+        } else {
+            qaqPetAnimal(container, itemId);
+        }
+    });
+
+    return container;
+}
+
+function qaqWaterPlant(containerEl, itemId) {
+    var sprite = containerEl.querySelector('.qaq-plant-sprite');
+    sprite.classList.add('qaq-watering');
+    setTimeout(function() { sprite.classList.remove('qaq-watering'); }, 800);
+
+    // 水滴效果
+    for (var i = 0; i < 3; i++) {
+        var drop = document.createElement('div');
+        drop.className = 'qaq-water-drop';
+        drop.style.left = (Math.random() * 20 + 10) + 'px';
+        drop.style.top = '0px';
+        drop.style.animationDelay = (i * 0.15) + 's';
+        containerEl.appendChild(drop);
+        setTimeout(function() { if (drop.parentNode) drop.remove(); }, 800);
+    }
+
+    // 更新状态
+    var state = qaqGetSpriteState(itemId);
+    state.growth = Math.min(100, (state.growth || 0) + 10);
+    state.lastWater = Date.now();
+    qaqSaveSpriteState(itemId, state);
+
+    qaqAddPoints(1);
+    qaqToast('浇水成功 +1 积分');
+}
+
+function qaqPetAnimal(containerEl, itemId) {
+    var sprite = containerEl.querySelector('.qaq-animal-sprite');
+    sprite.classList.add('qaq-bounce');
+    setTimeout(function() { sprite.classList.remove('qaq-bounce'); }, 500);
+
+    // 爱心效果
+    var heart = document.createElement('div');
+    heart.className = 'qaq-feed-heart';
+    heart.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="#e05565" stroke="none"><path d="M12 21C1221 3 15 3 8.5C3 5.46 5.46 3 8.5 3C10.24 3 11.91 3.81 135.09C14.09 3.81 15.76 3 17.5 3C20.54 3 23 5.46 23 8.5C23 15 14 21 14 21"/></svg>';
+    heart.style.left = '50%';
+    heart.style.top = '-10px';
+    heart.style.transform = 'translateX(-50%)';
+    containerEl.appendChild(heart);
+    setTimeout(function() { if (heart.parentNode) heart.remove(); }, 1000);
+
+    // 更新状态
+    var state = qaqGetSpriteState(itemId);
+    state.mood = Math.min(100, (state.mood || 50) + 5);
+    state.lastFeed = Date.now();
+    qaqSaveSpriteState(itemId, state);
+
+    qaqAddPoints(1);
+    qaqToast('互动成功 +1 积分');
+}
+
+// ---- 植物园渲染（替换原有函数） ----
+function qaqRenderGardenPage() {
+    var owned = qaqGetOwnedItems().filter(function(x) { return x.type === 'seed'; });
+    var gridEl = document.getElementById('qaq-garden-plants-grid');
+    var emptyEl = document.getElementById('qaq-garden-plants-empty');
+    var sceneEl = document.getElementById('qaq-garden-scene');
+
+    gridEl.innerHTML = '';
+
+    // 清除场景中的旧精灵
+    sceneEl.querySelectorAll('.qaq-sprite-container, .qaq-scene-tip').forEach(function(el) { el.remove(); });
+
+    if (!owned.length) {
+        emptyEl.style.display = '';
+        sceneEl.style.display = 'none';
+        return;
+    }
+    emptyEl.style.display = 'none';
+    sceneEl.style.display = '';
+
+    // 添加场景提示
+    var tip = document.createElement('div');
+    tip.className = 'qaq-scene-tip';
+    tip.textContent = '点击植物可浇水';
+    sceneEl.appendChild(tip);
+
+    var sceneWidth = sceneEl.clientWidth || 300;
+    var spacing = sceneWidth / (owned.length + 1);
+
+    owned.forEach(function(item, idx) {
+        var catItem = qaqShopCatalog.seeds.find(function(x) { return x.id === item.id; });
+        var state = qaqGetSpriteState(item.id);
+        var growth = state.growth || 0;
+        var growthStage = growth< 30 ? 0.7 : (growth < 70 ? 0.85 : 1);
+
+        // 场景中添加精灵
+        var svgFn = qaqPlantSVGs[item.id];
+        if (svgFn) {
+            var x = spacing * (idx + 1) - 20;
+            qaqCreateSpriteInScene(
+                sceneEl,
+                svgFn(growthStage),
+                x,10,
+                catItem ? catItem.name : item.name,
+                item.id,
+                'plant'
+            );
+        }
+
+        // 网格卡片
+        var card = document.createElement('div');
+        card.className = 'qaq-garden-card';
+
+        var bloomSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e05565" stroke-width="1.8" style="vertical-align:-2px;margin-right:2px;"><circle cx="12" cy="12" r="4" fill="#e05565" opacity="0.3"/><circle cx="12" cy="5" r="2.5" fill="#f8b0b8"/><circle cx="12" cy="19" r="2.5" fill="#f8b0b8"/><circle cx="5" cy="12" r="2.5" fill="#f8b0b8"/><circle cx="19" cy="12" r="2.5" fill="#f8b0b8"/></svg>';
+var growSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7bab6e" stroke-width="1.8" style="vertical-align:-2px;margin-right:2px;"><path d="M12 22V12" stroke-linecap="round"/><path d="M8 16c0-4 2-6 4-7" stroke-linecap="round"/><path d="M16 14c0-3-2-5-4-6" stroke-linecap="round"/><circle cx="12" cy="8" r="3" fill="#7bab6e" opacity="0.2"/></svg>';
+var seedSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.8" style="vertical-align:-2px;margin-right:2px;"><path d="M12 22v-8" stroke-linecap="round"/><path d="M12 14c-3 0-5-2-5-5s4-7 5-7 5 4 5 7-2 5-5 5z" fill="#b8dfbf" opacity="0.3"/></svg>';
+
+var statusText = growth >= 100 ? bloomSvg + '盛开' : (growth >= 50 ? growSvg + '成长中' : seedSvg + '幼苗');
+        var statusColor = growth >= 100 ? '#e05565' : (growth >= 50 ? '#7bab6e' : '#999');
+
+        card.innerHTML =
+            '<div class="qaq-garden-card-icon">' +
+                (catItem ? catItem.svg.replace(/width="32"/g, 'width="48"').replace(/height="32"/g, 'height="48"') : '') +
+            '</div>' +
+            '<div class="qaq-garden-card-name">' + (catItem ? catItem.name : item.name) + '</div>' +
+            '<div class="qaq-garden-card-status" style="color:' + statusColor + ';">' + statusText + '</div>' +
+            '<div class="qaq-garden-card-growth"><div class="qaq-garden-card-growth-fill" style="width:' + growth + '%;"></div></div>';
+
+        card.addEventListener('click', function() {
+            qaqWaterPlant(
+                sceneEl.querySelector('[data-item-id="' + item.id + '"]') || card,
+                item.id
+            );
+            //刷新卡片
+            setTimeout(qaqRenderGardenPage, 300);
+        });
+
+        gridEl.appendChild(card);
+    });
+}
+
+// ---- 动物园渲染（替换原有函数） ----
+function qaqRenderZooPage() {
+    var owned = qaqGetOwnedItems().filter(function(x) { return x.type === 'animal'; });
+    var gridEl = document.getElementById('qaq-zoo-animals-grid');
+    var emptyEl = document.getElementById('qaq-zoo-animals-empty');
+    var sceneEl = document.getElementById('qaq-zoo-scene');
+
+    gridEl.innerHTML = '';
+    sceneEl.querySelectorAll('.qaq-sprite-container, .qaq-scene-tip, .qaq-live2d-loading').forEach(function(el) {
+        el.remove();
+    });
+
+    if (!owned.length) {
+        emptyEl.style.display = '';
+        sceneEl.style.display = 'none';
         return;
     }
 
     emptyEl.style.display = 'none';
+    sceneEl.style.display = '';
 
-    favs.forEach(function (item) {
-        var div = document.createElement('div');
-        div.className = 'qaq-word-entry-card';
-        div.innerHTML =
-            '<div class="qaq-word-entry-main">' +
-                '<div class="qaq-word-entry-word">' + item.word + '</div>' +
-                '<div class="qaq-word-entry-meaning">' + item.meaning + '</div>' +
-                '<div class="qaq-wordbook-card-count" style="margin-top:6px;">来自：' + (item.bookName || '未知词库') + '</div>' +
+    var tip = document.createElement('div');
+    tip.className = 'qaq-scene-tip';
+    tip.textContent = '点击动物互动';
+    sceneEl.appendChild(tip);
+
+    var sceneWidth = sceneEl.clientWidth || 300;
+    var spacing = sceneWidth / (owned.length + 1);
+
+    owned.forEach(function(item, idx) {
+        var catItem = qaqShopCatalog.animals.find(function(x) { return x.id === item.id; });
+        var state = qaqGetSpriteState(item.id);
+        var mood = state.mood || 50;
+
+        var happySvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e8c34f" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="9" cy="10" r="1.2" fill="#e8c34f" stroke="none"/><circle cx="15" cy="10" r="1.2" fill="#e8c34f" stroke="none"/><path d="M8 15s1.5 2 4 2 4-2 4-2" stroke-linecap="round"/></svg>';
+        var neutralSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e88d4f" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="9" cy="10" r="1.2" fill="#e88d4f" stroke="none"/><circle cx="15" cy="10" r="1.2" fill="#e88d4f" stroke="none"/><line x1="9" y1="15" x2="15" y2="15" stroke-linecap="round"/></svg>';
+        var sadSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="9" cy="10" r="1.2" fill="#999" stroke="none"/><circle cx="15" cy="10" r="1.2" fill="#999" stroke="none"/><path d="M8 17s1.5-2 4-2 4 2 4 2" stroke-linecap="round"/></svg>';
+        var moodEmoji = mood >= 80 ? happySvg : (mood >= 50 ? neutralSvg : sadSvg);
+
+        var svgFn = qaqAnimalSVGs[item.id];
+        if (svgFn) {
+            qaqCreateSpriteInScene(
+                sceneEl, svgFn(1),
+                spacing * (idx + 1) - 20, 10,
+                catItem ? catItem.name : item.name,
+                item.id,'animal'
+            );
+        }
+
+        var card = document.createElement('div');
+        card.className = 'qaq-garden-card';
+        card.innerHTML =
+            '<div class="qaq-garden-card-icon">' +(catItem ? catItem.svg.replace(/width="32"/g, 'width="48"').replace(/height="32"/g, 'height="48"') : '') +
             '</div>' +
-            '<div class="qaq-word-entry-actions">' +
-                '<button class="qaq-word-entry-btn qaq-word-entry-btn-del" data-fav-id="' + item.id + '" data-book-id="' + item.bookId + '">✕</button>' +
-            '</div>';
+            '<div class="qaq-garden-card-name">' + (catItem ? catItem.name : item.name) + '</div>' +
+            '<div class="qaq-garden-card-mood">' + moodEmoji + '</div>' +
+            '<div class="qaq-garden-card-status">心情 ' + mood + '%</div>';
 
-        listEl.appendChild(div);
-    });
-
-    listEl.querySelectorAll('.qaq-word-entry-btn-del').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var favId = this.dataset.favId;
-            var bookId = this.dataset.bookId;
-
-            var favs = qaqGetReviewFavorites().filter(function (item) {
-                return !(item.id === favId && item.bookId === bookId);
-            });
-            qaqSaveReviewFavorites(favs);
-            qaqRenderMinePanel();
-            qaqToast('已移出收藏');
+        card.addEventListener('click', function() {
+            qaqPetAnimal(
+                sceneEl.querySelector('[data-item-id="' + item.id + '"]') || card,
+                item.id
+            );
+            setTimeout(qaqRenderZooPage, 300);
         });
+
+        gridEl.appendChild(card);
+    });
+}
+
+// ---- 在场景中展示 Live2D ----
+async function qaqShowLive2DInScene(canvasId, sceneEl, modelUrl, modelName) {
+    var loadingEl = document.createElement('div');
+    loadingEl.className = 'qaq-live2d-loading';
+    sceneEl.appendChild(loadingEl);
+
+    //懒加载 Live2D 库
+    await new Promise(function(resolve) { qaqEnsureLive2D(resolve); });
+
+    try {
+        var w = sceneEl.clientWidth;
+        var h = sceneEl.clientHeight;
+        var app = qaqCreateLive2DApp(canvasId, w, h);
+        if (!app) throw new Error('PixiJS 初始化失败');
+
+        var model = await qaqLoadLive2DModel(app, modelUrl, {
+            scale: 0.12,
+            x: w / 2,
+            y: h * 0.92
+        });
+
+        if (!model) throw new Error('模型加载失败');
+
+        loadingEl.remove();
+        qaqToast(modelName + ' 已加载');} catch(err) {
+        console.error('Live2D 加载错误:', err);
+        loadingEl.remove();
+        qaqToast('Live2D 加载失败: ' + (err.message || '未知错误'));
+    }
+}
+
+
+// ---- 全部浇水 / 全部喂食 ----
+document.getElementById('qaq-garden-water-all-btn').addEventListener('click', function() {
+    var owned = qaqGetOwnedItems().filter(function(x) { return x.type === 'seed'; });
+    if (!owned.length) return qaqToast('没有可浇水的植物');
+
+    owned.forEach(function(item) {
+        var state = qaqGetSpriteState(item.id);
+        state.growth = Math.min(100, (state.growth || 0) + 10);
+        state.lastWater = Date.now();
+        qaqSaveSpriteState(item.id, state);
     });
 
-    qaqApplyWordbankCardThemeDebounced();
+    qaqAddPoints(owned.length);
+    qaqRenderGardenPage();
+    qaqToast('全部浇水完成 +' + owned.length + ' 积分');
+});
+
+document.getElementById('qaq-zoo-feed-all-btn').addEventListener('click', function() {
+    var owned = qaqGetOwnedItems().filter(function(x) { return x.type === 'animal'; });
+    if (!owned.length) return qaqToast('没有可喂食的动物');
+
+    owned.forEach(function(item) {
+        var state = qaqGetSpriteState(item.id);
+        state.mood = Math.min(100, (state.mood || 50) + 10);
+        state.lastFeed = Date.now();
+        qaqSaveSpriteState(item.id, state);
+    });
+
+    qaqAddPoints(owned.length);
+    qaqRenderZooPage();
+    qaqToast('全部喂食完成 +' + owned.length + ' 积分');
+});
+
+// ---- 从所有词库查找单词(用于小说点击) ----
+function qaqFindWordFromAllBooksSync(rawWord) {
+    var key = String(rawWord || '').toLowerCase().replace(/^[^a-zA-Z]+|[^a-zA-Z]+$/g, '');
+    if (!key) return null;
+
+    var books = qaqGetWordbooks();
+    for (var i = 0; i < books.length; i++) {
+        var words = books[i].words || [];
+        for (var j = 0; j < words.length; j++) {
+            if (String(words[j].word || '').toLowerCase() === key) {
+                return words[j];
+            }
+        }
+    }
+    return null;
 }
 
 function qaqNormalizeOpenAIChatUrl(url) {

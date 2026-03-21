@@ -249,23 +249,24 @@
 
         <!-- 底部导航 -->
         <div class="qaq-bottom-nav">
-            <div class="qaq-nav-item" data-nav="zoo">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path d="M8 3c-1.5 0-3 1-3 3v2c0 1 .5 2 1.5 2.5" stroke-linecap="round"/>
-                    <path d="M16 3c1.5 0 3 1 3 3v2c0 1-.5 2-1.5 2.5" stroke-linecap="round"/>
-                    <circle cx="12" cy="14" r="7"/>
-                    <circle cx="9.5" cy="13" r="1.2" fill="currentColor" stroke="none"/>
-                    <circle cx="14.5" cy="13" r="1.2" fill="currentColor" stroke="none"/>
-                    <ellipse cx="12" cy="16" rx="1.8" ry="1.2" fill="currentColor" stroke="none" opacity="0.4"/>
-                </svg>
-                <span>动物园</span>
-            </div>
-            <div class="qaq-nav-item" data-nav="theme-store">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path d="M12 2l3 7h7l-5.5 4.5 2 7L12 16l-6.5 4.5 2-7L2 9h7l3-7z" stroke-linejoin="round"/>
-                </svg>
-                <span>主题商店</span>
-            </div>
+           
+<div class="qaq-nav-item" data-nav="xiaoyuan">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <!-- 小院图标：一个简约院子/围栏+植物+小动物的组合 -->
+        <path d="M3 10L12 4l96v10a1 1 0 01-1 1H4a1 1 0 01-1-1V10z" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9 21V12h6v9" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M6 15c0-1.5 1-2.5 2-3" stroke-linecap="round" opacity="0.6"/>
+        <circle cx="17" cy="15" r="2" stroke-linecap="round"/>
+        <path d="M17 13V11" stroke-linecap="round" opacity="0.6"/>
+    </svg>
+    <span>小院</span>
+</div>
+<div class="qaq-nav-item" data-nav="shop">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke-linejoin="round"/>
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <path d="M16 10a4 4 0 01-8 0" stroke-linecap="round"/></svg>
+    <span>商店</span>
+</div>
             <div class="qaq-nav-item" data-nav="game">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                     <path d="M6 12h4M8 10v4" stroke-linecap="round"/>
@@ -835,17 +836,239 @@
                     </div>
                     <div class="qaq-wordbank-stats">选择词库开始新一轮</div>
                     <div class="qaq-wordbook-list" id="qaq-review-book-list"></div>
-                    <div class="qaq-wordbank-empty" id="qaq-review-book-empty" style="display:none;">暂无可用词库</div>
-                </div>
-                <div class="qaq-wordbank-panel" id="qaq-wordbank-panel-mine" style="display:none;">
-                    <div class="qaq-wordbank-stats" id="qaq-mine-fav-stats">我的收藏</div>
-                    <div class="qaq-wordbook-detail-list" id="qaq-mine-fav-list"></div>
-                    <div class="qaq-wordbank-empty" id="qaq-mine-fav-empty" style="display:none;">还没有收藏的单词</div>
+                        <div class="qaq-wordbank-empty" id="qaq-review-book-empty" style="display:none;">暂无可用词库</div>
+</div><!-- 关闭 qaq-wordbank-panel-review -->
+<div class="qaq-wordbank-panel" id="qaq-wordbank-panel-mine" style="display:none;">
+    <!-- 用户卡片 -->
+    <div class="qaq-mine-profile-card">
+        <div class="qaq-mine-avatar" id="qaq-mine-avatar">
+            <svg width="52" height="52" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="50" fill="#e8e8ec"/>
+                <ellipse cx="50" cy="82" rx="26" ry="18" fill="#ccccd0"/>
+                <rect x="42" y="58" width="16" height="10" rx="4" fill="#d5d5d9"/>
+                <circle cx="50" cy="40" r="24" fill="#d5d5d9"/>
+            </svg>
+        </div>
+        <div class="qaq-mine-info">
+            <div class="qaq-mine-nickname" id="qaq-mine-nickname">学习者</div>
+            <div class="qaq-mine-status" id="qaq-mine-status">
+                <span class="qaq-mine-status-dot"></span>
+                <span id="qaq-mine-status-text">学习中</span>
+            </div>
+            <div class="qaq-mine-signature" id="qaq-mine-signature">每天进步一点点</div>
+        </div><button class="qaq-mine-edit-btn" id="qaq-mine-edit-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9" stroke-linecap="round"/>
+                <path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke-linejoin="round"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- 我的收藏 -->
+    <div class="qaq-mine-section">
+        <div class="qaq-mine-section-header" id="qaq-mine-fav-header">
+            <div class="qaq-mine-section-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c47068" stroke-width="2">
+                    <path d="M5 3h14a1 1 0 011 1v17.586a.5.5 0 01-.853.354L12 14.793l-7.147 7.147A.5.5 0 01421.586V4a1 1 0 011-1z" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <span class="qaq-mine-section-title">我的收藏</span>
+            <span class="qaq-mine-section-count" id="qaq-mine-fav-count">0</span>
+            <svg class="qaq-mine-section-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2">
+                <polyline points="9,6 15,12 9,18" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+    </div>
+
+    <!-- 学习数据 -->
+    <div class="qaq-mine-section">
+        <div class="qaq-mine-section-header" id="qaq-mine-stats-header">
+            <div class="qaq-mine-section-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5b9bd5" stroke-width="2">
+                    <path d="M18 20V10M12 20V4M6 20v-6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <span class="qaq-mine-section-title">学习数据</span>
+            <span class="qaq-mine-section-badge" id="qaq-mine-today-words">今日 0 词</span>
+            <svg class="qaq-mine-section-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2">
+                <polyline points="9,6 15,12 9,18" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+    </div>
+
+    <!-- 积分 -->
+    <div class="qaq-mine-section">
+        <div class="qaq-mine-section-header" id="qaq-mine-points-header">
+            <div class="qaq-mine-section-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8c34f" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <text x="12" y="16" text-anchor="middle" fill="#e8c34f" stroke="none" font-size="11" font-weight="700">¥</text>
+                </svg>
+            </div>
+            <span class="qaq-mine-section-title">积分</span>
+            <span class="qaq-mine-points-balance" id="qaq-mine-points-balance">0</span></div>
+    </div>
+
+    <!-- 今日概览 -->
+    <div class="qaq-mine-today-overview">
+        <div class="qaq-mine-today-title">今日学习</div>
+        <div class="qaq-mine-today-grid">
+            <div class="qaq-mine-today-item">
+                <div class="qaq-mine-today-num" id="qaq-mine-ov-words">0</div>
+                <div class="qaq-mine-today-label">单词</div>
+            </div>
+            <div class="qaq-mine-today-item">
+                <div class="qaq-mine-today-num" id="qaq-mine-ov-time">0</div>
+                <div class="qaq-mine-today-label">分钟</div>
+            </div>
+            <div class="qaq-mine-today-item">
+                <div class="qaq-mine-today-num" id="qaq-mine-ov-rounds">0</div>
+                <div class="qaq-mine-today-label">轮次</div>
+            </div>
+            <div class="qaq-mine-today-item">
+                <div class="qaq-mine-today-num" id="qaq-mine-ov-books">0</div>
+                <div class="qaq-mine-today-label">词库</div>
+            </div>
+        </div>
+    </div>
+    </div><!-- 关闭 qaq-wordbank-panel-mine -->
+</div><!-- 关闭 qaq-wordbank-content -->
+</div><!-- 关闭 qaq-wordbank-page -->
+
+<!-- ===== 我的收藏子页面 ===== -->
+<div class="qaq-mine-fav-page" id="qaq-mine-fav-page">
+    <div class="qaq-settings-header">
+        <div class="qaq-back-btn" id="qaq-mine-fav-back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
+                <polyline points="15,18 9,12 15,6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="qaq-settings-title">我的收藏</div>
+        <div class="qaq-wordbank-header-actions">
+            <button class="qaq-plan-add-btn" id="qaq-mine-fav-add-cat-btn" title="新建分类">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a6050" stroke-width="2">
+                    <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+    <div class="qaq-mine-fav-content">
+        <div class="qaq-wordbank-search-wrap">
+            <input type="text" id="qaq-mine-fav-search" class="qaq-api-input" placeholder="搜索收藏内容"></div>
+        <div class="qaq-mine-fav-cats" id="qaq-mine-fav-cats"></div>
+        <div class="qaq-mine-fav-list" id="qaq-mine-fav-list"></div>
+        <div class="qaq-wordbank-empty" id="qaq-mine-fav-empty" style="display:none;">还没有收藏的内容</div>
+    </div>
+</div>
+
+<!-- ===== 学习数据子页面 ===== -->
+<div class="qaq-mine-stats-page" id="qaq-mine-stats-page">
+    <div class="qaq-settings-header">
+        <div class="qaq-back-btn" id="qaq-mine-stats-back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
+                <polyline points="15,18 9,12 15,6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="qaq-settings-title">学习数据</div>
+    </div>
+    <div class="qaq-mine-stats-content">
+        <!--总体概览 -->
+        <div class="qaq-theme-section">
+            <div class="qaq-theme-section-title">总体概览</div>
+            <div class="qaq-theme-section-card">
+                <div class="qaq-stats-overview-grid">
+                    <div class="qaq-stats-overview-item">
+                        <div class="qaq-stats-overview-num qaq-stats-total-accent" id="qaq-stats-total-words">0</div>
+                        <div class="qaq-stats-overview-label">累计单词</div>
+                    </div>
+                    <div class="qaq-stats-overview-item">
+                        <div class="qaq-stats-overview-num qaq-stats-total-accent" id="qaq-stats-total-time">0</div>
+                        <div class="qaq-stats-overview-label">累计分钟</div>
+                    </div>
+                    <div class="qaq-stats-overview-item">
+                        <div class="qaq-stats-overview-num qaq-stats-total-accent" id="qaq-stats-total-days">0</div>
+                        <div class="qaq-stats-overview-label">学习天数</div>
+                    </div>
+                    <div class="qaq-stats-overview-item">
+                        <div class="qaq-stats-overview-num qaq-stats-total-accent" id="qaq-stats-total-streak">0</div>
+                        <div class="qaq-stats-overview-label">连续天数</div>
+                    </div>
                 </div>
             </div>
         </div>
+        <!-- 学习日历 -->
+        <div class="qaq-theme-section">
+            <div class="qaq-theme-section-title" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>学习日历</span>
+                <div class="qaq-calendar-nav">
+                    <button class="qaq-calendar-nav-btn" id="qaq-calendar-prev">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="15,18 9,12 15,6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <span id="qaq-calendar-month-label">2026年3月</span>
+                    <button class="qaq-calendar-nav-btn" id="qaq-calendar-next">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="9,6 15,12 9,18" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="qaq-theme-section-card">
+                <div class="qaq-calendar-weekdays">
+                    <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+                </div>
+                <div class="qaq-calendar-grid" id="qaq-calendar-grid"></div>
+                <div class="qaq-calendar-legend">
+                    <span class="qaq-calendar-legend-item"><span class="qaq-calendar-legend-dot" style="background:#eee;"></span>无记录</span>
+                    <span class="qaq-calendar-legend-item"><span class="qaq-calendar-legend-dot" style="background:#e8d8c8;"></span>少量</span>
+                    <span class="qaq-calendar-legend-item"><span class="qaq-calendar-legend-dot" style="background:#d4a88a;"></span>中等</span>
+                    <span class="qaq-calendar-legend-item"><span class="qaq-calendar-legend-dot" style="background:#c47068;"></span>大量</span>
+                </div>
+                <div class="qaq-calendar-day-detail" id="qaq-calendar-day-detail" style="display:none;">
+                    <div class="qaq-calendar-day-detail-title" id="qaq-calendar-detail-title"></div>
+                    <div class="qaq-calendar-day-detail-body" id="qaq-calendar-detail-body"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-<!--===== 背单词设置页面 ===== -->
+<!-- ===== 积分商店子页面 ===== -->
+<div class="qaq-mine-shop-page" id="qaq-mine-shop-page">
+    <div class="qaq-settings-header">
+        <div class="qaq-back-btn" id="qaq-mine-shop-back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
+                <polyline points="15,18 9,12 15,6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="qaq-settings-title">积分商店</div>
+        <div class="qaq-wordbank-header-actions">
+            <div class="qaq-shop-balance-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e8c34f" stroke-width="2.5">
+                    <circle cx="12" cy="12" r="10"/>
+                </svg>
+                <span id="qaq-shop-balance">0</span>
+            </div>
+        </div>
+    </div>
+    <div class="qaq-mine-shop-content">
+        <div class="qaq-theme-section">
+            <div class="qaq-theme-section-title">种子</div>
+            <div class="qaq-shop-grid" id="qaq-shop-seeds-grid"></div>
+        </div>
+        <div class="qaq-theme-section">
+            <div class="qaq-theme-section-title">动物</div>
+            <div class="qaq-shop-grid" id="qaq-shop-animals-grid"></div>
+        </div>
+        <div class="qaq-theme-section">
+            <div class="qaq-theme-section-title">道具</div>
+            <div class="qaq-shop-grid" id="qaq-shop-items-grid"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 背单词设置页面 ===== -->
 <div class="qaq-review-settings-page" id="qaq-review-settings-page">
     <div class="qaq-settings-header">
         <div class="qaq-back-btn" id="qaq-review-settings-back">
@@ -860,8 +1083,7 @@
             <div class="qaq-theme-section-title">学习设置</div>
             <div class="qaq-theme-section-card">
                 <div class="qaq-plan-form-label">每轮单词数</div>
-                <input class="qaq-plan-form-input" id="qaq-rs-count" type="number" min="1" max="200" placeholder="如20">
-                <div class="qaq-settings-item" id="qaq-rs-random-row">
+                <input class="qaq-plan-form-input" id="qaq-rs-count" type="number" min="1" max="200" placeholder="如20"><div class="qaq-settings-item" id="qaq-rs-random-row">
                     <div class="qaq-settings-item-text">随机抽取单词</div>
                     <div class="qaq-toggle" id="qaq-rs-random"><div class="qaq-toggle-knob"></div></div>
                 </div>
@@ -869,7 +1091,7 @@
                     <div class="qaq-settings-item-text">自动朗读单词</div>
                     <div class="qaq-toggle" id="qaq-rs-auto-pronounce"><div class="qaq-toggle-knob"></div></div>
                 </div>
-                <div class="qaq-plan-form-label">朗读语速（0.6~ 1.2）</div>
+                <div class="qaq-plan-form-label">朗读语速（0.6~1.2）</div>
                 <input class="qaq-plan-form-input" id="qaq-rs-rate" type="number" min="0.6" max="1.2" step="0.1" placeholder="0.9">
                 <div class="qaq-settings-item" id="qaq-rs-show-phonetic-row">
                     <div class="qaq-settings-item-text">显示音标</div>
@@ -882,13 +1104,26 @@
                 <div class="qaq-settings-item" id="qaq-rs-skip-marked-row">
                     <div class="qaq-settings-item-text">跳过已标记单词</div>
                     <div class="qaq-toggle" id="qaq-rs-skip-marked"><div class="qaq-toggle-knob"></div></div>
-                </div></div>
+                </div>
+            </div>
         </div>
         <div class="qaq-theme-section">
             <div class="qaq-theme-section-title">小说生成</div>
             <div class="qaq-theme-section-card">
                 <div class="qaq-plan-form-label">默认小说词数</div>
                 <input class="qaq-plan-form-input" id="qaq-rs-story-word-count" type="number" min="100" max="5000" step="50" placeholder="如 800">
+            </div>
+        </div>
+        <div class="qaq-settings-group">
+            <div class="qaq-settings-group-title">桌宠</div>
+            <div class="qaq-settings-group-card">
+                <div class="qaq-settings-item" id="qaq-set-pet">
+                    <div class="qaq-settings-item-text">桌宠设置</div>
+                    <div class="qaq-settings-item-pet-preview" id="qaq-settings-pet-preview" style="font-size:11px;color:#999;margin-left:auto;margin-right:8px;">未设置</div>
+                    <svg class="qaq-settings-item-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2">
+                        <polyline points="9,6 15,12 9,18" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
             </div>
         </div>
         <div class="qaq-theme-section">
@@ -904,12 +1139,13 @@
                 <input class="qaq-plan-form-input" id="qaq-rs-api-url" type="text" placeholder="API URL">
                 <div class="qaq-plan-form-label">API Key</div>
                 <input class="qaq-plan-form-input" id="qaq-rs-api-key" type="text" placeholder="API Key">
-                <div class="qaq-plan-form-label">Model</div>
+            <div class="qaq-plan-form-label">Model</div>
                 <input class="qaq-plan-form-input" id="qaq-rs-api-model" type="text" placeholder="模型名称">
                 <div style="display:flex;gap:8px;">
                     <button class="qaq-import-ghost-btn" id="qaq-rs-fetch-models-btn" type="button" style="flex:1;">拉取模型</button>
                     <select class="qaq-plan-form-input" id="qaq-rs-model-select" style="flex:1;">
-                        <option value="">选择已拉取模型</option></select>
+                        <option value="">选择已拉取模型</option>
+                    </select>
                 </div><div class="qaq-plan-form-label" id="qaq-rs-minimax-group-label">MiniMax Group ID</div>
                 <input class="qaq-plan-form-input" id="qaq-rs-minimax-group" type="text" placeholder="MiniMax Group ID（可选）">
             </div>
@@ -1109,9 +1345,9 @@
                 <div class="qaq-wordbook-detail-list" id="qaq-wordbook-detail-list"></div>
                 <div class="qaq-wordbank-empty" id="qaq-wordbook-detail-empty" style="display:none;">暂无词条</div>
             </div>
-        </div>
-
-        <!-- ★ 修复：word-popover 移到 phone-frame 内、script 外 -->
+        </div><!-- 关闭 qaq-wordbook-detail-content -->
+</div><!-- 关闭 qaq-wordbook-detail-page -->
+ <!-- ★ 修复：word-popover 移到 phone-frame 内、script 外 -->
         <div class="qaq-word-popover" id="qaq-word-popover" style="display:none;">
             <div class="qaq-word-popover-card" id="qaq-word-popover-card">
                 <div class="qaq-word-popover-word" id="qaq-word-popover-word">word</div>
@@ -1123,7 +1359,89 @@
                 </div>
             </div>
         </div>
+<!-- ===== 小院页面 ===== -->
+<div class="qaq-xiaoyuan-page" id="qaq-xiaoyuan-page">
+    <div class="qaq-settings-header">
+        <div class="qaq-back-btn" id="qaq-xiaoyuan-back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
+                <polyline points="15,18 9,12 15,6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="qaq-settings-title">小院</div>
+    </div>
+    <div class="qaq-xiaoyuan-tabs">
+        <button class="qaq-wordbank-tab qaq-wordbank-tab-active" data-xiaoyuan-tab="garden">植物园</button>
+        <button class="qaq-wordbank-tab" data-xiaoyuan-tab="zoo">动物园</button>
+    </div>
+    <div class="qaq-xiaoyuan-panel" id="qaq-xiaoyuan-panel-garden">
+        <div class="qaq-live-scene" id="qaq-xy-garden-scene" style="display:none;">
+            <div class="qaq-live-scene-ground"></div>
+        </div>
+        <div style="padding:0 16px;">
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+                <button class="qaq-import-ghost-btn" id="qaq-xy-water-all-btn" style="flex:1;">全部浇水</button>
+            </div>
+            <div class="qaq-garden-grid" id="qaq-xy-garden-grid"></div>
+            <div class="qaq-wordbank-empty" id="qaq-xy-garden-empty" style="display:none;">还没有植物，去商店兑换种子吧</div>
+        </div>
+    </div>
+    <div class="qaq-xiaoyuan-panel" id="qaq-xiaoyuan-panel-zoo" style="display:none;">
+        <div class="qaq-live-scene qaq-zoo-stage" id="qaq-xy-zoo-scene" style="display:none;">
+            <div class="qaq-live-scene-ground qaq-zoo-ground"></div>
+        </div>
+        <div style="padding:0 16px;">
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+                <button class="qaq-import-ghost-btn" id="qaq-xy-feed-all-btn" style="flex:1;">全部喂食</button>
+            </div>
+            <div class="qaq-garden-grid" id="qaq-xy-zoo-grid"></div>
+            <div class="qaq-wordbank-empty" id="qaq-xy-zoo-empty" style="display:none;">还没有动物，去商店兑换吧</div>
+        </div>
+    </div>
+</div>
 
+<!-- ===== 植物园子页面 ===== -->
+<div class="qaq-mine-garden-page" id="qaq-mine-garden-page">
+    <div class="qaq-settings-header">
+        <div class="qaq-back-btn" id="qaq-mine-garden-back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
+                <polyline points="15,18 9,12 15,6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="qaq-settings-title">植物园</div>
+    </div>
+    <div class="qaq-mine-garden-content">
+        <div class="qaq-live-scene" id="qaq-garden-scene" style="display:none;">
+            <div class="qaq-live-scene-ground"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <button class="qaq-import-ghost-btn" id="qaq-garden-water-all-btn" style="flex:1;">全部浇水</button>
+        </div>
+        <div class="qaq-garden-grid" id="qaq-garden-plants-grid"></div>
+        <div class="qaq-wordbank-empty" id="qaq-garden-plants-empty" style="display:none;">还没有植物，去商店兑换种子吧</div>
+    </div>
+</div>
+
+<!-- ===== 动物园子页面 ===== -->
+<div class="qaq-mine-zoo-page" id="qaq-mine-zoo-page">
+    <div class="qaq-settings-header">
+        <div class="qaq-back-btn" id="qaq-mine-zoo-back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
+                <polyline points="15,18 9,12 15,6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="qaq-settings-title">动物园</div>
+    </div>
+    <div class="qaq-mine-zoo-content">
+        <div class="qaq-live-scene qaq-zoo-stage" id="qaq-zoo-scene" style="display:none;">
+            <div class="qaq-live-scene-ground qaq-zoo-ground"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <button class="qaq-import-ghost-btn" id="qaq-zoo-feed-all-btn" style="flex:1;">全部喂食</button>
+        </div>
+        <div class="qaq-garden-grid" id="qaq-zoo-animals-grid"></div>
+        <div class="qaq-wordbank-empty" id="qaq-zoo-animals-empty" style="display:none;">还没有动物，去商店兑换吧</div>
+    </div>
+</div>
     </div><!-- qaq-phone-frame 闭合 -->
 
     <!-- 时间选择器遮罩 -->
@@ -1167,8 +1485,6 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc =
             'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
     </script>
-        <!-- 第三方库 -->
-    
     
     <script src="index.js"></script>
     

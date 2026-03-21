@@ -3936,22 +3936,167 @@ body {
     border-color: rgba(138, 106, 90, 0.4);
 }
 
-/* ===== 页面切换期间降级模糊，提升安卓流畅度 ===== */
-.qaq-phone-frame.qaq-page-switching .qaq-widget,
-.qaq-phone-frame.qaq-page-switching .qaq-plan-widget,
-.qaq-phone-frame.qaq-page-switching .qaq-bottom-nav,
-.qaq-phone-frame.qaq-page-switching .qaq-settings-group-card,
-.qaq-phone-frame.qaq-page-switching .qaq-notice-text,
-.qaq-phone-frame.qaq-page-switching .qaq-api-form,
-.qaq-phone-frame.qaq-page-switching .qaq-plan-card,
-.qaq-phone-frame.qaq-page-switching .qaq-category-header,
-.qaq-phone-frame.qaq-page-switching .qaq-wordbook-card,
-.qaq-phone-frame.qaq-page-switching .qaq-word-entry-card,
-.qaq-phone-frame.qaq-page-switching .qaq-theme-section-card {
-    backdrop-filter: none !important;
+/*===== 全局性能优化：统一禁用 backdrop-filter ===== */
+/* 替代原来分散在各处的 !important 规则 */
+
+.qaq-wordbook-card,
+.qaq-word-entry-card,
+.qaq-theme-section-card,
+.qaq-settings-group-card,
+.qaq-mine-profile-card,
+.qaq-mine-section-header,
+.qaq-mine-today-overview,
+.qaq-shop-card,
+.qaq-garden-card,
+.qaq-mine-fav-card,
+.qaq-plan-card,
+.qaq-category-header,
+.qaq-word-review-card,
+.qaq-review-story-chip,
+.qaq-notice-text,
+.qaq-api-form {
     -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;background: rgba(255, 255, 255, 0.9) !important;
 }
 
+.qaq-theme-dark .qaq-wordbook-card,
+.qaq-theme-dark .qaq-word-entry-card,
+.qaq-theme-dark .qaq-theme-section-card,
+.qaq-theme-dark .qaq-settings-group-card,
+.qaq-theme-dark .qaq-mine-profile-card,
+.qaq-theme-dark .qaq-mine-section-header,
+.qaq-theme-dark .qaq-mine-today-overview,
+.qaq-theme-dark .qaq-shop-card,
+.qaq-theme-dark .qaq-garden-card,
+.qaq-theme-dark .qaq-mine-fav-card,
+.qaq-theme-dark .qaq-plan-card,
+.qaq-theme-dark .qaq-category-header,
+.qaq-theme-dark .qaq-word-review-card,
+.qaq-theme-dark .qaq-notice-text,
+.qaq-theme-dark .qaq-api-form {
+    background: rgba(40, 40, 40, 0.92) !important;
+}
+
+.qaq-theme-cool .qaq-wordbook-card,
+.qaq-theme-cool .qaq-word-entry-card,
+.qaq-theme-cool .qaq-theme-section-card,
+.qaq-theme-cool .qaq-settings-group-card,
+.qaq-theme-cool .qaq-mine-profile-card,
+.qaq-theme-cool .qaq-mine-section-header,
+.qaq-theme-cool .qaq-mine-today-overview,
+.qaq-theme-cool .qaq-shop-card,
+.qaq-theme-cool .qaq-garden-card,
+.qaq-theme-cool .qaq-mine-fav-card,
+.qaq-theme-cool .qaq-plan-card,
+.qaq-theme-cool .qaq-category-header,
+.qaq-theme-cool .qaq-word-review-card,
+.qaq-theme-cool .qaq-notice-text,
+.qaq-theme-cool .qaq-api-form {
+    background: rgba(255, 255, 255, 0.92) !important;
+}
+
+/*仅保留主层级的 blur（小组件+底部导航+弹窗） */
+.qaq-widget,
+.qaq-plan-widget,
+.qaq-bottom-nav {
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+}
+
+/* 页面切换和滚动时禁用主层级blur */
+.qaq-phone-frame.qaq-page-switching .qaq-widget,
+.qaq-phone-frame.qaq-page-switching .qaq-plan-widget,
+.qaq-phone-frame.qaq-page-switching .qaq-bottom-nav {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+}
+
+/* ★ 页面级contain 优化 */
+.qaq-settings-page,
+.qaq-settings-sub,
+.qaq-plan-page,
+.qaq-wordbank-page,
+.qaq-wordbook-detail-page,
+.qaq-wordbank-theme-page,
+.qaq-plan-theme-page,
+.qaq-word-review-page,
+.qaq-review-story-page,
+.qaq-review-settings-page,
+.qaq-mine-fav-page,
+.qaq-mine-stats-page,
+.qaq-mine-shop-page,
+.qaq-mine-garden-page,
+.qaq-mine-zoo-page,
+.qaq-xiaoyuan-page {
+    contain: layout style paint;
+    will-change: transform;
+}
+
+/* ★ 非活跃页面不渲染 */
+.qaq-settings-page:not(.qaq-page-show),
+.qaq-plan-page:not(.qaq-page-show),
+.qaq-wordbank-page:not(.qaq-page-show),
+.qaq-wordbook-detail-page:not(.qaq-page-show),
+.qaq-word-review-page:not(.qaq-page-show),
+.qaq-review-story-page:not(.qaq-page-show),
+.qaq-xiaoyuan-page:not(.qaq-page-show) {
+    content-visibility: hidden;
+}
+
+/* ★ 减少动画帧 */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ★ 滚动容器优化 */
+.qaq-wordbank-content,
+.qaq-wordbook-detail-content,
+.qaq-plan-page-content,
+.qaq-review-story-content,
+.qaq-mine-fav-content,
+.qaq-mine-stats-content,
+.qaq-mine-shop-content,
+.qaq-settings-list,
+.qaq-settings-sub-content {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;contain: layout style;
+}
+
+/* 卡片统一改成纯色半透明，别再模糊 */
+.qaq-wordbook-card,
+.qaq-word-entry-card,
+.qaq-theme-section-card,
+.qaq-settings-group-card,
+.qaq-mine-profile-card,
+.qaq-mine-section-header,
+.qaq-mine-today-overview,
+.qaq-shop-card,
+.qaq-garden-card,
+.qaq-mine-fav-card,
+.qaq-plan-card,
+.qaq-category-header {
+    background: rgba(255,255,255,0.88) !important;
+    box-shadow: none !important;
+}
+.qaq-theme-dark .qaq-wordbook-card,
+.qaq-theme-dark .qaq-word-entry-card,
+.qaq-theme-dark .qaq-theme-section-card,
+.qaq-theme-dark .qaq-settings-group-card,
+.qaq-theme-dark .qaq-mine-profile-card,
+.qaq-theme-dark .qaq-mine-section-header,
+.qaq-theme-dark .qaq-mine-today-overview,
+.qaq-theme-dark .qaq-shop-card,
+.qaq-theme-dark .qaq-garden-card,
+.qaq-theme-dark .qaq-mine-fav-card,
+.qaq-theme-dark .qaq-plan-card,
+.qaq-theme-dark .qaq-category-header {
+    background: rgba(40,40,40,0.92) !important;
+    box-shadow: none !important;
+}
 /* 切换时顺手减轻阴影绘制 */
 .qaq-phone-frame.qaq-page-switching .qaq-widget,
 .qaq-phone-frame.qaq-page-switching .qaq-plan-widget,
@@ -4873,6 +5018,11 @@ body {
 .qaq-word-review-page     { z-index: 66; }
 .qaq-review-story-page    { z-index: 67; }
 .qaq-review-settings-page { z-index: 64; }
+.qaq-mine-fav-page     { z-index: 68; }
+.qaq-mine-stats-page   { z-index: 68; }
+.qaq-mine-shop-page    { z-index: 68; }
+.qaq-mine-garden-page{ z-index: 69; }
+.qaq-mine-zoo-page     { z-index: 69; }
 
 .qaq-settings-page,
 .qaq-settings-sub,
@@ -4883,7 +5033,13 @@ body {
 .qaq-plan-theme-page,
 .qaq-word-review-page,
 .qaq-review-story-page,
-.qaq-review-settings-page {
+.qaq-review-settings-page,
+.qaq-mine-fav-page,
+.qaq-mine-stats-page,
+.qaq-mine-shop-page,
+.qaq-mine-garden-page,
+.qaq-mine-zoo-page,
+.qaq-xiaoyuan-page {
     position: absolute;
     top: 0;
     left: 0;
@@ -4896,13 +5052,62 @@ body {
     pointer-events: none;
     transition:
         transform var(--qaq-page-duration) var(--qaq-page-ease),
-        visibility 0s linear var(--qaq-page-duration);will-change: transform;contain: layout paint style;
+        visibility 0s linear var(--qaq-page-duration);
     -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;clip-path: inset(0);
+    backface-visibility: hidden;
+    clip-path: inset(0);
     -webkit-clip-path: inset(0);
     overscroll-behavior: none;
 }
 
+.qaq-settings-page,
+.qaq-settings-sub,
+.qaq-plan-page,
+.qaq-wordbank-page,
+.qaq-wordbook-detail-page,
+.qaq-wordbank-theme-page,
+.qaq-plan-theme-page,
+.qaq-word-review-page,
+.qaq-review-story-page,
+.qaq-review-settings-page,
+.qaq-mine-fav-page,
+.qaq-mine-stats-page,
+.qaq-mine-shop-page,
+.qaq-mine-garden-page,
+.qaq-mine-zoo-page,
+.qaq-xiaoyuan-page {
+    contain: layout paint style;
+}
+
+.qaq-page-show {
+    will-change: transform;
+}
+.qaq-theme-wallpaper-preview,
+.qaq-theme-widget-preview,
+.qaq-shop-detail-stage,
+.qaq-live-scene {
+    contain: paint;
+}
+.qaq-wordbank-theme-page .qaq-theme-section-card,
+.qaq-plan-theme-page .qaq-theme-section-card,
+.qaq-review-settings-page .qaq-theme-section-card {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+}
+
+.qaq-wordbank-theme-page .qaq-theme-wallpaper-preview,
+.qaq-plan-theme-page .qaq-theme-wallpaper-preview,
+.qaq-wordbank-theme-page .qaq-theme-widget-preview,
+.qaq-plan-theme-page .qaq-theme-widget-preview {
+    box-shadow: none;
+}
+.qaq-api-input,
+.qaq-plan-form-input,
+.qaq-plan-form-textarea,
+.qaq-modal-input,
+.qaq-modal-textarea {
+    transform: translateZ(0);
+}
 .qaq-settings-page.qaq-page-show,
 .qaq-settings-sub.qaq-page-show,
 .qaq-plan-page.qaq-page-show,
@@ -4912,7 +5117,13 @@ body {
 .qaq-plan-theme-page.qaq-page-show,
 .qaq-word-review-page.qaq-page-show,
 .qaq-review-story-page.qaq-page-show,
-.qaq-review-settings-page.qaq-page-show {
+.qaq-review-settings-page.qaq-page-show,
+.qaq-mine-fav-page.qaq-page-show,
+.qaq-mine-stats-page.qaq-page-show,
+.qaq-mine-shop-page.qaq-page-show,
+.qaq-mine-garden-page.qaq-page-show,
+.qaq-mine-zoo-page.qaq-page-show,
+.qaq-xiaoyuan-page.qaq-page-show {
     transform: translate3d(0, 0, 0);
     visibility: visible;
     pointer-events: auto;
@@ -5018,8 +5229,6 @@ body {
     background: rgba(160, 180, 210, 0.15);
     color: #3a4a60;
 }
-
-/* ===== 滚动区域性能优化：去掉滚动容器内的 backdrop-filter ===== */
 
 /* 小说页：滚动区域内的卡片去掉模糊 */
 .qaq-review-story-content .qaq-theme-section-card {
@@ -5163,7 +5372,12 @@ body {
 .qaq-plan-theme-page,
 .qaq-word-review-page,
 .qaq-review-story-page,
-.qaq-review-settings-page {
+.qaq-review-settings-page,
+.qaq-mine-fav-page,
+.qaq-mine-stats-page,
+.qaq-mine-shop-page,
+.qaq-mine-garden-page,
+.qaq-mine-zoo-page {
     padding-top: calc(var(--qaq-safe-top) + 3vw);
 }
 
@@ -5176,7 +5390,12 @@ body {
 .qaq-phone-frame.qaq-statusbar-hidden .qaq-plan-theme-page,
 .qaq-phone-frame.qaq-statusbar-hidden .qaq-word-review-page,
 .qaq-phone-frame.qaq-statusbar-hidden .qaq-review-story-page,
-.qaq-phone-frame.qaq-statusbar-hidden .qaq-review-settings-page {
+.qaq-phone-frame.qaq-statusbar-hidden .qaq-review-settings-page,
+.qaq-phone-frame.qaq-statusbar-hidden .qaq-mine-fav-page,
+.qaq-phone-frame.qaq-statusbar-hidden .qaq-mine-stats-page,
+.qaq-phone-frame.qaq-statusbar-hidden .qaq-mine-shop-page,
+.qaq-phone-frame.qaq-statusbar-hidden .qaq-mine-garden-page,
+.qaq-phone-frame.qaq-statusbar-hidden .qaq-mine-zoo-page {
     padding-top: calc(var(--qaq-safe-top) + 3vw);
 }
 
@@ -5242,4 +5461,1863 @@ body {
 .qaq-theme-cool #qaq-review-book-empty,
 .qaq-theme-cool #qaq-mine-fav-empty {
     color: #9aa4b0;
+}
+
+/* ===== 我的页面 - 用户卡片 ===== */
+.qaq-mine-profile-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 16px;
+    margin-bottom: 12px;position: relative;
+}
+
+.qaq-mine-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.qaq-mine-avatar img,
+.qaq-mine-avatar svg {
+    width: 100%;
+    height: 100%;display: block;
+    object-fit: cover;
+}
+
+.qaq-mine-info {
+    flex: 1;min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.qaq-mine-nickname {
+    font-size: 16px;
+    font-weight: 700;
+    color: #333;
+}
+
+.qaq-mine-status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: #7bab6e;
+}
+
+.qaq-mine-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #7bab6e;
+    animation: qaq-status-pulse 2s ease infinite;
+}
+
+@keyframes qaq-status-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.qaq-mine-signature {
+    font-size: 11px;
+    color: #999;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.qaq-mine-edit-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.04);
+    color: #999;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.qaq-mine-edit-btn:active {
+    transform: scale(0.88);
+}
+
+/* ===== 我的页面 - 功能区块 ===== */
+.qaq-mine-section {
+    margin-bottom: 10px;
+}
+
+.qaq-mine-section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background0.15s;
+}
+
+.qaq-mine-section-header:active {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.qaq-mine-section-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qaq-mine-section-title {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.qaq-mine-section-count {
+    font-size: 12px;
+    color: #999;
+    background: rgba(0, 0, 0, 0.04);
+    padding: 2px 10px;
+    border-radius: 10px;
+}
+
+.qaq-mine-section-badge {
+    font-size: 11px;
+    color: #5b9bd5;
+    background: rgba(91, 155, 213, 0.1);
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-weight: 500;
+}
+
+.qaq-mine-section-arrow {
+    flex-shrink: 0;
+    opacity: 0.3;
+}
+
+.qaq-mine-today-overview {
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 16px;
+    padding: 14px;
+    margin-top: 0; /* 紧跟积分下面，section已有margin-bottom */
+}
+
+.qaq-mine-points-balance {
+    font-size: 18px;
+    font-weight: 700;
+    color: #e8c34f;
+    font-variant-numeric: tabular-nums;
+}
+
+.qaq-mine-shop-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 016px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    background: linear-gradient(135deg, #f6e9c9, #fed2e0);
+    color: #8a6050;
+    border-radius: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform 0.15s;
+    white-space: nowrap;
+}
+
+.qaq-mine-shop-btn:active {
+    transform: scale(0.95);
+}
+
+/* ===== 植物园 & 动物园入口 ===== */
+.qaq-mine-garden-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.qaq-mine-garden-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 10px;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: transform 0.15s, background 0.15s;
+}
+
+.qaq-mine-garden-card:active {
+    transform: scale(0.96);
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.qaq-mine-garden-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.03);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qaq-mine-garden-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+}
+
+.qaq-mine-garden-count {
+    font-size: 11px;
+    color: #999;
+}
+
+/* ===== 收藏子页面 ===== */
+.qaq-mine-fav-page,
+.qaq-mine-stats-page,
+.qaq-mine-shop-page,
+.qaq-mine-garden-page,
+.qaq-mine-zoo-page {
+    background: linear-gradient(160deg, #f6e9c9 0%, #faebd7 25%, #fce8e2 50%, #fed2e0 75%, #f6e9c9 100%);
+}
+
+.qaq-mine-fav-content,
+.qaq-mine-stats-content,
+.qaq-mine-shop-content,
+.qaq-mine-garden-content,
+.qaq-mine-zoo-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 30px;
+    scrollbar-width: none;
+}
+
+.qaq-mine-fav-content::-webkit-scrollbar,
+.qaq-mine-stats-content::-webkit-scrollbar,
+.qaq-mine-shop-content::-webkit-scrollbar,
+.qaq-mine-garden-content::-webkit-scrollbar,
+.qaq-mine-zoo-content::-webkit-scrollbar {
+    display: none;
+}
+
+/*收藏分类标签 */
+.qaq-mine-fav-cats {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.qaq-mine-fav-cat-chip {
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 12px;
+    color: #777;
+    background: rgba(255, 255, 255, 0.6);
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.qaq-mine-fav-cat-chip.qaq-active {
+    background: linear-gradient(135deg, #f6e9c9, #fed2e0);
+    color: #8a6050;border-color: rgba(200, 150, 130, 0.25);
+    font-weight: 600;
+}
+
+.qaq-mine-fav-cat-chip-del {
+    margin-left: 4px;
+    font-size: 10px;
+    color: #aaa;
+    cursor: pointer;
+}
+
+/* 收藏卡片 */
+.qaq-mine-fav-card {
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.qaq-mine-fav-card-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.qaq-mine-fav-card-word {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    flex: 1;
+}
+
+.qaq-mine-fav-card-cat {
+    font-size: 10px;
+    color: #999;
+    background: rgba(0, 0, 0, 0.04);
+    padding: 2px 8px;
+    border-radius: 8px;
+}
+
+.qaq-mine-fav-card-meaning {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.6;
+}
+
+.qaq-mine-fav-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 10px;
+    color: #bbb;
+}
+
+.qaq-mine-fav-card-actions {
+    display: flex;
+    gap: 8px;margin-top: 4px;
+}
+
+/*===== 学习数据页面 ===== */
+.qaq-stats-overview-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.qaq-stats-overview-item {
+    text-align: center;
+    padding: 12px 8px;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 12px;
+}
+
+.qaq-stats-overview-num {
+    font-size: 24px;
+    font-weight: 700;
+    color: #333;font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+}
+
+.qaq-stats-overview-num.qaq-stats-total-accent {
+    color: #c47068;
+}
+
+.qaq-stats-overview-label {
+    font-size: 11px;
+    color: #999;
+    margin-top: 4px;
+}
+
+.qaq-stats-today-books-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.qaq-stats-book-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #666;
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 8px;
+}
+
+.qaq-stats-book-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #c47068;
+    flex-shrink: 0;
+}
+
+/* ===== 学习日历 ===== */
+.qaq-calendar-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.qaq-calendar-nav-btn {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #999;
+    transition: all 0.15s;
+}
+
+.qaq-calendar-nav-btn:active {
+    transform: scale(0.88);
+}
+
+#qaq-calendar-month-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+    min-width: 70px;
+    text-align: center;
+}
+
+.qaq-calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-size: 10px;
+    color: #aaa;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    margin-bottom: 6px;
+}
+
+.qaq-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.qaq-calendar-cell {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+}
+
+.qaq-calendar-cell:active {
+    transform: scale(0.9);
+}
+
+.qaq-calendar-cell.qaq-calendar-today {
+    font-weight: 700;
+    box-shadow: inset 0 0 0 2px rgba(196, 112, 104, 0.35);
+}
+
+.qaq-calendar-cell.qaq-calendar-selected {
+    box-shadow: inset 0 0 0 2px #c47068;font-weight: 700;
+}
+
+.qaq-calendar-cell.qaq-calendar-empty {
+    cursor: default;
+    background: none !important;
+}
+
+.qaq-calendar-legend {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.qaq-calendar-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: #aaa;
+}
+
+.qaq-calendar-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+}
+
+.qaq-calendar-day-detail {
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 10px;
+    animation: qaq-fadeUp 0.2s ease;
+}
+
+.qaq-calendar-day-detail-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.qaq-calendar-day-detail-body {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.8;
+}
+
+/* ===== 积分商店 ===== */
+.qaq-shop-balance-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #e8c34f;
+    padding: 4px 10px;
+    background: rgba(232, 195, 79, 0.08);
+    border-radius: 12px;
+}
+
+.qaq-shop-pet-current {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.qaq-shop-pet-preview {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.03);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.qaq-shop-pet-preview img,
+.qaq-shop-pet-preview svg {
+    width: 48px;
+    height: 48px;
+}
+
+.qaq-shop-pet-info {
+    flex: 1;min-width: 0;
+}
+
+.qaq-shop-pet-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.qaq-shop-pet-desc {
+    font-size: 11px;
+    color: #999;
+    margin-top: 2px;
+}
+
+.qaq-shop-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.qaq-shop-card {
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 14px;
+    padding: 12px 8px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: transform 0.15s, background 0.15s;
+}
+
+.qaq-shop-card:active {
+    transform: scale(0.95);
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.qaq-shop-card.qaq-shop-owned {
+    border-color: rgba(123, 171, 110, 0.3);
+}
+
+.qaq-shop-card-icon {
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.qaq-shop-card-icon.qaq-plant-sprite svg,
+.qaq-shop-card-icon.qaq-animal-sprite svg {
+    width: 100%;
+    height: 100%;
+}
+
+.qaq-shop-card-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+}
+
+.qaq-shop-card-price {
+    font-size: 11px;
+    color: #e8c34f;
+    font-weight: 600;
+}
+
+.qaq-shop-card-owned {
+    font-size: 10px;
+    color: #7bab6e;
+    font-weight: 600;
+}
+
+/* ===== 花园网格 ===== */
+.qaq-garden-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding-top: 8px;
+}
+
+.qaq-garden-card {
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 16px;
+    padding: 16px 12px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.qaq-garden-card-icon {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qaq-garden-card-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+}
+
+.qaq-garden-card-status {
+    font-size: 11px;
+    color: #7bab6e;
+}
+
+.qaq-garden-card-actions {
+    display: flex;
+    gap: 6px;
+}
+
+/* ===== 夜幕主题 - 我的页面 ===== */
+.qaq-theme-dark .qaq-mine-profile-card {
+    background: rgba(40, 40, 40, 0.7);
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-mine-nickname {
+    color: #e0e0e0;
+}
+
+.qaq-theme-dark .qaq-mine-signature {
+    color: #666;
+}
+
+.qaq-theme-dark .qaq-mine-edit-btn {
+    background: rgba(255, 255, 255, 0.06);
+    color: #777;
+}
+
+.qaq-theme-dark .qaq-mine-section-header {
+    background: rgba(40, 40, 40, 0.7);
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-mine-section-header:active {
+    background: rgba(50, 50, 50, 0.8);
+}
+
+.qaq-theme-dark .qaq-mine-section-title {
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-mine-section-count {
+    background: rgba(255, 255, 255, 0.06);
+    color: #777;
+}
+
+.qaq-theme-dark .qaq-mine-section-badge {
+    background: rgba(91, 155, 213, 0.15);
+    color: #6aa8d8;
+}
+
+.qaq-theme-dark .qaq-mine-garden-card {
+    background: rgba(40, 40, 40, 0.7);
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-mine-garden-card:active {
+    background: rgba(50, 50, 50, 0.8);
+}
+
+.qaq-theme-dark .qaq-mine-garden-name {
+    color: #ccc;
+}
+
+.qaq-theme-dark .qaq-mine-garden-count {
+    color: #666;
+}
+
+.qaq-theme-dark .qaq-mine-garden-icon {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.qaq-theme-dark .qaq-mine-shop-btn {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a);
+    color: #d0b8a8;
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-mine-fav-page,
+.qaq-theme-dark .qaq-mine-stats-page,
+.qaq-theme-dark .qaq-mine-shop-page,
+.qaq-theme-dark .qaq-mine-garden-page,
+.qaq-theme-dark .qaq-mine-zoo-page {
+    background: linear-gradient(160deg, #121212 0%, #1a1a1a 25%, #161616 50%, #1c1c1c 75%, #121212 100%);
+}
+
+.qaq-theme-dark .qaq-stats-overview-item {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.qaq-theme-dark .qaq-stats-overview-num {
+    color: #e0e0e0;
+}
+
+.qaq-theme-dark .qaq-stats-overview-num.qaq-stats-total-accent {
+    color: #d09080;
+}
+
+.qaq-theme-dark .qaq-stats-overview-label {
+    color: #666;
+}
+
+.qaq-theme-dark .qaq-calendar-cell {
+    color: #aaa;
+}
+
+.qaq-theme-dark .qaq-calendar-cell.qaq-calendar-today {
+    box-shadow: inset 0 0 0 2px rgba(208, 144, 128, 0.35);
+}
+
+.qaq-theme-dark .qaq-calendar-cell.qaq-calendar-selected {
+    box-shadow: inset 0 0 0 2px #d09080;
+}
+
+.qaq-theme-dark .qaq-calendar-day-detail {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.qaq-theme-dark .qaq-calendar-day-detail-title {
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-calendar-day-detail-body {
+    color: #aaa;
+}
+
+.qaq-theme-dark .qaq-calendar-nav-btn {
+    background: rgba(255, 255, 255, 0.06);
+    color: #888;
+}
+
+.qaq-theme-dark #qaq-calendar-month-label {
+    color: #ccc;
+}
+
+.qaq-theme-dark .qaq-shop-card {
+    background: rgba(40, 40, 40, 0.7);
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-shop-card:active {
+    background: rgba(50, 50, 50, 0.8);
+}
+
+.qaq-theme-dark .qaq-shop-card-name {
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-shop-balance-badge {
+    background: rgba(232, 195, 79, 0.12);
+}
+
+.qaq-theme-dark .qaq-shop-pet-preview {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.qaq-theme-dark .qaq-shop-pet-name {
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-shop-pet-desc {
+    color: #666;
+}
+
+.qaq-theme-dark .qaq-garden-card {
+    background: rgba(40, 40, 40, 0.7);
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-garden-card-name {
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-mine-fav-card {
+    background: rgba(40, 40, 40, 0.7);
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-mine-fav-card-word {
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-mine-fav-card-meaning {
+    color: #aaa;
+}
+
+.qaq-theme-dark .qaq-mine-fav-cat-chip {
+    background: rgba(255, 255, 255, 0.05);
+    color: #999;
+}
+
+.qaq-theme-dark .qaq-mine-fav-cat-chip.qaq-active {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a);
+    color: #d0b8a8;
+}
+
+.qaq-theme-dark .qaq-stats-book-item {
+    background: rgba(255, 255, 255, 0.03);
+    color: #aaa;
+}
+
+/* ===== 冷雾主题 - 我的页面 ===== */
+.qaq-theme-cool .qaq-mine-profile-card {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.qaq-theme-cool .qaq-mine-nickname {
+    color: #222;
+}
+
+.qaq-theme-cool .qaq-mine-section-header {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.qaq-theme-cool .qaq-mine-section-title {
+    color: #222;
+}
+
+.qaq-theme-cool .qaq-mine-garden-card {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.qaq-theme-cool .qaq-mine-garden-name {
+    color: #333;
+}
+
+.qaq-theme-cool .qaq-mine-shop-btn {
+    background: linear-gradient(135deg, #d0d8e8, #bfc9dd);
+    color: #3a4a60;
+}
+
+.qaq-theme-cool .qaq-mine-fav-page,
+.qaq-theme-cool .qaq-mine-stats-page,
+.qaq-theme-cool .qaq-mine-shop-page,
+.qaq-theme-cool .qaq-mine-garden-page,
+.qaq-theme-cool .qaq-mine-zoo-page {
+    background: linear-gradient(160deg, #ebeef3 0%, #f0f2f5 25%, #f3f4f7 50%, #eef0f4 75%, #ebeef3 100%);
+}
+
+.qaq-theme-cool .qaq-mine-fav-cat-chip.qaq-active {
+    background: linear-gradient(135deg, #d0d8e8, #bfc9dd);
+    color: #3a4a60;
+    border-color: rgba(100, 130, 180, 0.3);
+}
+
+.qaq-theme-cool .qaq-stats-overview-num.qaq-stats-total-accent {
+    color: #4a6a9a;
+}
+
+/* ===== Live2D / 动态场景 ===== */
+
+/* --- 场景容器 --- */
+.qaq-live-scene {
+    width: 100%;
+    height: 200px;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 14px;
+    background: linear-gradient(180deg, #e8f4fd 0%, #d4eaf8 40%, #c8dfb8 70%, #a8c898 100%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.qaq-live-scene canvas {
+    position: absolute;
+    inset: 0;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 2;
+}
+
+.qaq-live-scene-ground {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(180deg, transparent 0%, rgba(120, 180, 80, 0.15) 30%, rgba(100, 160, 60, 0.25) 100%);
+    z-index: 1;
+}
+
+.qaq-zoo-stage {
+    background: linear-gradient(180deg, #fce8e2 0%, #faebd7 40%, #e8dbc8 70%, #d8ccb8 100%);
+}
+
+.qaq-zoo-ground {
+    background: linear-gradient(180deg, transparent 0%, rgba(200, 180, 140, 0.15) 30%, rgba(180, 160, 120, 0.25) 100%);
+}
+
+/* 夜幕 */
+.qaq-theme-dark .qaq-live-scene {
+    background: linear-gradient(180deg, #1a2a1a 0%, #1e2e1e 40%, #223022 70%, #2a382a 100%);
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-zoo-stage {
+    background: linear-gradient(180deg, #2a2020 0%, #2e2828 40%, #322c28 70%, #383028 100%);
+}
+
+/*冷雾 */
+.qaq-theme-cool .qaq-live-scene {
+    background: linear-gradient(180deg, #e8eef6 0%, #dce4f0 40%, #c8d8c4 70%, #b8c8b0 100%);
+}
+
+.qaq-theme-cool .qaq-zoo-stage {
+    background: linear-gradient(180deg, #ebeef3 0%, #e4e8f0 40%, #ddd8d0 70%, #d0c8c0 100%);
+}
+
+/* --- 2D 动态精灵 --- */
+.qaq-sprite-container {
+    position: absolute;
+    z-index: 3;
+    cursor: pointer;
+    transition: filter 0.3s;user-select: none;
+}
+
+.qaq-sprite-container:active {
+    filter: brightness(1.15);
+}
+
+/* --- 植物动画 --- */
+.qaq-plant-sprite {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.qaq-plant-sprite svg {
+    animation: qaq-plant-sway 4s ease-in-out infinite;
+    transform-origin: bottom center;
+}
+
+@keyframes qaq-plant-sway {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(3deg); }
+    75% { transform: rotate(-3deg); }
+}
+
+.qaq-plant-sprite.qaq-watering svg {
+    animation: qaq-plant-grow 0.8s ease;
+}
+
+@keyframes qaq-plant-grow {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+/*浇水水滴 */
+.qaq-water-drop {
+    position: absolute;
+    width: 6px;
+    height: 8px;
+    background: #5baad5;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    opacity: 0;
+    animation: qaq-water-fall 0.6s ease forwards;
+    z-index: 10;
+}
+
+@keyframes qaq-water-fall {
+    0% { opacity: 1; transform: translateY(-20px) scale(1); }
+    80% { opacity: 0.6; }
+    100% { opacity: 0; transform: translateY(30px) scale(0.4); }
+}
+
+/* --- 动物动画 --- */
+.qaq-animal-sprite {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.qaq-animal-sprite svg {
+    animation: qaq-animal-breathe 3s ease-in-out infinite;
+}
+
+@keyframes qaq-animal-breathe {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(1.04); }
+}
+
+/* 动物闲逛 */
+.qaq-animal-sprite.qaq-walking {
+    animation: qaq-animal-walk 8s linear infinite alternate;
+}
+
+@keyframes qaq-animal-walk {
+    0% { transform: translateX(-30px); }
+    100% { transform: translateX(30px); }
+}
+
+/* 动物弹跳（点击） */
+.qaq-animal-sprite.qaq-bounce svg {
+    animation: qaq-animal-jump 0.5s ease;
+}
+
+@keyframes qaq-animal-jump {
+    0% { transform: translateY(0); }
+    40% { transform: translateY(-18px) scaleX(0.9) scaleY(1.1); }
+    70% { transform: translateY(0) scaleX(1.05) scaleY(0.95); }
+    100% { transform: translateY(0) scale(1); }
+}
+
+/*喂食爱心 */
+.qaq-feed-heart {
+    position: absolute;
+    font-size: 16px;
+    opacity: 0;
+    z-index: 10;
+    animation: qaq-heart-float 1s ease forwards;
+    pointer-events: none;
+}
+
+@keyframes qaq-heart-float {
+    0% { opacity: 1; transform: translateY(0) scale(0.5); }
+    50% { opacity: 1; transform: translateY(-20px) scale(1.2); }
+    100% { opacity: 0; transform: translateY(-40px) scale(0.8); }
+}
+
+/* 名字标签 */
+.qaq-sprite-name {
+    font-size: 10px;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.45);
+    padding: 2px 8px;
+    border-radius: 8px;
+    margin-top: 4px;
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+}
+
+/* --- 场景交互提示 --- */
+.qaq-scene-tip {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(0, 0, 0, 0.25);
+    padding: 3px 12px;
+    border-radius: 10px;
+    z-index: 5;
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+}
+
+/* --- Live2D 加载状态 --- */
+.qaq-live2d-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 4;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+}
+
+.qaq-live2d-loading::after {
+    content: '';
+    width: 28px;
+    height: 28px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: qaq-spin 0.8s linear infinite;
+}
+
+@keyframes qaq-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* --- 商店卡片动态标识 --- */
+.qaq-shop-card-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    font-size: 8px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.qaq-badge-live2d {
+    background: rgba(139, 108, 193, 0.15);
+    color: #8b6cc1;
+}
+
+.qaq-badge-animated {
+    background: rgba(91, 155, 213, 0.15);
+    color: #5b9bd5;
+}
+
+.qaq-shop-card {
+    position: relative;
+}
+
+/* 商店卡片内动画预览 */
+.qaq-shop-card-icon svg {
+    transition: transform 0.3s ease;
+}
+
+.qaq-shop-card:hover .qaq-shop-card-icon svg {
+    transform: scale(1.1);
+}
+
+.qaq-shop-card:active .qaq-shop-card-icon svg {
+    animation: qaq-animal-jump 0.4s ease;
+}
+
+/* Live2D 模型管理卡片 */
+.qaq-live2d-model-card {
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 14px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.qaq-live2d-model-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #8b6cc1, #a88cd8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.qaq-live2d-model-card-info {
+    flex: 1;min-width: 0;
+}
+
+.qaq-live2d-model-card-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+}
+
+.qaq-live2d-model-card-url {
+    font-size: 10px;
+    color: #999;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.qaq-theme-dark .qaq-live2d-model-card {
+    background: rgba(40, 40, 40, 0.7);
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-live2d-model-card-name {
+    color: #ddd;
+}
+
+/* 花园卡片互动增强 */
+.qaq-garden-card {
+    cursor: pointer;
+    transition: transform 0.15s, background0.15s, box-shadow 0.2s;
+}
+
+.qaq-garden-card:active {
+    transform: scale(0.95);
+}
+
+.qaq-garden-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.qaq-garden-card-icon svg {
+    transition: transform 0.3s ease;
+}
+
+.qaq-garden-card:hover .qaq-garden-card-icon svg {
+    transform: scale(1.08);
+}
+
+/* 植物生长阶段指示 */
+.qaq-garden-card-growth {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.qaq-garden-card-growth-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #b8dfbf, #7bab6e);
+    transition: width 0.5s ease;
+}
+
+/* 动物心情指示 */
+.qaq-garden-card-mood {
+    font-size: 14px;
+    margin-top: 2px;
+}
+
+/* --- 道具动画 --- */
+.qaq-item-sprite {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qaq-item-sprite svg {
+    animation: qaq-item-float 3s ease-in-out infinite;
+}
+
+@keyframes qaq-item-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+.qaq-shop-card-icon.qaq-item-sprite svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* ===== 商店查看详情按钮 ===== */
+.qaq-shop-detail-btn {
+    width: 100%;
+    height: 26px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.7);
+    color: #777;
+    font-size: 10px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 4px;
+}
+
+.qaq-shop-detail-btn:active {
+    transform: scale(0.95);
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.qaq-theme-dark .qaq-shop-detail-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.06);
+    color: #999;
+}
+
+.qaq-theme-cool .qaq-shop-detail-btn {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(100, 130, 180, 0.12);
+    color: #5a6a7a;
+}
+
+/* ===== 商店详情弹窗 ===== */
+.qaq-shop-detail-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+}
+
+.qaq-shop-detail-stage {
+    width: 100%;
+    height: 180px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #e8f4fd 0%, #d4eaf8 40%, #c8dfb8 70%, #a8c898 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+}
+
+.qaq-theme-dark .qaq-shop-detail-stage {
+    background: linear-gradient(180deg, #1a2a1a 0%, #1e2e1e 40%, #223022 70%, #2a382a 100%);
+}
+
+.qaq-theme-cool .qaq-shop-detail-stage {
+    background: linear-gradient(180deg, #e8eef6 0%, #dce4f0 40%, #c8d8c4 70%, #b8c8b0 100%);
+}
+
+.qaq-detail-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qaq-detail-preview svg {
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+.qaq-shop-detail-info {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.qaq-shop-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 10px;
+    font-size: 13px;
+    color: #555;
+}
+
+.qaq-shop-detail-label {
+    color: #999;
+    font-size: 12px;
+}
+
+.qaq-theme-dark .qaq-shop-detail-row {
+    background: rgba(255, 255, 255, 0.04);
+    color: #ccc;
+}
+
+.qaq-theme-dark .qaq-shop-detail-label {
+    color: #777;
+}
+
+/* ===== 设置页桌宠预览文字 ===== */
+.qaq-settings-item-pet-preview {
+    font-size: 12px;
+    color: #999;
+    font-weight: 500;
+}
+
+.qaq-theme-dark .qaq-settings-item-pet-preview {
+    color: #777;
+}
+
+/* ===== Three.js 3D 舞台 ===== */
+.qaq-3d-stage {
+    position: relative;
+    height: 240px;
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.qaq-3d-stage:active { cursor: grabbing; }
+
+.qaq-3d-stage canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 16px;
+}
+
+.qaq-3d-hint {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: rgba(255,255,255,0.6);
+    background: rgba(0,0,0,0.25);
+    padding: 3px 14px;
+    border-radius: 10px;
+    z-index: 5;
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+    animation: qaq-3d-hint-fade 5s ease forwards;
+    white-space: nowrap;
+}
+
+@keyframes qaq-3d-hint-fade {
+    0%, 60% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.qaq-theme-dark .qaq-3d-hint {
+    background: rgba(0,0,0,0.5);
+    color: rgba(255,255,255,0.45);
+}
+.qaq-review-settings-content .qaq-settings-group-card {
+    padding: 0 14px;
+}
+/* 在统一页面层管理部分追加 */
+.qaq-xiaoyuan-page { z-index: 70; }
+
+/* 同步顶部安全留白 */
+.qaq-xiaoyuan-page {
+    padding-top: calc(var(--qaq-safe-top) + 3vw);
+}
+
+/* Tab 行*/
+.qaq-xiaoyuan-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 0 16px 10px;
+    flex-shrink: 0;
+}
+
+.qaq-xiaoyuan-tabs .qaq-wordbank-tab {
+    flex: 1;
+}
+
+/* 面板填满剩余 */
+.qaq-xiaoyuan-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* ===== 我的页面 - 今日概览内嵌 ===== */
+.qaq-mine-today-overview {
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 10px;
+}
+
+.qaq-mine-today-title {
+    font-size: 11px;
+    color: #999;
+    letter-spacing: 1px;
+    font-weight: 500;
+    margin-bottom: 10px;
+}
+
+.qaq-mine-today-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+
+.qaq-mine-today-item {
+    text-align: center;
+    padding: 8px 4px;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 10px;
+}
+
+.qaq-mine-today-num {
+    font-size: 20px;
+    font-weight: 700;
+    color: #c47068;
+    font-variant-numeric: tabular-nums;line-height: 1.2;
+}
+
+.qaq-mine-today-label {
+    font-size: 10px;
+    color: #999;
+    margin-top: 3px;
+}
+
+/*夜幕 */
+.qaq-theme-dark .qaq-mine-today-overview {
+    background: rgba(40, 40, 40, 0.7);
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-mine-today-title {
+    color: #666;
+}
+
+.qaq-theme-dark .qaq-mine-today-item {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.qaq-theme-dark .qaq-mine-today-num {
+    color: #d09080;
+}
+
+.qaq-theme-dark .qaq-mine-today-label {
+    color: #666;
+}
+
+/* 冷雾 */
+.qaq-theme-cool .qaq-mine-today-overview {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.qaq-theme-cool .qaq-mine-today-num {
+    color: #4a6a9a;
+}
+
+/*===== 背单词设置页保存按钮加宽 ===== */
+.qaq-review-settings-content > .qaq-api-save-btn {
+    display: block;
+    width: calc(100% - 0px);
+    margin: 12px 0 24px;
+    height: 44px;
+    font-size: 15px;
+    border-radius: 14px;
+}
+
+/* ===== 小院页面 - 主题适配修复 ===== */
+
+/* ---夜幕主题 --- */
+.qaq-theme-dark .qaq-xiaoyuan-page .qaq-settings-title {
+    color: #e0e0e0;
+}
+
+.qaq-theme-dark .qaq-xiaoyuan-page .qaq-back-btn svg {
+    stroke: #ddd;
+}
+
+/*标签栏（复用词库 tab，但确保小院内也生效） */
+.qaq-theme-dark .qaq-xiaoyuan-tabs .qaq-wordbank-tab {
+    background: rgba(255, 255, 255, 0.05);
+    color: #888;
+}
+
+.qaq-theme-dark .qaq-xiaoyuan-tabs .qaq-wordbank-tab.qaq-wordbank-tab-active {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a);
+    color: #d0b8a8;
+}
+
+/* 浇水/喂食按钮 */
+.qaq-theme-dark .qaq-xiaoyuan-panel .qaq-import-ghost-btn {
+    background: rgba(40, 40, 40, 0.85);
+    border-color: rgba(255, 255, 255, 0.06);
+    color: #bbb;
+}
+
+.qaq-theme-dark .qaq-xiaoyuan-panel .qaq-import-ghost-btn:hover {
+    background: rgba(50, 50, 50, 0.9);
+    color: #ddd;
+}
+
+/* 花园/动物园网格卡片 */
+.qaq-theme-dark .qaq-xiaoyuan-panel .qaq-garden-card {
+    background: rgba(40, 40, 40, 0.92) !important;
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-xiaoyuan-panel .qaq-garden-card-name {
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-xiaoyuan-panel .qaq-garden-card-status {
+    color: #5a9a50;
+}
+
+.qaq-theme-dark .qaq-xiaoyuan-panel .qaq-garden-card-icon {
+    filter: brightness(0.85);
+}
+
+/* 生长条 */
+.qaq-theme-dark .qaq-garden-card-growth {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.qaq-theme-dark .qaq-garden-card-growth-fill {
+    background: linear-gradient(90deg, #5a7a50, #4a6a40);
+}
+
+/* 动物心情 */
+.qaq-theme-dark .qaq-garden-card-mood {
+    filter: brightness(0.9);
+}
+
+/* 空状态文字 */
+.qaq-theme-dark #qaq-xy-garden-empty,
+.qaq-theme-dark #qaq-xy-zoo-empty {
+    color: #555;
+}
+
+/* 动态场景区域（小院内的） */
+.qaq-theme-dark .qaq-xiaoyuan-panel .qaq-live-scene {
+    background: linear-gradient(180deg, #1a2a1a 0%, #1e2e1e 40%, #223022 70%, #2a382a 100%);
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-xiaoyuan-panel .qaq-zoo-stage {
+    background: linear-gradient(180deg, #2a2020 0%, #2e2828 40%, #322c28 70%, #383028 100%);
+}
+
+/* 精灵名字标签 */
+.qaq-theme-dark .qaq-sprite-name {
+    background: rgba(0, 0, 0, 0.6);
+    color: #ccc;
+}
+
+/* 花园卡片内按钮行*/
+.qaq-theme-dark .qaq-garden-card-actions .qaq-import-ghost-btn {
+    background: rgba(50, 50, 50, 0.9);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #aaa;
+}
+
+/* ---冷雾主题 --- */
+.qaq-theme-cool .qaq-xiaoyuan-page .qaq-settings-title {
+    color: #222;
+}
+
+/* 标签栏 */
+.qaq-theme-cool .qaq-xiaoyuan-tabs .qaq-wordbank-tab {
+    background: rgba(255, 255, 255, 0.6);
+    color: #6a7a8a;
+}
+
+.qaq-theme-cool .qaq-xiaoyuan-tabs .qaq-wordbank-tab.qaq-wordbank-tab-active {
+    background: linear-gradient(135deg, #d0d8e8, #bfc9dd);
+    color: #3a4a60;
+}
+
+/* 浇水/喂食按钮 */
+.qaq-theme-cool .qaq-xiaoyuan-panel .qaq-import-ghost-btn {
+    background: rgba(255, 255, 255, 0.88);
+    border-color: rgba(100, 130, 180, 0.16);
+    color: #4a5b72;
+}
+
+.qaq-theme-cool .qaq-xiaoyuan-panel .qaq-import-ghost-btn:hover {
+    background: #f4f7fb;
+    color: #2f4159;
+}
+
+/* 花园/动物园网格卡片 */
+.qaq-theme-cool .qaq-xiaoyuan-panel .qaq-garden-card {
+    background: rgba(255, 255, 255, 0.92) !important;
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.qaq-theme-cool .qaq-xiaoyuan-panel .qaq-garden-card-name {
+    color: #222;
+}
+
+.qaq-theme-cool .qaq-xiaoyuan-panel .qaq-garden-card-status {
+    color: #4a8a40;
+}
+
+/* 生长条 */
+.qaq-theme-cool .qaq-garden-card-growth {
+    background: rgba(100, 130, 180, 0.1);
+}
+
+.qaq-theme-cool .qaq-garden-card-growth-fill {
+    background: linear-gradient(90deg, #aaccbb, #6a9a78);
+}
+
+/* 空状态文字 */
+.qaq-theme-cool #qaq-xy-garden-empty,
+.qaq-theme-cool #qaq-xy-zoo-empty {
+    color: #9aa4b0;
+}
+
+/* 动态场景区域 */
+.qaq-theme-cool .qaq-xiaoyuan-panel .qaq-live-scene {
+    background: linear-gradient(180deg, #e8eef6 0%, #dce4f0 40%, #c8d8c4 70%, #b8c8b0 100%);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.qaq-theme-cool .qaq-xiaoyuan-panel .qaq-zoo-stage {
+    background: linear-gradient(180deg, #ebeef3 0%, #e4e8f0 40%, #ddd8d0 70%, #d0c8c0 100%);
+}
+
+/* 花园卡片内按钮行 */
+.qaq-theme-cool .qaq-garden-card-actions .qaq-import-ghost-btn {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(100, 130, 180, 0.14);
+    color: #4a5b72;
+}
+
+/* 面板内部滚动区域在小院里需要 overscroll 优化 */
+.qaq-xiaoyuan-panel {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;scrollbar-width: none;
+    padding-bottom: 30px;
+}
+
+.qaq-xiaoyuan-panel::-webkit-scrollbar {
+    display: none;
+}
+
+/* ===== 修复：全局 ghost按钮暗色/冷雾适配 ===== */
+.qaq-theme-dark .qaq-import-ghost-btn {
+    background: rgba(50, 50, 50, 0.9);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #bbb;
+    box-shadow: none;
+}
+
+.qaq-theme-dark .qaq-import-ghost-btn:hover {
+    background: rgba(60, 60, 60, 0.95);
+    color: #ddd;
+}
+
+/* ===== 修复：全局 select / input 暗色适配（小院、设置等页面共用） ===== */
+.qaq-theme-dark .qaq-plan-form-input,
+.qaq-theme-dark select.qaq-plan-form-input {
+    background: #333;
+    border-color: #444;
+    color: #ddd;
+}
+
+.qaq-theme-dark .qaq-plan-form-input::placeholder {
+    color: #555;
+}
+
+/* ===== 修复：花园/动物卡片内的按钮行===== */
+.qaq-theme-dark .qaq-garden-card-actions .qaq-import-ghost-btn {
+    background: rgba(50, 50, 50, 0.92);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #aaa;
+}
+
+/* ===== 修复：冷雾下ghost 按钮全局兜底 ===== */
+.qaq-theme-cool .qaq-garden-card-actions .qaq-import-ghost-btn {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(100, 130, 180, 0.14);
+    color: #4a5b72;
+}
+
+/* ===== 修复：小院面板内滚动区padding 内的 inline style区域 ===== */
+.qaq-theme-dark .qaq-xiaoyuan-panel [style*="padding"] {
+    color: #ccc;
+}
+
+.qaq-theme-cool .qaq-xiaoyuan-panel [style*="padding"] {
+    color: #333;
+}
+
+/* 小院内场景、卡片、按钮的主题适配也加 !important 确保生效 */
+.qaq-theme-dark .qaq-xiaoyuan-page .qaq-settings-header .qaq-settings-title {
+    color: #e0e0e0 !important;
+}
+
+.qaq-theme-dark .qaq-xiaoyuan-page .qaq-back-btn svg {
+    stroke: #ddd !important;
+}
+
+.qaq-theme-cool .qaq-xiaoyuan-page .qaq-settings-header .qaq-settings-title {
+    color: #222 !important;
+}
+
+.qaq-xiaoyuan-page {
+    background: linear-gradient(
+        160deg,
+        #f6e9c9 0%,
+        #faebd7 25%,
+        #fce8e2 50%,
+        #fed2e0 75%,
+        #f6e9c9 100%
+    ) !important;
+}
+
+.qaq-xiaoyuan-page.qaq-theme-dark {
+    background: linear-gradient(
+        160deg,
+        #121212 0%,
+        #1a1a1a 25%,
+        #161616 50%,
+        #1c1c1c 75%,
+        #121212 100%
+    ) !important;
+}
+
+.qaq-xiaoyuan-page.qaq-theme-cool {
+    background: linear-gradient(
+        160deg,
+        #ebeef3 0%,
+        #f0f2f5 25%,
+        #f3f4f7 50%,
+        #eef0f4 75%,
+        #ebeef3 100%
+    ) !important;
 }

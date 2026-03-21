@@ -7990,7 +7990,7 @@ function qaqEnsureThreeJS(onProgress, callback) {
 function qaqGet3DModelUrl(itemId) {
     var map = {
         'animal-dog': 'assets/models/dog1.glb',
-        'animal-cat': 'assets/models/cat1.glb'
+        'animal-cat': 'assets/models/cat1.glb',
         'animal-rabbit': 'assets/models/rabbit1.glb'
     };
     return map[itemId] || '';

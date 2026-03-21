@@ -1044,28 +1044,40 @@
         </div>
         <div class="qaq-settings-title">积分商店</div>
         <div class="qaq-wordbank-header-actions">
-            <div class="qaq-shop-balance-badge">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e8c34f" stroke-width="2.5">
-                    <circle cx="12" cy="12" r="10"/>
-                </svg>
-                <span id="qaq-shop-balance">0</span>
-            </div>
+    <button class="qaq-plan-add-btn" id="qaq-shop-settings-btn" title="3D设置">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a6050" stroke-width="1.8">
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+            <circle cx="12" cy="12" r="3"/>
+        </svg>
+    </button>
+    <div class="qaq-shop-balance-badge">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e8c34f" stroke-width="2.5">
+        <circle cx="12" cy="12" r="10"/>
+        <text x="12" y="15.5" text-anchor="middle" fill="#e8c34f" stroke="none" font-size="10" font-weight="700">¥</text>
+    </svg>
+    <span id="qaq-shop-balance">0</span>
+</div>
         </div>
     </div>
     <div class="qaq-mine-shop-content">
-        <div class="qaq-theme-section">
-            <div class="qaq-theme-section-title">种子</div>
-            <div class="qaq-shop-grid" id="qaq-shop-seeds-grid"></div>
-        </div>
-        <div class="qaq-theme-section">
-            <div class="qaq-theme-section-title">动物</div>
-            <div class="qaq-shop-grid" id="qaq-shop-animals-grid"></div>
-        </div>
-        <div class="qaq-theme-section">
-            <div class="qaq-theme-section-title">道具</div>
-            <div class="qaq-shop-grid" id="qaq-shop-items-grid"></div>
-        </div>
+    <div class="qaq-wordbank-subnav" id="qaq-shop-subnav">
+        <button class="qaq-wordbank-tab qaq-wordbank-tab-active" data-shop-tab="seeds">种子</button>
+        <button class="qaq-wordbank-tab" data-shop-tab="animals">动物</button>
+        <button class="qaq-wordbank-tab" data-shop-tab="items">道具</button>
     </div>
+
+    <div class="qaq-shop-tab-panel" id="qaq-shop-panel-seeds">
+        <div class="qaq-shop-grid" id="qaq-shop-seeds-grid"></div>
+    </div>
+
+    <div class="qaq-shop-tab-panel" id="qaq-shop-panel-animals" style="display:none;">
+        <div class="qaq-shop-grid" id="qaq-shop-animals-grid"></div>
+    </div>
+
+    <div class="qaq-shop-tab-panel" id="qaq-shop-panel-items" style="display:none;">
+        <div class="qaq-shop-grid" id="qaq-shop-items-grid"></div>
+    </div>
+</div>
 </div>
 
 <!-- ===== 背单词设置页面 ===== -->

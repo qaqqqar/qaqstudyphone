@@ -617,11 +617,7 @@ body {
     justify-content: center;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.15s ease, visibility 0s linear 0.15s;
-    will-change: opacity;
-    pointer-events: none;
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
+    transition: opacity 0.22s cubic-bezier(0.22, 0.61, 0.36, 1), visibility 0s linear 0.22s;
 }
 
 .qaq-modal-overlay.qaq-modal-show {
@@ -639,9 +635,11 @@ body {
     max-height: 80vh;
     padding: 5vw;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-    transform: translateY(6px);
+    transform: translateY(14px) scale(0.985);
     opacity: 0;
-    transition: transform 0.15s ease, opacity 0.15s ease;
+    transition:
+        transform 0.24s cubic-bezier(0.22, 0.61, 0.36, 1),
+        opacity 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
     display: flex;
     flex-direction: column;
     gap: 3.5vw;
@@ -656,7 +654,7 @@ body {
 }
 
 .qaq-modal-overlay.qaq-modal-show .qaq-modal {
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
     opacity: 1;
 }
 
@@ -6042,10 +6040,17 @@ body {
     margin-top: 2px;
 }
 
-.qaq-shop-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
+.qaq-shop-tab-panel {
+    padding-top: 2px;
+}
+
+.qaq-mine-shop-content .qaq-wordbank-subnav {
+    margin-bottom: 14px;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding-top: 2px;
+    background: inherit;
 }
 
 .qaq-shop-card {
@@ -7320,4 +7325,43 @@ body {
         #eef0f4 75%,
         #ebeef3 100%
     ) !important;
+}
+/* 全局滚动优化 */
+.qaq-main-content,
+.qaq-wordbank-content,
+.qaq-wordbook-detail-content,
+.qaq-plan-page-content,
+.qaq-review-story-content,
+.qaq-mine-fav-content,
+.qaq-mine-stats-content,
+.qaq-mine-shop-content,
+.qaq-settings-list,
+.qaq-settings-sub-content,
+.qaq-review-settings-content,
+.qaq-xiaoyuan-panel {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    transform: translateZ(0);
+}
+
+/* 降低滚动时重绘 */
+.qaq-wordbook-list,
+.qaq-wordbook-detail-list,
+.qaq-shop-grid,
+.qaq-garden-grid,
+.qaq-plan-card-list {
+    contain: layout paint;
+}
+
+/* ===== 商店网格：一行两个卡片 ===== */
+.qaq-shop-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    align-items: stretch;
+}
+
+.qaq-shop-card {
+    min-width: 0;
 }

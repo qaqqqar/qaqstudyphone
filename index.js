@@ -206,12 +206,12 @@ function qaqEnsureLive2D(callback) {
     qaqUpdateClock();
     setInterval(qaqUpdateClock, 15000);
     
-var qaqTokenTotal = parseInt(localStorage.getItem('qaq-token-total') || '0', 10);
+var qaqTokenTotal = parseInt(qaqCacheGet('qaq-token-total', 0), 10) || 0;
 
 function qaqAddTokens(n) {
     if (!n || n <= 0) return;
     qaqTokenTotal += n;
-    localStorage.setItem('qaq-token-total', String(qaqTokenTotal));
+    qaqCacheSet('qaq-token-total', 0);
     qaqApplyStatusBar();
 }
 
@@ -329,7 +329,7 @@ document.getElementById('qaq-sb-token-toggle').parentElement.addEventListener('c
 document.getElementById('qaq-sb-token-reset').addEventListener('click', function () {
     qaqConfirm('重置 Token', '确认将 Token 计数清零？', function () {
         qaqTokenTotal = 0;
-        localStorage.setItem('qaq-token-total', '0');
+        qaqCacheSet('qaq-token-total', 0);
         qaqApplyStatusBar();
         qaqToast('Token 已清零');
     });
@@ -338,6 +338,53 @@ document.getElementById('qaq-sb-token-reset').addEventListener('click', function
 // 初始化
 qaqApplyStatusBar();
 qaqInitBattery();
+
+function qaqGet3DSettings() {
+    return qaqCacheGet('qaq-3d-settings', {
+        askBeforeRender: true,
+        defaultRender3D: true
+    });
+}
+
+function qaqSave3DSettings(settings) {
+    qaqCacheSet('qaq-3d-settings', settings || {
+        askBeforeRender: true,
+        defaultRender3D: true
+    });
+}
+
+function qaqGet3DModelCache() {
+    return qaqCacheGet('qaq-3d-model-cache', {});
+}
+
+function qaqSave3DModelCache(data) {
+    qaqCacheSet('qaq-3d-model-cache', data || {});
+}
+
+function qaqClear3DModelCacheById(itemId) {
+    var cache = qaqGet3DModelCache();
+    delete cache[itemId];
+    qaqCacheSet('qaq-3d-model-cache', cache);
+}
+
+function qaqClearAll3DModelCache() {
+    qaqCacheSet('qaq-3d-model-cache', {});
+}
+
+function qaqMark3DModelLoaded(itemId, data) {
+    var cache = qaqGet3DModelCache();
+    cache[itemId] = {
+        loadedAt: Date.now(),
+        modelUrl: qaqGet3DModelUrl(itemId),
+        meta: data || {}
+    };
+    qaqCacheSet('qaq-3d-model-cache', cache);
+}
+
+function qaqHas3DModelCache(itemId) {
+    var cache = qaqGet3DModelCache();
+    return !!cache[itemId];
+}
 
 /* ===== 性能优化工具 ===== */
 function qaqDebounce(fn, delay) {
@@ -871,9 +918,11 @@ function qaqCloseModal() {
     overlay.classList.remove('qaq-modal-show');
     setTimeout(function () {
         if (!overlay.classList.contains('qaq-modal-show')) {
-            overlay.style.display = 'none';modalBody.innerHTML = '';
+            overlay.style.display = 'none';
+            modalBody.innerHTML = '';
+            modalBtns.innerHTML = '';
         }
-    }, 160);
+    }, 240);
 }
 
     overlay.addEventListener('click', function (e) {
@@ -1329,19 +1378,19 @@ var qaqReviewStoryPage = document.getElementById('qaq-review-story-page');
 var qaqReviewStoryAbortCtrl = null;
 var qaqReviewStoryGenerating = false;
 function qaqGetLastReviewStory() {
-    return JSON.parse(localStorage.getItem('qaq-review-story-last') || 'null');
+    return qaqCacheGet('qaq-review-story-last', null);
 }
 
 function qaqSaveLastReviewStory(data) {
-    localStorage.setItem('qaq-review-story-last', JSON.stringify(data || null));
+    qaqCacheSet('qaq-review-story-last', data || null);
 }
 
 function qaqGetReviewStoryHistory() {
-    return JSON.parse(localStorage.getItem('qaq-review-story-history') || '[]');
+    return qaqCacheGet('qaq-review-story-history', []);
 }
 
 function qaqSaveReviewStoryHistory(list) {
-    localStorage.setItem('qaq-review-story-history', JSON.stringify(list || []));
+    qaqCacheSet('qaq-review-story-history', list || []);
 }
 
 function qaqPushReviewStoryHistory(item) {
@@ -1395,11 +1444,11 @@ function qaqGetAllBuiltInStoryTags() {
 var qaqReviewStorySelectedTags = [];
 
 function qaqGetReviewStoryCustomTags() {
-    return JSON.parse(localStorage.getItem('qaq-review-story-custom-tags') || '[]');
+    return qaqCacheGet('qaq-review-story-custom-tags', []);
 }
 
 function qaqSaveReviewStoryCustomTags(tags) {
-    localStorage.setItem('qaq-review-story-custom-tags', JSON.stringify(tags || []));
+    qaqCacheSet('qaq-review-story-custom-tags', tags || []);
 }
 
 var qaqReviewStoryCustomTags = qaqGetReviewStoryCustomTags();
@@ -1517,11 +1566,11 @@ var qaqReviewStoryTranslateMode = false;
 
 
 function qaqGetReviewStoryFavorites() {
-    return JSON.parse(localStorage.getItem('qaq-review-story-favorites') || '[]');
+    return qaqCacheGet('qaq-review-story-favorites', []);
 }
 
 function qaqSaveReviewStoryFavorites(list) {
-    localStorage.setItem('qaq-review-story-favorites', JSON.stringify(list || []));
+    qaqCacheSet('qaq-review-story-favorites', list || []);
 }
 
 
@@ -5312,11 +5361,36 @@ document.getElementById('qaq-xy-feed-all-btn').addEventListener('click', functio
     qaqToast('全部喂食完成 +' + owned.length + ' 积分');
 });
 
+var qaqCurrentShopTab = 'seeds';
+function qaqSwitchShopTab(tab) {
+    qaqCurrentShopTab = tab;
+
+    document.querySelectorAll('[data-shop-tab]').forEach(function (btn) {
+        btn.classList.toggle('qaq-wordbank-tab-active', btn.dataset.shopTab === tab);
+    });
+
+    document.getElementById('qaq-shop-panel-seeds').style.display = tab === 'seeds' ? '' : 'none';
+    document.getElementById('qaq-shop-panel-animals').style.display = tab === 'animals' ? '' : 'none';
+    document.getElementById('qaq-shop-panel-items').style.display = tab === 'items' ? '' : 'none';
+}
+
+document.querySelectorAll('[data-shop-tab]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        qaqSwitchShopTab(this.dataset.shopTab);
+    });
+});
+
 /* ===== 全局商店（底部导航入口） ===== */
 function qaqOpenGlobalShopPage() {
     qaqShopPageSource = 'global';
     qaqRenderShopPage();
     qaqSwitchTo(document.getElementById('qaq-mine-shop-page'));
+
+    if (!qaqThreeReady && !qaqThreeLoading) {
+        setTimeout(function () {
+            qaqEnsureThreeJS();
+        }, 500);
+    }
 }
 
 // 商店页返回时回到主页而非词库页
@@ -6378,23 +6452,24 @@ function qaqSaveCurrentReviewSession() {
 
     var copy = JSON.parse(JSON.stringify(qaqReviewSession));
     copy.updatedAt = Date.now();
-    localStorage.setItem('qaq-word-review-last-session', JSON.stringify(copy));
+    qaqCacheSet('qaq-word-review-last-session', copy);
 }
 
 function qaqGetCurrentReviewSession() {
-    return JSON.parse(localStorage.getItem('qaq-word-review-last-session') || 'null');
+    return qaqCacheGet('qaq-word-review-last-session', null);
 }
 
 function qaqClearCurrentReviewSession() {
+    qaqCacheInvalidate('qaq-word-review-last-session');
     localStorage.removeItem('qaq-word-review-last-session');
 }
 
 function qaqSaveLastFinishedReview(data) {
-    localStorage.setItem('qaq-word-review-last-finished', JSON.stringify(data || null));
+    qaqCacheSet('qaq-word-review-last-finished', data || null);
 }
 
 function qaqGetLastFinishedReview() {
-    return JSON.parse(localStorage.getItem('qaq-word-review-last-finished') || 'null');
+    return qaqCacheGet('qaq-word-review-last-finished', null);
 }
 
 async function qaqGenerateWordStudyDataForItem(wordObj, cfg) {
@@ -7184,16 +7259,17 @@ function qaqGetReviewModelCacheKey(provider, url) {
 }
 
 function qaqSaveReviewModelCache(provider, url, models) {
-    localStorage.setItem(
+    qaqCacheSet(
         qaqGetReviewModelCacheKey(provider, url),
-        JSON.stringify(models || [])
+        models || []
     );
 }
 
 function qaqGetReviewModelCache(provider, url) {
-    return JSON.parse(localStorage.getItem(
-        qaqGetReviewModelCacheKey(provider, url)
-    ) || '[]');
+    return qaqCacheGet(
+        qaqGetReviewModelCacheKey(provider, url),
+        []
+    );
 }
 
 
@@ -7436,21 +7512,21 @@ function qaqLogStudySession(bookName, wordCount, durationMinutes) {
 
 // ---- 收藏分类 ----
 function qaqGetFavCategories() {
-    return JSON.parse(localStorage.getItem('qaq-mine-fav-categories') || '["全部","单词","句子","段落"]');
+    return qaqCacheGet('qaq-mine-fav-categories', ['全部', '单词', '句子', '段落']);
 }
 
 function qaqSaveFavCategories(cats) {
-    localStorage.setItem('qaq-mine-fav-categories', JSON.stringify(cats));
+    qaqCacheSet('qaq-mine-fav-categories', cats || ['全部', '单词', '句子', '段落']);
 }
 
 // ---- 商店系统 ----
 
 function qaqGetActivePet() {
-    return JSON.parse(localStorage.getItem('qaq-mine-active-pet') ||'null');
+    return qaqCacheGet('qaq-mine-active-pet', null);
 }
 
 function qaqSaveActivePet(pet) {
-    localStorage.setItem('qaq-mine-active-pet', JSON.stringify(pet));
+    qaqCacheSet('qaq-mine-active-pet', pet || null);
 }
 
 var qaqShopCatalog = {
@@ -7846,6 +7922,109 @@ function qaqRenderCalendar() {
     }
 }
 
+function qaqOpenShopSettingsModal() {
+    var settings = qaqGet3DSettings();
+
+    modalTitle.textContent = '商店 3D 设置';
+    modalBody.innerHTML =
+        '<div class="qaq-settings-group-card" style="padding:10px 12px;">' +
+            '<div class="qaq-settings-item" id="qaq-shop-3d-ask-row" style="padding:12px 0;">' +
+                '<div class="qaq-settings-item-text">查看详情前询问是否渲染3D</div>' +
+                '<div class="qaq-toggle' + (settings.askBeforeRender ? ' qaq-toggle-on' : '') + '" id="qaq-shop-3d-ask-toggle">' +
+                    '<div class="qaq-toggle-knob"></div>' +
+                '</div>' +
+            '</div>' +
+            '<div class="qaq-settings-item" id="qaq-shop-3d-default-row" style="padding:12px 0;">' +
+                '<div class="qaq-settings-item-text">默认使用3D查看</div>' +
+                '<div class="qaq-toggle' + (settings.defaultRender3D ? ' qaq-toggle-on' : '') + '" id="qaq-shop-3d-default-toggle">' +
+                    '<div class="qaq-toggle-knob"></div>' +
+                '</div>' +
+            '</div>' +
+            '<div class="qaq-settings-item" id="qaq-shop-clear-current-3d-row" style="padding:12px 0;">' +
+                '<div class="qaq-settings-item-text">清除某个物品的3D缓存</div>' +
+            '</div>' +
+            '<div class="qaq-settings-item" id="qaq-shop-clear-all-3d-row" style="padding:12px 0;">' +
+                '<div class="qaq-settings-item-text" style="color:#d9534f;">清除全部3D缓存</div>' +
+            '</div>' +
+        '</div>';
+
+    modalBtns.innerHTML =
+        '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>';
+
+    qaqOpenModal();
+
+    document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
+
+    document.getElementById('qaq-shop-3d-ask-row').onclick = function () {
+        settings.askBeforeRender = !settings.askBeforeRender;
+        qaqSave3DSettings(settings);
+        document.getElementById('qaq-shop-3d-ask-toggle').classList.toggle('qaq-toggle-on', settings.askBeforeRender);
+    };
+
+    document.getElementById('qaq-shop-3d-default-row').onclick = function () {
+        settings.defaultRender3D = !settings.defaultRender3D;
+        qaqSave3DSettings(settings);
+        document.getElementById('qaq-shop-3d-default-toggle').classList.toggle('qaq-toggle-on', settings.defaultRender3D);
+    };
+
+    document.getElementById('qaq-shop-clear-current-3d-row').onclick = function () {
+        qaqOpenClearSingle3DCacheModal();
+    };
+
+    document.getElementById('qaq-shop-clear-all-3d-row').onclick = function () {
+        qaqConfirm('清除全部3D缓存', '确认清除所有物品的3D缓存记录吗？', function () {
+            qaqClearAll3DModelCache();
+            qaqToast('已清除全部3D缓存');
+        });
+    };
+}
+
+function qaqOpenClearSingle3DCacheModal() {
+    var allItems = qaqShopCatalog.seeds.concat(qaqShopCatalog.animals, qaqShopCatalog.items);
+    var cache = qaqGet3DModelCache();
+    var list = allItems.filter(function (item) {
+        return !!cache[item.id];
+    });
+
+    modalTitle.textContent = '清除单个3D缓存';
+
+    if (!list.length) {
+        modalBody.innerHTML = '<div style="text-align:center;font-size:13px;color:#999;line-height:1.8;">当前没有可清除的3D缓存</div>';
+        modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>';
+        qaqOpenModal();
+        document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
+        return;
+    }
+
+    modalBody.innerHTML =
+        '<div class="qaq-custom-select-list">' +
+        list.map(function (item) {
+            return '<div class="qaq-custom-select-option" data-clear-3d-id="' + item.id + '">' +
+                '<span>' + qaqEscapeHtml(item.name) + '</span>' +
+                '<span style="font-size:11px;color:#999;">已缓存</span>' +
+            '</div>';
+        }).join('') +
+        '</div>';
+
+    modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>';
+    qaqOpenModal();
+
+    document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
+
+    modalBody.querySelectorAll('[data-clear-3d-id]').forEach(function (el) {
+        el.addEventListener('click', function () {
+            var itemId = this.dataset.clear3dId;
+            qaqClear3DModelCacheById(itemId);
+            qaqToast('已清除该物品3D缓存');
+            qaqCloseModal();
+        });
+    });
+}
+
+document.getElementById('qaq-shop-settings-btn').addEventListener('click', function () {
+    qaqOpenShopSettingsModal();
+});
+
 function qaqRenderShopPage() {
     var owned = qaqGetOwnedItems();
     var ownedIds = owned.map(function (x) { return x.id; });
@@ -7944,6 +8123,7 @@ function qaqRenderShopPage() {
     renderGrid('qaq-shop-seeds-grid', qaqShopCatalog.seeds);
     renderGrid('qaq-shop-animals-grid', qaqShopCatalog.animals);
     renderGrid('qaq-shop-items-grid', qaqShopCatalog.items);
+    qaqSwitchShopTab(qaqCurrentShopTab || 'seeds');
 }
 
 /*===== Three.js 懒加载 ===== */
@@ -8057,7 +8237,11 @@ model.position.y += 0.02;
                 });
 
                 group.add(model);
-                resolve(model);
+qaqMark3DModelLoaded(item.id, {
+    type: item.type || '',
+    name: item.name || ''
+});
+resolve(model);
             },
             undefined,
             function(err) {
@@ -8065,6 +8249,51 @@ model.position.y += 0.02;
             }
         );
     });
+}
+
+/* ===== 3D 设置与缓存 ===== */
+function qaqGet3DSettings() {
+    return qaqCacheGet('qaq-3d-settings', {
+        askBeforeRender: true,   // 查看详情前是否询问
+        defaultRender3D: true    // 默认是否渲染3D
+    });
+}
+
+function qaqSave3DSettings(settings) {
+    qaqCacheSet('qaq-3d-settings', settings || {});
+}
+
+function qaqGet3DModelCache() {
+    return qaqCacheGet('qaq-3d-model-cache', {});
+}
+
+function qaqSave3DModelCache(data) {
+    qaqCacheSet('qaq-3d-model-cache', data || {});
+}
+
+function qaqClear3DModelCacheById(itemId) {
+    var cache = qaqGet3DModelCache();
+    delete cache[itemId];
+    qaqSave3DModelCache(cache);
+}
+
+function qaqClearAll3DModelCache() {
+    qaqSave3DModelCache({});
+}
+
+function qaqMark3DModelLoaded(itemId, data) {
+    var cache = qaqGet3DModelCache();
+    cache[itemId] = {
+        loadedAt: Date.now(),
+        modelUrl: qaqGet3DModelUrl(itemId),
+        meta: data || {}
+    };
+    qaqSave3DModelCache(cache);
+}
+
+function qaqHas3DModelCache(itemId) {
+    var cache = qaqGet3DModelCache();
+    return !!cache[itemId];
 }
 
 /* ===== Three.js 3D 状态 ===== */
@@ -8082,17 +8311,82 @@ function qaq3DPreviewDestroy() {
     qaq3D.clock = null; qaq3D.particles = null;
 }
 
-function qaqOpenShopItemDetail(itemId) {
-    var allItems = qaqShopCatalog.seeds.concat(qaqShopCatalog.animals, qaqShopCatalog.items);
-    var item = allItems.find(function (x) { return x.id === itemId; });
-    if (!item) return;
+function qaqOpenShopItemDetail2D(item, isOwned, typeName) {
+    modalTitle.textContent = item.name;
+    modalBody.innerHTML =
+        '<div class="qaq-shop-detail-modal">' +
+            '<div class="qaq-shop-detail-stage" style="height:180px;display:flex;align-items:center;justify-content:center;">' +
+                '<div class="qaq-detail-preview">' +
+                    (qaqPlantSVGs[item.id]
+                        ? qaqPlantSVGs[item.id](1.8)
+                        : (qaqAnimalSVGs[item.id]
+                            ? qaqAnimalSVGs[item.id](1.8)
+                            : (qaqItemSVGs[item.id]
+                                ? qaqItemSVGs[item.id](1.8)
+                                : (item.svg || '')))) +
+                '</div>' +
+            '</div>' +
+            '<div class="qaq-shop-detail-info">' +
+                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">类型</span><span>' + typeName + '</span></div>' +
+                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">价格</span><span style="color:#e8c34f;font-weight:600;">' + item.price + ' 积分</span></div>' +
+                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">状态</span><span style="color:' + (isOwned ? '#7bab6e' : '#999') + ';">' + (isOwned ? '已拥有' : '未拥有') + '</span></div>' +
+                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">展示模式</span><span>普通展示</span></div>' +
+            '</div>' +
+        '</div>';
 
-    var owned = qaqGetOwnedItems();
-    var isOwned = owned.some(function (x) { return x.id === itemId; });
-    var typeNames = { seed: '种子', animal: '动物', item: '道具' };
-    var typeName = typeNames[item.type] || '物品';
+    if (isOwned) {
+        modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-modal-cancel" style="flex:1;">关闭</button>';
+    } else {
+        modalBtns.innerHTML =
+            '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>' +
+            '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-shop-detail-buy">兑换</button>';
+    }
 
-    //★ 如果 Three.js 还没加载，先显示加载进度弹窗
+    qaqOpenModal();
+
+    document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
+
+    var buyBtn = document.getElementById('qaq-shop-detail-buy');
+    if (buyBtn) {
+        buyBtn.onclick = function () {
+            try {
+                var points = qaqGetPoints();
+                if (points < item.price) return qaqToast('积分不足');
+
+                var ownedList = qaqGetOwnedItems() || [];
+                if (ownedList.some(function (x) { return x.id === item.id; })) {
+                    qaqCloseModal();
+                    return qaqToast('已拥有该物品');
+                }
+
+                ownedList.push({
+                    id: item.id,
+                    name: item.name,
+                    type: item.type,
+                    obtainedAt: Date.now()
+                });
+
+                qaqSaveOwnedItems(ownedList);
+                qaqSavePoints(points - item.price);
+
+                qaqCloseModal();
+                qaqRenderShopPage();
+                qaqRenderMinePanel();
+                if (typeof qaqRenderGardenPage === 'function') qaqRenderGardenPage();
+                if (typeof qaqRenderZooPage === 'function') qaqRenderZooPage();
+                if (typeof qaqRenderXiaoyuanGarden === 'function') qaqRenderXiaoyuanGarden();
+                if (typeof qaqRenderXiaoyuanZoo === 'function') qaqRenderXiaoyuanZoo();
+
+                qaqToast('兑换成功');
+            } catch (err) {
+                console.error(err);
+                qaqToast('购买失败：' + (err.message || '未知错误'));
+            }
+        };
+    }
+}
+
+function qaqOpenShopItemDetail3DWithLazyLoad(item, isOwned, typeName) {
     if (!qaqThreeReady) {
         modalTitle.textContent = '加载 3D 引擎';
         modalBody.innerHTML =
@@ -8105,6 +8399,7 @@ function qaqOpenShopItemDetail(itemId) {
             '</div>';
         modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">取消</button>';
         qaqOpenModal();
+
         document.getElementById('qaq-modal-cancel').onclick = function () {
             qaqCloseModal();
         };
@@ -8120,12 +8415,78 @@ function qaqOpenShopItemDetail(itemId) {
                 qaqCloseModal();
                 setTimeout(function () {
                     qaqOpenShopItemDetail3D(item, isOwned, typeName);
-                }, 200);
+                }, 160);
             }
-        );return;
+        );
+        return;
     }
 
     qaqOpenShopItemDetail3D(item, isOwned, typeName);
+}
+
+function qaqOpenShopItemDetail(itemId) {
+    var allItems = qaqShopCatalog.seeds.concat(qaqShopCatalog.animals, qaqShopCatalog.items);
+    var item = allItems.find(function (x) { return x.id === itemId; });
+    if (!item) return;
+
+    var owned = qaqGetOwnedItems();
+    var isOwned = owned.some(function (x) { return x.id === itemId; });
+    var typeNames = { seed: '种子', animal: '动物', item: '道具' };
+    var typeName = typeNames[item.type] || '物品';
+
+    var settings = qaqGet3DSettings();
+
+    function open2DDetail() {
+        qaqOpenShopItemDetail2D(item, isOwned, typeName);
+    }
+
+    function open3DDetail() {
+        qaqOpenShopItemDetail3DWithLazyLoad(item, isOwned, typeName);
+    }
+
+    if (!settings.askBeforeRender) {
+        if (settings.defaultRender3D) open3DDetail();
+        else open2DDetail();
+        return;
+    }
+
+    modalTitle.textContent = '查看详情';
+    modalBody.innerHTML =
+        '<div style="text-align:center;font-size:13px;color:#666;line-height:1.8;">' +
+            '是否使用 <b>3D 模型</b> 查看「' + qaqEscapeHtml(item.name) + '」详情？<br>' +
+            '<span style="font-size:11px;color:#999;">3D 展示更精美，但首次加载会稍慢</span>' +
+        '</div>' +
+        '<label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;color:#888;justify-content:center;">' +
+            '<input type="checkbox" id="qaq-3d-ask-disable"> 下次不再询问，记住我的选择' +
+        '</label>';
+
+    modalBtns.innerHTML =
+        '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-shop-detail-open-2d">普通查看</button>' +
+        '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-shop-detail-open-3d">3D查看</button>';
+
+    qaqOpenModal();
+
+    document.getElementById('qaq-shop-detail-open-2d').onclick = function () {
+        var disableAsk = document.getElementById('qaq-3d-ask-disable').checked;
+        if (disableAsk) {
+            settings.askBeforeRender = false;
+            settings.defaultRender3D = false;
+            qaqSave3DSettings(settings);
+        }
+        qaqCloseModal();
+        setTimeout(open2DDetail, 120);
+    };
+
+    document.getElementById('qaq-shop-detail-open-3d').onclick = function () {
+        var disableAsk = document.getElementById('qaq-3d-ask-disable').checked;
+        if (disableAsk) {
+            settings.askBeforeRender = false;
+            settings.defaultRender3D = true;
+            qaqSave3DSettings(settings);
+        }
+        qaqCloseModal();
+        setTimeout(open3DDetail, 120);
+    };
 }
 
 function qaqOpenShopItemDetail3D(item, isOwned, typeName) {
@@ -8140,6 +8501,7 @@ function qaqOpenShopItemDetail3D(item, isOwned, typeName) {
                 '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">类型</span><span>' + typeName + '</span></div>' +
                 '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">价格</span><span style="color:#e8c34f;font-weight:600;">' + item.price + ' 积分</span></div>' +
                 '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">状态</span><span style="color:' + (isOwned ? '#7bab6e' : '#999') + ';">' + (isOwned ? '已拥有' : '未拥有') + '</span></div>' +
+                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">3D缓存</span><span>' + (qaqHas3DModelCache(item.id) ? '已缓存' : '未缓存') + '</span></div>' +
             '</div>' +
         '</div>';
 
@@ -8662,34 +9024,162 @@ function qaq3DRabbit(g) {
 }
 
 function qaq3DFertilizer(g) {
-    var bag = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 0.9, 12), new THREE.MeshStandardMaterial({ color: 0x6a9a5e, roughness: 0.7 }));
-    bag.position.y = 0.5; bag.castShadow = true; g.add(bag);
-    var top = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.06, 8, 24), new THREE.MeshStandardMaterial({ color: 0x5a8a4e }));
-    top.position.y = 0.95; top.rotation.x = Math.PI / 2; g.add(top);
-    var label = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.25), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 }));
-    label.position.set(0, 0.5, 0.36); g.add(label);
-    var pM = new THREE.MeshStandardMaterial({ color: 0xa0c890});
-    for (var i = 0; i < 6; i++) { var p = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), pM); p.position.set((Math.random() - 0.5) * 0.8, 0.04, (Math.random() - 0.5) * 0.8); g.add(p); }
+    var bagMat = new THREE.MeshStandardMaterial({
+        color: 0x739b63,
+        roughness: 0.82,
+        metalness: 0.02
+    });
+    var topMat = new THREE.MeshStandardMaterial({
+        color: 0x5e8451,
+        roughness: 0.9
+    });
+    var labelMat = new THREE.MeshStandardMaterial({
+        color: 0xf7f2e8,
+        roughness: 0.55
+    });
+
+    var bag = new THREE.Mesh(
+        new THREE.BoxGeometry(0.78, 1.0, 0.42, 4, 4, 2),
+        bagMat
+    );
+    bag.position.y = 0.55;
+    bag.castShadow = true;
+    bag.receiveShadow = true;
+    g.add(bag);
+
+    var topFold = new THREE.Mesh(
+        new THREE.BoxGeometry(0.72, 0.14, 0.36),
+        topMat
+    );
+    topFold.position.set(0, 1.05, 0);
+    topFold.rotation.z = 0.03;
+    topFold.castShadow = true;
+    g.add(topFold);
+
+    var label = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.42, 0.28),
+        labelMat
+    );
+    label.position.set(0, 0.58, 0.215);
+    g.add(label);
+
+    var badge = new THREE.Mesh(
+        new THREE.CircleGeometry(0.08, 24),
+        new THREE.MeshStandardMaterial({ color: 0x8dbb7d, roughness: 0.6 })
+    );
+    badge.position.set(0, 0.6, 0.22);
+    g.add(badge);
+
+    for (var i = 0; i < 8; i++) {
+        var p = new THREE.Mesh(
+            new THREE.SphereGeometry(0.035 + Math.random() * 0.01, 8, 8),
+            new THREE.MeshStandardMaterial({
+                color: i % 2 ? 0x90b880 : 0xa8c890,
+                roughness: 1
+            })
+        );
+        p.position.set((Math.random() - 0.5) * 0.9, 0.03, (Math.random() - 0.5) * 0.7);
+        p.castShadow = true;
+        g.add(p);
+    }
 }
 
 function qaq3DFoodBowl(g) {
-    var bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.3, 0.3, 24), new THREE.MeshStandardMaterial({ color: 0xe8d0b0, roughness: 0.5 }));
-    bowl.position.y = 0.2; bowl.castShadow = true; g.add(bowl);
-    var rim = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.04, 8, 32), new THREE.MeshStandardMaterial({ color: 0xd0b890}));
-    rim.position.y = 0.35; rim.rotation.x = Math.PI / 2; g.add(rim);
-    var food = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), new THREE.MeshStandardMaterial({ color: 0xd4a060, roughness: 0.6 }));
-    food.position.y = 0.35; food.castShadow = true; g.add(food);
+    var bowlMat = new THREE.MeshStandardMaterial({
+        color: 0xe6d0b3,
+        roughness: 0.4,
+        metalness: 0.05
+    });
+
+    var foodMat1 = new THREE.MeshStandardMaterial({
+        color: 0xc88e4d,
+        roughness: 0.9
+    });
+
+    var foodMat2 = new THREE.MeshStandardMaterial({
+        color: 0xd8a865,
+        roughness: 0.88
+    });
+
+    var bowl = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.52, 0.36, 0.26, 32),
+        bowlMat
+    );
+    bowl.position.y = 0.16;
+    bowl.castShadow = true;
+    bowl.receiveShadow = true;
+    g.add(bowl);
+
+    var rim = new THREE.Mesh(
+        new THREE.TorusGeometry(0.5, 0.04, 10, 32),
+        new THREE.MeshStandardMaterial({ color: 0xd6bc9f, roughness: 0.35 })
+    );
+    rim.position.y = 0.28;
+    rim.rotation.x = Math.PI / 2;
+    g.add(rim);
+
+    for (var i = 0; i < 10; i++) {
+        var pellet = new THREE.Mesh(
+            new THREE.SphereGeometry(0.08 + Math.random() * 0.02, 10, 10),
+            i % 2 ? foodMat1 : foodMat2
+        );
+        pellet.scale.y = 0.7;
+        pellet.position.set(
+            (Math.random() - 0.5) * 0.55,
+            0.3 + Math.random() * 0.04,
+            (Math.random() - 0.5) * 0.55
+        );
+        pellet.castShadow = true;
+        g.add(pellet);
+    }
 }
 
 function qaq3DBed(g) {
-    var base = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.55, 0.2, 24), new THREE.MeshStandardMaterial({ color: 0x5b9bd5, roughness: 0.5 }));
-    base.position.y = 0.1; base.castShadow = true; g.add(base);
-    var edge = new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.1, 12, 32), new THREE.MeshStandardMaterial({ color: 0x4a88c0}));
-    edge.position.y = 0.2; edge.rotation.x = Math.PI / 2; g.add(edge);
-    var cushion = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.08, 24), new THREE.MeshStandardMaterial({ color: 0xa0d0f0, roughness: 0.6 }));
-    cushion.position.y = 0.22; g.add(cushion);
-    var pillow = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), new THREE.MeshStandardMaterial({ color: 0xc0e0ff, roughness: 0.5 }));
-    pillow.scale.set(1.2, 0.5, 0.8); pillow.position.set(-0.2, 0.32, 0.15); g.add(pillow);
+    var baseMat = new THREE.MeshStandardMaterial({
+        color: 0x5f9fd8,
+        roughness: 0.65
+    });
+    var cushionMat = new THREE.MeshStandardMaterial({
+        color: 0xa8d2ef,
+        roughness: 0.92
+    });
+    var pillowMat = new THREE.MeshStandardMaterial({
+        color: 0xd7eefb,
+        roughness: 0.85
+    });
+
+    var base = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.72, 0.62, 0.22, 36),
+        baseMat
+    );
+    base.position.y = 0.12;
+    base.castShadow = true;
+    base.receiveShadow = true;
+    g.add(base);
+
+    var edge = new THREE.Mesh(
+        new THREE.TorusGeometry(0.68, 0.11, 12, 40),
+        new THREE.MeshStandardMaterial({ color: 0x4d89bf, roughness: 0.7 })
+    );
+    edge.position.y = 0.24;
+    edge.rotation.x = Math.PI / 2;
+    g.add(edge);
+
+    var cushion = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.56, 0.56, 0.08, 32),
+        cushionMat
+    );
+    cushion.position.y = 0.24;
+    g.add(cushion);
+
+    var pillow = new THREE.Mesh(
+        new THREE.SphereGeometry(0.2, 16, 16),
+        pillowMat
+    );
+    pillow.scale.set(1.5, 0.55, 0.95);
+    pillow.position.set(-0.18, 0.34, 0.12);
+    pillow.castShadow = true;
+    g.add(pillow);
 }
 
 /* ===== 3D 粒子 ===== */
@@ -8819,14 +9309,14 @@ document.getElementById('qaq-set-pet').addEventListener('click', function () {
 
 // ---- 精灵状态存储 ----
 function qaqGetSpriteState(itemId) {
-    var states = JSON.parse(localStorage.getItem('qaq-sprite-states') || '{}');
+    var states = qaqCacheGet('qaq-sprite-states', {});
     return states[itemId] || { growth: 0, mood: 100, lastWater: 0, lastFeed: 0 };
 }
 
 function qaqSaveSpriteState(itemId, state) {
-    var states = JSON.parse(localStorage.getItem('qaq-sprite-states') || '{}');
+    var states = qaqCacheGet('qaq-sprite-states', {});
     states[itemId] = state;
-    localStorage.setItem('qaq-sprite-states', JSON.stringify(states));
+    qaqCacheSet('qaq-sprite-states', states);
 }
 
 // ---- 2D 精灵工厂（SVG 动画） ----
@@ -9902,3 +10392,4 @@ qaqApplyWordbankTheme();
 qaqApplyWordbankCardTheme();
 
 })();
+

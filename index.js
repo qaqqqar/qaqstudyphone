@@ -7953,7 +7953,8 @@ function qaqEnsureThreeJS(onProgress, callback) {
 
     var scripts = [
     'https://cdn.jsdelivr.net/npm/three@0.142.0/build/three.min.js',
-    'https://cdn.jsdelivr.net/npm/three@0.142.0/examples/js/controls/OrbitControls.js'
+    'https://cdn.jsdelivr.net/npm/three@0.142.0/examples/js/controls/OrbitControls.js',
+    'https://cdn.jsdelivr.net/npm/three@0.142.0/examples/js/loaders/GLTFLoader.js'
 ];
     var loaded = 0;
     var total = scripts.length;
@@ -7984,6 +7985,67 @@ function qaqEnsureThreeJS(onProgress, callback) {
 
     if (onProgress) onProgress(5);
     loadNext();
+}
+
+function qaqGet3DModelUrl(itemId) {
+    var map = {
+        'animal-dog': 'assets/models/dog1.glb'
+    };
+    return map[itemId] || '';
+}
+
+function qaq3DLoadGLB(item, group) {
+    return new Promise(function(resolve, reject) {
+        var url = qaqGet3DModelUrl(item.id);
+        if (!url) return reject(new Error('没有配置模型路径'));
+
+        if (typeof THREE === 'undefined' || !THREE.GLTFLoader) {
+            return reject(new Error('GLTFLoader 未加载'));
+        }
+
+        var loader = new THREE.GLTFLoader();
+
+        loader.load(
+            url,
+            function(gltf) {
+                var model = gltf.scene;
+                if (!model) return reject(new Error('模型为空'));
+
+                var box = new THREE.Box3().setFromObject(model);
+                var size = new THREE.Vector3();
+                var center = new THREE.Vector3();
+                box.getSize(size);
+                box.getCenter(center);
+
+                model.position.sub(center);
+
+                var maxDim = Math.max(size.x, size.y, size.z) || 1;
+                var scale = 1.7 / maxDim;
+                model.scale.setScalar(scale);
+
+                model.position.y += 0.8;
+
+                model.traverse(function(obj) {
+                    if (obj.isMesh) {
+                        obj.castShadow = true;
+                        obj.receiveShadow = true;
+
+                        if (obj.material) {
+                            if (obj.material.roughness == null) obj.material.roughness = 0.8;
+                            if (obj.material.metalness == null) obj.material.metalness = 0.05;
+                        }
+                    }
+                });
+
+                group.add(model);
+                resolve(model);
+            },
+            undefined,
+            function(err) {
+                reject(err);
+            }
+        );
+    });
 }
 
 /* ===== Three.js 3D 状态 ===== */
@@ -8124,7 +8186,7 @@ function qaqOpenShopItemDetail3D(item, isOwned, typeName) {
 }
 
 /* ===== Three.js 3D 场景初始化 ===== */
-function qaq3DInit(item) {
+async function qaq3DInit(item) {
     qaq3DPreviewDestroy();
     qaq3D.destroyed = false;
 
@@ -8163,8 +8225,8 @@ function qaq3DInit(item) {
 
         // ---- 相机 ----
         var camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
-        camera.position.set(0, 2, 5);
-        camera.lookAt(0, 0.5, 0);
+        camera.position.set(0, 1.6, 4.0);
+camera.lookAt(0, 0.9, 0);
         qaq3D.camera = camera;
 
         // ---- 控制器（容错） ----
@@ -8174,7 +8236,7 @@ function qaq3DInit(item) {
             controls.enableDamping = true;
             controls.dampingFactor = 0.08;
             controls.autoRotate = true;
-            controls.autoRotateSpeed = 2;
+            controls.autoRotateSpeed = 1.0;
             controls.minDistance = 2.5;
             controls.maxDistance = 8;
             controls.maxPolarAngle = Math.PI * 0.58;
@@ -8221,18 +8283,17 @@ function qaq3DInit(item) {
         qaq3D.mainGroup = mainGroup;
 
         try {
-            qaq3DBuild(item, mainGroup, isDark);
-        } catch (buildErr) {
-            console.error('[3D] 模型构建失败:', buildErr);
-            // 放一个兜底球体
-            var fallbackMesh = new THREE.Mesh(
-                new THREE.SphereGeometry(0.6, 32, 32),
-                new THREE.MeshStandardMaterial({ color: 0xc47068, roughness: 0.3, metalness: 0.5 })
-            );
-            fallbackMesh.position.y = 0.8;
-            fallbackMesh.castShadow = true;
-            mainGroup.add(fallbackMesh);
-        }
+    await qaq3DBuild(item, mainGroup, isDark);
+} catch (buildErr) {
+    console.error('[3D] 模型构建失败:', buildErr);
+    var fallbackMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.6, 32, 32),
+        new THREE.MeshStandardMaterial({ color: 0xc47068, roughness: 0.3, metalness: 0.5 })
+    );
+    fallbackMesh.position.y = 0.8;
+    fallbackMesh.castShadow = true;
+    mainGroup.add(fallbackMesh);
+}
 
         // ---- 粒子 ----
         try {
@@ -8287,7 +8348,18 @@ function qaq3DInit(item) {
 }
 
 /* ===== 3D 模型构建 ===== */
-function qaq3DBuild(item, group, isDark) {
+async function qaq3DBuild(item, group, isDark) {
+    var modelUrl = qaqGet3DModelUrl(item.id);
+
+    if (modelUrl && typeof THREE !== 'undefined' && THREE.GLTFLoader) {
+        try {
+            await qaq3DLoadGLB(item, group);
+            return;
+        } catch (e) {
+            console.warn('GLB 模型加载失败，回退到手搓模型：', e);
+        }
+    }
+
     var id = item.id;
     var builders = {
         'seed-sunflower': qaq3DSunflower,
@@ -8300,10 +8372,22 @@ function qaq3DBuild(item, group, isDark) {
         'item-food-basic': qaq3DFoodBowl,
         'item-bed': qaq3DBed
     };
+
     var fn = builders[id];
-    if (fn) { fn(group); } else {
-        var m = new THREE.Mesh(new THREE.SphereGeometry(0.6, 32, 32), new THREE.MeshStandardMaterial({ color:0xc47068, roughness: 0.3, metalness: 0.5 }));
-        m.position.y = 0.8; m.castShadow = true; group.add(m);
+    if (fn) {
+        fn(group);
+    } else {
+        var m = new THREE.Mesh(
+            new THREE.SphereGeometry(0.6, 32, 32),
+            new THREE.MeshStandardMaterial({
+                color: 0xc47068,
+                roughness: 0.3,
+                metalness: 0.5
+            })
+        );
+        m.position.y = 0.8;
+        m.castShadow = true;
+        group.add(m);
     }
 }
 

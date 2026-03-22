@@ -7509,3 +7509,93 @@ body {
 .qaq-wordbank-pet-float.qaq-pet-dragging {
     transition: none !important;
 }
+
+/* =========================================================
+   积分明细 - 夜幕主题 (Dark) 样式全补全
+   ========================================================= */
+.qaq-theme-dark #qaq-wordbank-point-detail-page,
+.qaq-theme-dark #qaq-shop-point-detail-page,
+.qaq-theme-dark .qaq-mine-point-detail-page {
+    background: linear-gradient(160deg, #121212 0%, #1a1a1a 25%, #161616 50%, #1c1c1c 75%, #121212 100%) !important;
+}
+
+.qaq-theme-dark .qaq-point-detail-card {
+    background: rgba(40,40,40,0.85) !important;
+    border-color: rgba(60,60,60,0.5) !important;
+    box-shadow: none !important;
+}
+
+.qaq-theme-dark .qaq-point-detail-title {
+    color: #ddd !important;
+}
+
+.qaq-theme-dark .qaq-point-detail-detail {
+    color: #888 !important;
+}
+
+.qaq-theme-dark .qaq-point-detail-points {
+    color: #d8b04a !important; /* 暗色系下的金黄色 */
+}
+
+.qaq-theme-dark #qaq-wordbank-point-detail-empty,
+.qaq-theme-dark #qaq-shop-point-detail-empty,
+.qaq-theme-dark #qaq-wordbank-point-detail-stats,
+.qaq-theme-dark #qaq-shop-point-detail-stats {
+    color: #777 !important;
+}
+
+/* =========================================================
+   积分明细 - 冷雾主题 (Cool) 样式全补全
+   ========================================================= */
+.qaq-theme-cool #qaq-wordbank-point-detail-page,
+.qaq-theme-cool #qaq-shop-point-detail-page,
+.qaq-theme-cool .qaq-mine-point-detail-page {
+    background: linear-gradient(160deg, #ebeef3 0%, #f0f2f5 25%, #f3f4f7 50%, #eef0f4 75%, #ebeef3 100%) !important;
+}
+
+.qaq-theme-cool .qaq-point-detail-card {
+    background: rgba(255,255,255,0.88) !important;
+    border-color: rgba(255,255,255,0.8) !important;
+    box-shadow: none !important;
+}
+
+.qaq-theme-cool .qaq-point-detail-title {
+    color: #222 !important;
+}
+
+.qaq-theme-cool .qaq-point-detail-detail {
+    color: #6a7a8a !important;
+}
+
+.qaq-theme-cool .qaq-point-detail-points {
+    color: #d4a020 !important; /* 冷雾色系下的深金色 */
+}
+
+.qaq-theme-cool #qaq-wordbank-point-detail-empty,
+.qaq-theme-cool #qaq-shop-point-detail-empty,
+.qaq-theme-cool #qaq-wordbank-point-detail-stats,
+.qaq-theme-cool #qaq-shop-point-detail-stats {
+    color: #9aa4b0 !important;
+}
+
+/* 兜底确保这两个页面的容器层级与动画绝对正常 */
+#qaq-wordbank-point-detail-page,
+#qaq-shop-point-detail-page {
+    z-index: 75;
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    transform: translate3d(100%, 0, 0);
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform var(--qaq-page-duration) var(--qaq-page-ease), visibility 0s linear var(--qaq-page-duration);
+}
+
+#qaq-wordbank-point-detail-page.qaq-page-show,
+#qaq-shop-point-detail-page.qaq-page-show {
+    transform: translate3d(0, 0, 0);
+    visibility: visible;
+    pointer-events: auto;
+    transition: transform var(--qaq-page-duration) var(--qaq-page-ease), visibility 0s;
+}

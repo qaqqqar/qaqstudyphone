@@ -7625,3 +7625,27 @@ body {
     pointer-events: auto;
     transition: transform var(--qaq-page-duration) var(--qaq-page-ease), visibility 0s;
 }
+
+/* ===== 强制解除桌宠 3D 模型的裁剪和背板 ===== */
+.qaq-wordbank-pet-float,
+.qaq-wordbank-pet-avatar,
+.qaq-wordbank-pet-avatar canvas,
+.qaq-wordbank-pet-avatar svg,
+.qaq-wordbank-pet-avatar img {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important; /* 核心：解除隐形裁剪 */
+    border-radius: 0 !important;  /* 核心：干掉圆形限制 */
+}
+
+/* 稍微放大容器空间，给 3D 模型留足余量 */
+.qaq-wordbank-pet-avatar {
+    width: 75px !important;
+    height: 75px !important;
+}
+
+/* 如果你的桌宠拖拽时会闪烁，加上这行 */
+.qaq-wordbank-pet-float.qaq-pet-dragging {
+    transition: none !important;
+}

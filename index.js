@@ -4040,21 +4040,24 @@ function qaqRenderPet3DTo(floatId, avatarId, itemId) {
     scene.add(group);
 
     qaq3DLoadGLB({ id: itemId, type: 'pet', name: 'pet' }, group).then(function () {
-        function animate() {
-            if (!document.body.contains(canvas)) {
-                try { renderer.dispose(); } catch (e) {}
-                return;
-            }
-            
-            // ★ 已删除 group.rotation.y += 0.015; 让它不要再自转了！
-            
-            renderer.render(scene, camera);
-            requestAnimationFrame(animate);
+    // ★ 这里稍微把模型往下调一点，防止头部被顶上天
+    group.position.y = -0.3; 
+    
+    function animate() {
+        if (!document.body.contains(canvas)) {
+            try { renderer.dispose(); } catch (e) {}
+            return;
         }
-        animate();
-    }).catch(function () {
-        try { renderer.dispose(); } catch (e) {}
-    });
+        
+        // ★ 原来这里有一句 group.rotation.y += 0.015; 我已经去掉了，它再也不会转了！
+        
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+    }
+    animate();
+}).catch(function () {
+    try { renderer.dispose(); } catch (e) {}
+});
 
     return true;
 }

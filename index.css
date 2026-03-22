@@ -7649,3 +7649,250 @@ body {
 .qaq-wordbank-pet-float.qaq-pet-dragging {
     transition: none !important;
 }
+
+/* ===== 导入方式选择弹窗 ===== */
+.qaq-import-mode-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.qaq-import-mode-item {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.88);
+    border-radius: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.qaq-import-mode-item:active {
+    transform: scale(0.98);
+}
+
+.qaq-import-mode-item:hover {
+    background: rgba(255, 255, 255, 0.96);
+    border-color: rgba(196, 112, 104, 0.18);
+}
+
+.qaq-import-mode-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.qaq-import-mode-desc {
+    font-size: 12px;
+    color: #888;
+    line-height: 1.6;
+}
+
+.qaq-import-mode-badge {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 10px;
+    color: #8a6050;
+    background: rgba(254, 210, 224, 0.3);
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+/* 夜幕主题 */
+.qaq-theme-dark .qaq-import-mode-item {
+    background: rgba(42, 42, 42, 0.96);
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
+.qaq-theme-dark .qaq-import-mode-item:hover {
+    background: rgba(50, 50, 50, 0.98);
+    border-color: rgba(138, 106, 90, 0.26);
+}
+
+.qaq-theme-dark .qaq-import-mode-title {
+    color: #e0e0e0;
+}
+
+.qaq-theme-dark .qaq-import-mode-desc {
+    color: #888;
+}
+
+.qaq-theme-dark .qaq-import-mode-badge {
+    color: #d0b8a8;
+    background: rgba(90, 58, 74, 0.35);
+}
+
+/* 冷雾主题 */
+.qaq-theme-cool .qaq-import-mode-item {
+    background: rgba(255, 255, 255, 0.94);
+    border-color: rgba(100, 130, 180, 0.12);
+}
+
+.qaq-theme-cool .qaq-import-mode-title {
+    color: #2f4159;
+}
+
+.qaq-theme-cool .qaq-import-mode-desc {
+    color: #7d8794;
+}
+
+.qaq-theme-cool .qaq-import-mode-badge {
+    color: #3a4a60;
+    background: rgba(208, 216, 232, 0.5);
+}
+
+/* ===== 词库语言切换 ===== */
+.qaq-wordbank-lang-switch {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    user-select: none;
+    font-size: 11px;
+    color: #666;
+    flex-shrink: 0;
+}
+
+.qaq-wordbank-lang-switch:active {
+    transform: scale(0.95);
+    background: rgba(255, 255, 255, 0.8);
+}
+
+.qaq-wordbank-lang-current {
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+/* 夜幕 */
+.qaq-theme-dark .qaq-wordbank-lang-switch {
+    background: rgba(50, 50, 50, 0.8);
+    border-color: rgba(255, 255, 255, 0.06);
+    color: #bbb;
+}
+
+/* 冷雾 */
+.qaq-theme-cool .qaq-wordbank-lang-switch {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(100, 130, 180, 0.12);
+    color: #4a5b72;
+}
+
+/* ===== 加载更多提示 ===== */
+.qaq-load-more-tip {
+    text-align: center;
+    font-size: 11px;
+    color: #bbb;
+    padding: 16px 0;
+    line-height: 1.6;
+}
+
+.qaq-theme-dark .qaq-load-more-tip {
+    color: #555;
+}
+
+.qaq-theme-cool .qaq-load-more-tip {
+    color: #9aa4b0;
+}
+
+/* =========================================================
+   修复：时间选择器与进度条在 DOM 顶层导致的主题失效问题
+   通过通用兄弟选择器直接获取实际状态
+   ========================================================= */
+
+/* ===== 导入进度层 / 生成进度层 - 夜幕 ===== */
+.qaq-phone-frame.qaq-theme-dark ~ .qaq-import-progress .qaq-import-progress-card {
+    background: rgba(42, 42, 42, 0.96) !important;
+}
+
+.qaq-phone-frame.qaq-theme-dark ~ .qaq-import-progress .qaq-import-progress-title {
+    color: #e0e0e0 !important;
+}
+
+.qaq-phone-frame.qaq-theme-dark ~ .qaq-import-progress .qaq-import-progress-desc,
+.qaq-phone-frame.qaq-theme-dark ~ .qaq-import-progress .qaq-import-progress-text {
+    color: #888 !important;
+}
+
+.qaq-phone-frame.qaq-theme-dark ~ .qaq-import-progress .qaq-import-progress-bar {
+    background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.qaq-phone-frame.qaq-theme-dark ~ .qaq-import-progress .qaq-import-progress-fill {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a) !important;
+}
+
+.qaq-phone-frame.qaq-theme-dark ~ .qaq-import-progress .qaq-import-progress-btn-cancel {
+    background: #3a3a3a !important;
+    color: #aaa !important;
+}
+
+.qaq-phone-frame.qaq-theme-dark ~ .qaq-import-progress .qaq-import-progress-btn-retry {
+    background: linear-gradient(135deg, #4a3a2a, #5a3a4a) !important;
+    color: #d0b8a8 !important;
+}
+
+/* ===== 导入进度层 / 生成进度层 - 冷雾 ===== */
+.qaq-phone-frame.qaq-theme-cool ~ .qaq-import-progress .qaq-import-progress-fill {
+    background: linear-gradient(135deg, #d0d8e8, #bfc9dd) !important;
+}
+
+.qaq-phone-frame.qaq-theme-cool ~ .qaq-import-progress .qaq-import-progress-btn-retry {
+    background: linear-gradient(135deg, #d0d8e8, #bfc9dd) !important;
+    color: #3a4a60 !important;
+}
+
+.qaq-phone-frame.qaq-theme-cool ~ .qaq-import-progress .qaq-import-progress-title {
+    color: #2f4159 !important;
+}
+
+.qaq-phone-frame.qaq-theme-cool ~ .qaq-import-progress .qaq-import-progress-desc,
+.qaq-phone-frame.qaq-theme-cool ~ .qaq-import-progress .qaq-import-progress-text {
+    color: #7d8794 !important;
+}
+
+/* ===== 时间选择器弹窗 - 夜幕 ===== */
+.qaq-phone-frame.qaq-theme-dark ~ .qaq-time-panel .qaq-time-panel-body {
+    background: #2a2a2a !important;
+}
+
+.qaq-phone-frame.qaq-theme-dark ~ .qaq-time-panel .qaq-time-panel-header {
+    border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.qaq-phone-frame.qaq-theme-dark ~ .qaq-time-panel .qaq-time-panel-title {
+    color: #ddd !important;
+}
+
+.qaq-phone-frame.qaq-theme-dark ~ .qaq-time-panel .qaq-time-panel-cancel {
+    color: #777 !important;
+}
+
+.qaq-phone-frame.qaq-theme-dark ~ .qaq-time-panel .qaq-time-panel-confirm {
+    color: #d0a090 !important;
+}
+
+.qaq-phone-frame.qaq-theme-dark ~ .qaq-time-panel .qaq-time-columns::before {
+    background: rgba(100, 60, 60, 0.15) !important;
+}
+
+.qaq-phone-frame.qaq-theme-dark ~ .qaq-time-panel .qaq-time-col-item {
+    color: #555 !important;
+}
+
+.qaq-phone-frame.qaq-theme-dark ~ .qaq-time-panel .qaq-time-col-item.qaq-time-selected {
+    color: #ddd !important;
+}
+
+.qaq-phone-frame.qaq-theme-dark ~ .qaq-time-panel .qaq-time-separator {
+    color: #ddd !important;
+}
+
+.qaq-phone-frame.qaq-theme-dark ~ .qaq-time-panel .qaq-time-panel-clear {
+    border-color: #444 !important;
+    color: #666 !important;
+}

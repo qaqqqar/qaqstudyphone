@@ -4154,6 +4154,66 @@ function qaqShowPetEncourageBubble(level, wordObj) {
     }
 }
 
+/* ===== 词库语言切换 ===== */
+(function () {
+    var langSwitch = document.getElementById('qaq-wordbank-lang-switch');
+    var langLabel = document.getElementById('qaq-wordbank-lang-label');
+
+    function updateLangLabel() {
+        var lang = window.qaqGetWordbankLanguage ? window.qaqGetWordbankLanguage() : 'en';
+        var cfg = window.qaqWordbankLangConfig ? window.qaqWordbankLangConfig[lang] : null;
+        if (langLabel && cfg) {
+            langLabel.textContent = cfg.flag + ' ' + cfg.name;
+        }
+    }
+
+    if (langSwitch) {
+        langSwitch.addEventListener('click', function () {
+            var langs = Object.keys(window.qaqWordbankLangConfig || {});
+            var currentLang = window.qaqGetWordbankLanguage ? window.qaqGetWordbankLanguage() : 'en';
+
+            modalTitle.textContent = '切换词库语言';
+            modalBody.innerHTML = '<div class="qaq-custom-select-list">' +
+                langs.map(function (lang) {
+                    var cfg = window.qaqWordbankLangConfig[lang];
+                    var isActive = lang === currentLang;
+                    return '<div class="qaq-custom-select-option' +
+                        (isActive ? ' qaq-custom-select-active' : '') +
+                        '" data-lang="' + lang + '">' +
+                        '<span>' + cfg.flag + ' ' + cfg.name + '</span>' +
+                        (isActive ? '<span style="color:#c47068;">✓</span>' : '') +
+                        '</div>';
+                }).join('') +
+                '</div>' +
+                '<div style="padding:10px 4px 0;font-size:11px;color:#999;line-height:1.6;">' +
+                    '切换语言会影响：<br>' +
+                    '• 导入时的词条识别规则<br>' +
+                    '• AI 智能导入的提示词<br>' +
+                    '• 背单词时的音标/例句生成<br>' +
+                    '• 朗读发音的语言<br>' +
+                    '• 小说生成的目标语言' +
+                '</div>';
+
+            modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">取消</button>';
+            qaqOpenModal();
+            document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
+
+            modalBody.querySelectorAll('.qaq-custom-select-option').forEach(function (opt) {
+                opt.addEventListener('click', function () {
+                    var newLang = this.dataset.lang;
+                    if (window.qaqSaveWordbankLanguage) window.qaqSaveWordbankLanguage(newLang);
+                    updateLangLabel();
+                    qaqCloseModal();
+                    qaqToast('已切换到' + window.qaqWordbankLangConfig[newLang].name + '词库模式');
+                });
+            });
+        });
+    }
+
+    // 页面初始化时更新标签
+    updateLangLabel();
+})();
+
 // 替换原有的导出导入事件
 document.getElementById('qaq-set-export').addEventListener('click', function() {
     qaqOpenExportModal();

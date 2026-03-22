@@ -1185,30 +1185,55 @@
                 </div>
             </div>
         </div>
-        <div class="qaq-theme-section">
-            <div class="qaq-theme-section-title">API 设置</div>
-            <div class="qaq-theme-section-card">
-                <div class="qaq-plan-form-label">接口类型</div>
-                <select class="qaq-plan-form-input" id="qaq-rs-provider">
-                    <option value="openai">OpenAI 兼容</option>
-                    <option value="minimax-openai">MiniMax（OpenAI兼容）</option>
-                    <option value="minimax-native">MiniMax（原生接口）</option>
-                </select>
-                <div class="qaq-plan-form-label">API URL</div>
-                <input class="qaq-plan-form-input" id="qaq-rs-api-url" type="text" placeholder="API URL">
-                <div class="qaq-plan-form-label">API Key</div>
-                <input class="qaq-plan-form-input" id="qaq-rs-api-key" type="text" placeholder="API Key">
-            <div class="qaq-plan-form-label">Model</div>
-                <input class="qaq-plan-form-input" id="qaq-rs-api-model" type="text" placeholder="模型名称">
-                <div style="display:flex;gap:8px;">
-                    <button class="qaq-import-ghost-btn" id="qaq-rs-fetch-models-btn" type="button" style="flex:1;">拉取模型</button>
-                    <select class="qaq-plan-form-input" id="qaq-rs-model-select" style="flex:1;">
-                        <option value="">选择已拉取模型</option>
-                    </select>
-                </div><div class="qaq-plan-form-label" id="qaq-rs-minimax-group-label">MiniMax Group ID</div>
-                <input class="qaq-plan-form-input" id="qaq-rs-minimax-group" type="text" placeholder="MiniMax Group ID（可选）">
-            </div>
+       <div class="qaq-theme-section">
+    <div class="qaq-theme-section-title">文本生成 API 设置</div>
+    <div class="qaq-theme-section-card">
+        <div class="qaq-plan-form-label">接口类型</div>
+        <select class="qaq-plan-form-input" id="qaq-rs-provider">
+            <option value="openai">OpenAI 兼容</option>
+            <option value="minimax-openai">MiniMax（OpenAI兼容）</option>
+            <option value="minimax-native">MiniMax（原生接口）</option>
+        </select>
+        <div class="qaq-plan-form-label">API URL</div>
+        <input class="qaq-plan-form-input" id="qaq-rs-api-url" type="text" placeholder="API URL">
+        <div class="qaq-plan-form-label">API Key</div>
+        <input class="qaq-plan-form-input" id="qaq-rs-api-key" type="password" placeholder="API Key">
+        <div class="qaq-plan-form-label">Model</div>
+        <input class="qaq-plan-form-input" id="qaq-rs-api-model" type="text" placeholder="模型名称">
+        <div style="display:flex; gap:10px; margin-top:4px;">
+    <button class="qaq-import-ghost-btn" id="qaq-rs-fetch-models-btn" type="button" style="flex:1; height:38px; padding:0; margin:0; line-height:38px; border-radius:10px;">拉取模型</button>
+    <div style="flex:1; min-width:0;">
+        <select class="qaq-plan-form-input" id="qaq-rs-model-select" style="width:100%;">
+            <option value="">选择已拉取模型</option>
+        </select>
+    </div>
+</div>
+    </div>
+</div>
+
+<div class="qaq-theme-section">
+    <div class="qaq-theme-section-title">MiniMax 语音 API 设置</div>
+    <div class="qaq-theme-section-card">
+        <div class="qaq-settings-item" id="qaq-rs-mm-voice-row" style="padding:4px 0 12px; border-bottom: none;">
+            <div class="qaq-settings-item-text">开启MiniMax</div>
+            <div class="qaq-toggle" id="qaq-rs-mm-voice"><div class="qaq-toggle-knob"></div></div>
         </div>
+        <div class="qaq-plan-form-label">服务节点</div>
+        <select class="qaq-plan-form-input" id="qaq-rs-mm-region">
+            <option value="https://api.minimax.chat/v1/t2a_v2">国内节点 (api.minimax.chat)</option>
+            <option value="https://api.minimaxi.chat/v1/t2a_v2">国际节点 (api.minimaxi.chat)</option>
+            <option value="https://api.minimax.com/v1/t2a_v2">国际节点 (api.minimax.com)</option>
+        </select>
+        <div class="qaq-plan-form-label">语音 API Key</div>
+        <input class="qaq-plan-form-input" id="qaq-rs-mm-api-key" type="password" placeholder="若为空，则借用上方文本 Key">
+        <div class="qaq-plan-form-label">Group ID</div>
+        <input class="qaq-plan-form-input" id="qaq-rs-minimax-group" type="text" placeholder="旧版账号必填，新版留空">
+        <div class="qaq-plan-form-label">模型</div>
+        <input class="qaq-plan-form-input" id="qaq-rs-mm-model" type="text" placeholder="默认: speech-01-turbo">
+        <div class="qaq-plan-form-label">Voice ID</div>
+        <input class="qaq-plan-form-input" id="qaq-rs-mm-voice-id" type="text" placeholder="默认: female-shaonv">
+    </div>
+</div>
         <button class="qaq-api-save-btn" id="qaq-rs-save-btn" style="margin:8px 0 20px;">保存设置</button>
     </div>
 </div>

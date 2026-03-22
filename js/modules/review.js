@@ -1443,8 +1443,8 @@ function qaqShuffle(array) {
                 '<div class="qaq-plan-form-label">本轮背多少单词</div>' +
                 '<input class="qaq-plan-form-input" id="qaq-review-round-count" type="number" min="1" max="' + availableCount + '" value="' + Math.min(settings.roundCount || 20, availableCount) + '">' +
                 '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#666;">' +
-                    '<input type="checkbox" id="qaq-review-round-generate" checked> 开始前生成本轮音标和例句' +
-                '</label>' +
+    '<input type="checkbox" id="qaq-review-round-generate" checked> 开始前生成音标、例句和桌宠语' +
+'</label>' +
             '</div>';
 
         modalBtns.innerHTML =

@@ -135,59 +135,68 @@ function qaqShuffle(array) {
     }
 
     function qaqWrapSelectAsModal(selectId, title) {
-        var sel = document.getElementById(selectId);
-        if (!sel || sel.dataset.wrapped) return;
-        sel.dataset.wrapped = '1';
+    var sel = document.getElementById(selectId);
+    if (!sel || sel.dataset.wrapped) return;
+    sel.dataset.wrapped = '1';
 
-        sel.style.display = 'none';
+    sel.style.display = 'none';
 
-        var btn = document.createElement('div');
-        btn.className = 'qaq-custom-select-btn';
-        btn.id = selectId + '-btn';
+    var btn = document.createElement('div');
+    btn.className = 'qaq-custom-select-btn';
+    btn.id = selectId + '-btn';
 
-        function updateBtnText() {
-            var opt = sel.options[sel.selectedIndex];
-            btn.textContent = opt ? opt.textContent : '请选择';
+    function updateBtnText() {
+        var opt = sel.options[sel.selectedIndex];
+        btn.textContent = opt ? opt.textContent : '请选择';
+    }
+    updateBtnText();
+    
+    // 挂载到DOM元素上方便外部随时触发刷新
+    sel._updateBtnText = updateBtnText;
+
+    sel.parentNode.insertBefore(btn, sel.nextSibling);
+
+    btn.addEventListener('click', function () {
+        var options = [];
+        for (var i = 0; i < sel.options.length; i++) {
+            options.push({
+                value: sel.options[i].value,
+                label: sel.options[i].textContent,
+                selected: sel.options[i].selected
+            });
         }
-        updateBtnText();
 
-        sel.parentNode.insertBefore(btn, sel.nextSibling);
+        modalTitle.textContent = title;
+        modalBody.innerHTML = '<div class="qaq-custom-select-list">' +
+            options.map(function (opt) {
+                return '<div class="qaq-custom-select-option' +
+                    (opt.selected ? ' qaq-custom-select-active' : '') +
+                    '" data-value="' + opt.value + '">' +
+                    '<span>' + opt.label + '</span>' +
+                    (opt.selected ? '<span style="color:#c47068;">✓</span>' : '') +
+                    '</div>';
+            }).join('') +
+            '</div>';
 
-        btn.addEventListener('click', function () {
-            var options = [];
-            for (var i = 0; i < sel.options.length; i++) {
-                options.push({
-                    value: sel.options[i].value,
-                    label: sel.options[i].textContent,
-                    selected: sel.options[i].selected
-                });
-            }
+        modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">取消</button>';
+        qaqOpenModal();
+        document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
 
-            modalTitle.textContent = title;
-            modalBody.innerHTML = '<div class="qaq-custom-select-list">' +
-                options.map(function (opt) {
-                    return '<div class="qaq-custom-select-option' +
-                        (opt.selected ? ' qaq-custom-select-active' : '') +
-                        '" data-value="' + opt.value + '">' +
-                        '<span>' + opt.label + '</span>' +
-                        (opt.selected ? '<span style="color:#c47068;">✓</span>' : '') +
-                        '</div>';
-                }).join('') +
-                '</div>';
-
-            modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">取消</button>';
-            qaqOpenModal();
-            document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
-
-            modalBody.querySelectorAll('.qaq-custom-select-option').forEach(function (item) {
-                item.addEventListener('click', function () {
-                    sel.value = this.dataset.value;
-                    updateBtnText();
-                    qaqCloseModal();
-                });
+        modalBody.querySelectorAll('.qaq-custom-select-option').forEach(function (item) {
+            item.addEventListener('click', function () {
+                sel.value = this.dataset.value;
+                updateBtnText();
+                
+                // 【关键修复】：派发原生 change 事件，触发后续联动代码！
+                var evt = document.createEvent('HTMLEvents');
+                evt.initEvent('change', false, true);
+                sel.dispatchEvent(evt);
+                    
+                qaqCloseModal();
             });
         });
-    }
+    });
+}
 
     var qaqReviewStoryTranslateMode = false;
 
@@ -303,32 +312,127 @@ function qaqShuffle(array) {
         }).join('');
     }
 
-    function qaqSpeakText(text) {
+    function qaqSpeakWord(text) {
     if (!text) return;
-    if (!('speechSynthesis' in window)) return qaqToast('当前设备不支持朗读');
-
-    var langCfg = window.qaqGetCurrentLangConfig ? window.qaqGetCurrentLangConfig() : { ttsLang: 'en-US' };
-
-    var utter = new SpeechSynthesisUtterance(text);
-    utter.lang = langCfg.ttsLang || 'en-US';
-    utter.rate = Math.max(0.6, Math.min(1.2, Number(qaqGetReviewSettings().speechRate || 0.9)));
-    utter.pitch = 1;
-    utter.volume = 1;
-
-    var voice = qaqPickVoiceForLang(langCfg.ttsLang || 'en-US');
-    if (voice) utter.voice = voice;
-
-    speechSynthesis.cancel();
-    setTimeout(function () {
-        speechSynthesis.speak(utter);
-    }, 30);
+    var settings = qaqGetReviewSettings();
+    if (settings.mmVoice && (settings.apiKey || settings.minimaxGroupId)) {
+        qaqSpeakMiniMax(text, settings);
+        return;
+    }
+    qaqSpeakNative(text, settings);
 }
 
-    function qaqStopSpeakText() {
-        if ('speechSynthesis' in window) {
-            speechSynthesis.cancel();
-        }
+function qaqSpeakText(text) {
+    qaqSpeakWord(text); // 统一路由
+}
+
+function qaqStopSpeakText() {
+    if (window.qaqCurrentAudio) {
+        window.qaqCurrentAudio.pause();
+        window.qaqCurrentAudio.src = '';
     }
+    if ('speechSynthesis' in window) {
+        speechSynthesis.cancel();
+    }
+}
+
+// MiniMax 原生真人语音核心模块
+async function qaqSpeakMiniMax(text, settings) {
+    // 提取设置，如果没有单独设置语音 API Key，就降级借用文本生成的 Key
+    var apiKey = settings.mmApiKey || settings.apiKey;
+    if (!apiKey) {
+        qaqToast('请先配置 API Key');
+        qaqSpeakNative(text, settings);
+        return;
+    }
+    
+    var groupId = settings.minimaxGroupId;
+    var voiceId = settings.mmVoiceId || 'female-shaonv';
+    var model = settings.mmModel || 'speech-01-turbo';
+    var baseUrl = settings.mmRegion || 'https://api.minimax.chat/v1/t2a_v2';
+    
+    var url = baseUrl;
+    if (groupId) url += '?GroupId=' + encodeURIComponent(groupId);
+    
+    try {
+        var response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + apiKey,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: model,
+                text: text,
+                stream: false,
+                voice_setting: {
+                    voice_id: voiceId,
+                    speed: settings.speechRate || 1,
+                    vol: 1,
+                    pitch: 0
+                },
+                audio_setting: {
+                    sample_rate: 32000,
+                    bitrate: 128000,
+                    format: 'mp3',
+                    channel: 1
+                }
+            })
+        });
+        
+        if (!response.ok) throw new Error('MiniMax TTS API 异常: ' + response.status);
+        var data = await response.json();
+        if (data.base_resp && data.base_resp.status_code !== 0) {
+            throw new Error(data.base_resp.status_msg);
+        }
+        
+        var hex = data.data && data.data.audio;
+        if (!hex) throw new Error('API 返回无声音数据');
+        
+        // 将十六进制音频转为真正的 MP3 Blob 供网页播放
+        var bytes = new Uint8Array(hex.length / 2);
+        for (var i = 0; i < hex.length; i += 2) {
+            bytes[i/2] = parseInt(hex.substr(i, 2), 16);
+        }
+        
+        var blob = new Blob([bytes], { type: 'audio/mp3' });
+        var audioUrl = URL.createObjectURL(blob);
+        
+        qaqStopSpeakText(); // 停掉并打断之前发音
+        
+        var audio = new Audio(audioUrl);
+        window.qaqCurrentAudio = audio;
+        audio.onended = function() { URL.revokeObjectURL(audioUrl); };
+        audio.onerror = function() { 
+            URL.revokeObjectURL(audioUrl); 
+            qaqSpeakNative(text, settings); 
+        };
+        
+        audio.play().catch(function(e) {
+            console.error(e);
+            qaqSpeakNative(text, settings);
+        });
+        
+    } catch(err) {
+        console.error('MiniMax发音获取失败:', err);
+        if (text.length > 2) qaqToast('MiniMax发音连接超时，切换系统音');
+        qaqSpeakNative(text, settings);
+    }
+}
+
+// 以前的系统自带机械音作为后备兜底机制
+function qaqSpeakNative(text, settings) {
+    if (!('speechSynthesis' in window)) return qaqToast('当前设备不支持朗读');
+    var langCfg = window.qaqGetCurrentLangConfig ? window.qaqGetCurrentLangConfig() : { ttsLang: 'en-US' };
+    var utter = new SpeechSynthesisUtterance(text);
+    utter.lang = langCfg.ttsLang || 'en-US';
+    utter.rate = Math.max(0.6, Math.min(1.2, Number(settings.speechRate || 0.9)));
+    var voice = qaqPickVoiceForLang(utter.lang);
+    if (voice) utter.voice = voice;
+    
+    qaqStopSpeakText();
+    setTimeout(function(){ speechSynthesis.speak(utter); }, 30);
+}
 
     function qaqRenderReviewStoryTags(keyword) {
         var builtinEl = document.getElementById('qaq-review-story-builtin-tags');
@@ -1008,38 +1112,49 @@ var prompt =
     var qaqReviewSettingsPage = document.getElementById('qaq-review-settings-page');
 
     function qaqOpenReviewSettingsPage() {
-        var settings = qaqGetReviewSettings();
+    var settings = qaqGetReviewSettings();
 
-        document.getElementById('qaq-rs-count').value = settings.roundCount || 20;
-        document.getElementById('qaq-rs-rate').value = settings.speechRate || 0.9;
-        document.getElementById('qaq-rs-story-word-count').value = settings.storyWordCount || 800;
-        document.getElementById('qaq-rs-provider').value = settings.apiProvider || 'openai';
-        document.getElementById('qaq-rs-api-url').value = settings.apiUrl || '';
-        document.getElementById('qaq-rs-api-key').value = settings.apiKey || '';
-        document.getElementById('qaq-rs-api-model').value = settings.apiModel || '';
-        document.getElementById('qaq-rs-minimax-group').value = settings.minimaxGroupId || '';
+    document.getElementById('qaq-rs-count').value = settings.roundCount || 20;
+    document.getElementById('qaq-rs-rate').value = settings.speechRate || 0.9;
+    document.getElementById('qaq-rs-story-word-count').value = settings.storyWordCount || 800;
+    document.getElementById('qaq-rs-provider').value = settings.apiProvider || 'openai';
+    document.getElementById('qaq-rs-api-url').value = settings.apiUrl || '';
+    document.getElementById('qaq-rs-api-key').value = settings.apiKey || '';
+    document.getElementById('qaq-rs-api-model').value = settings.apiModel || '';
+    
+    // 语音专属配置
+    document.getElementById('qaq-rs-minimax-group').value = settings.minimaxGroupId || '';
+    document.getElementById('qaq-rs-mm-voice-id').value = settings.mmVoiceId || 'female-shaonv';
+    document.getElementById('qaq-rs-mm-api-key').value = settings.mmApiKey || '';
+    document.getElementById('qaq-rs-mm-region').value = settings.mmRegion || 'https://api.minimax.chat/v1/t2a_v2';
+    document.getElementById('qaq-rs-mm-model').value = settings.mmModel || 'speech-01-turbo';
 
-        var toggleMap = {
-            'qaq-rs-random': settings.random,
-            'qaq-rs-auto-pronounce': settings.autoPronounce,
-            'qaq-rs-show-phonetic': settings.showPhonetic,
-            'qaq-rs-show-example': settings.showExample,
-            'qaq-rs-skip-marked': settings.skipMarked
-        };
+    var toggleMap = {
+        'qaq-rs-random': settings.random,
+        'qaq-rs-auto-pronounce': settings.autoPronounce,
+        'qaq-rs-show-phonetic': settings.showPhonetic,
+        'qaq-rs-show-example': settings.showExample,
+        'qaq-rs-skip-marked': settings.skipMarked,
+        'qaq-rs-mm-voice': settings.mmVoice
+    };
 
-        Object.keys(toggleMap).forEach(function (id) {
-            var el = document.getElementById(id);
-            if (el) el.classList.toggle('qaq-toggle-on', !!toggleMap[id]);
-        });
+    Object.keys(toggleMap).forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.toggle('qaq-toggle-on', !!toggleMap[id]);
+    });
 
-        qaqRsUpdateProviderUI();
-        qaqRsRenderModelSelect(qaqGetReviewModelCache(
-            document.getElementById('qaq-rs-provider').value,
-            document.getElementById('qaq-rs-api-url').value.trim()
-        ));
+    qaqRsRenderModelSelect(qaqGetReviewModelCache(
+        document.getElementById('qaq-rs-provider').value,
+        document.getElementById('qaq-rs-api-url').value.trim()
+    ));
 
-        qaqSwitchTo(qaqReviewSettingsPage);
-    }
+    // 均包装成精美的底部弹窗菜单
+    qaqWrapSelectAsModal('qaq-rs-provider', '选择接口类型');
+    qaqWrapSelectAsModal('qaq-rs-model-select', '选择生成模型');
+    qaqWrapSelectAsModal('qaq-rs-mm-region', '选择语音服务节点');
+
+    qaqSwitchTo(qaqReviewSettingsPage);
+}
 
     function qaqRsUpdateProviderUI() {
         var provider = document.getElementById('qaq-rs-provider').value;
@@ -1048,42 +1163,55 @@ var prompt =
     }
 
     function qaqRsRenderModelSelect(models) {
-        var select = document.getElementById('qaq-rs-model-select');
-        var currentModel = document.getElementById('qaq-rs-api-model').value.trim();
-        select.innerHTML = '<option value="">选择已拉取模型</option>';
-        (models || []).forEach(function (model) {
-            var opt = document.createElement('option');
-            opt.value = model;
-            opt.textContent = model;
-            if (model === currentModel) opt.selected = true;
-            select.appendChild(opt);
-        });
+    var select = document.getElementById('qaq-rs-model-select');
+    var currentModel = document.getElementById('qaq-rs-api-model').value.trim();
+    select.innerHTML = '<option value="">选择已拉取模型</option>';
+    (models || []).forEach(function (model) {
+        var opt = document.createElement('option');
+        opt.value = model;
+        opt.textContent = model;
+        if (model === currentModel) opt.selected = true;
+        select.appendChild(opt);
+    });
+    
+    // 【新增】：拉取新模型后，如果它变成了自定义按钮，刷新它的文字
+    if (select._updateBtnText) {
+        select._updateBtnText();
     }
+}
 
     function qaqRsSaveSettings() {
-        var settings = qaqGetReviewSettings();
-        settings.roundCount = Math.max(1, parseInt(document.getElementById('qaq-rs-count').value, 10) || 20);
-        settings.random = document.getElementById('qaq-rs-random').classList.contains('qaq-toggle-on');
-        settings.autoPronounce = document.getElementById('qaq-rs-auto-pronounce').classList.contains('qaq-toggle-on');
-        settings.speechRate = Math.max(0.6, Math.min(1.2, parseFloat(document.getElementById('qaq-rs-rate').value) || 0.9));
-        settings.showPhonetic = document.getElementById('qaq-rs-show-phonetic').classList.contains('qaq-toggle-on');
-        settings.showExample = document.getElementById('qaq-rs-show-example').classList.contains('qaq-toggle-on');
-        settings.skipMarked = document.getElementById('qaq-rs-skip-marked').classList.contains('qaq-toggle-on');
-        settings.storyWordCount = Math.max(100, Math.min(5000, parseInt(document.getElementById('qaq-rs-story-word-count').value, 10) || 800));
-        settings.apiProvider = document.getElementById('qaq-rs-provider').value;
-        settings.apiUrl = document.getElementById('qaq-rs-api-url').value.trim();
-        settings.apiKey = document.getElementById('qaq-rs-api-key').value.trim();
-        settings.apiModel = document.getElementById('qaq-rs-api-model').value.trim();
-        settings.minimaxGroupId = document.getElementById('qaq-rs-minimax-group').value.trim();
-        qaqSaveReviewSettings(settings);
+    var settings = qaqGetReviewSettings();
+    settings.roundCount = Math.max(1, parseInt(document.getElementById('qaq-rs-count').value, 10) || 20);
+    settings.random = document.getElementById('qaq-rs-random').classList.contains('qaq-toggle-on');
+    settings.autoPronounce = document.getElementById('qaq-rs-auto-pronounce').classList.contains('qaq-toggle-on');
+    settings.speechRate = Math.max(0.6, Math.min(1.2, parseFloat(document.getElementById('qaq-rs-rate').value) || 0.9));
+    settings.showPhonetic = document.getElementById('qaq-rs-show-phonetic').classList.contains('qaq-toggle-on');
+    settings.showExample = document.getElementById('qaq-rs-show-example').classList.contains('qaq-toggle-on');
+    settings.skipMarked = document.getElementById('qaq-rs-skip-marked').classList.contains('qaq-toggle-on');
+    settings.storyWordCount = Math.max(100, Math.min(5000, parseInt(document.getElementById('qaq-rs-story-word-count').value, 10) || 800));
+    settings.apiProvider = document.getElementById('qaq-rs-provider').value;
+    settings.apiUrl = document.getElementById('qaq-rs-api-url').value.trim();
+    settings.apiKey = document.getElementById('qaq-rs-api-key').value.trim();
+    settings.apiModel = document.getElementById('qaq-rs-api-model').value.trim();
+    
+    // 保存语音专属配置
+    settings.minimaxGroupId = document.getElementById('qaq-rs-minimax-group').value.trim();
+    settings.mmVoiceId = document.getElementById('qaq-rs-mm-voice-id').value.trim();
+    settings.mmApiKey = document.getElementById('qaq-rs-mm-api-key').value.trim();
+    settings.mmRegion = document.getElementById('qaq-rs-mm-region').value;
+    settings.mmModel = document.getElementById('qaq-rs-mm-model').value.trim();
+    settings.mmVoice = document.getElementById('qaq-rs-mm-voice').classList.contains('qaq-toggle-on');
+    
+    qaqSaveReviewSettings(settings);
 
-        if (qaqReviewSession.current) qaqRenderCurrentReviewWord();
-        if (document.getElementById('qaq-review-story-word-count')) {
-            document.getElementById('qaq-review-story-word-count').value = settings.storyWordCount || 800;
-        }
-
-        qaqToast('设置已保存');
+    if (qaqReviewSession.current) qaqRenderCurrentReviewWord();
+    if (document.getElementById('qaq-review-story-word-count')) {
+        document.getElementById('qaq-review-story-word-count').value = settings.storyWordCount || 800;
     }
+
+    qaqToast('设置已保存');
+}
 
     document.getElementById('qaq-review-settings-back').addEventListener('click', function () {
         qaqRsSaveSettings();
@@ -1126,11 +1254,15 @@ var prompt =
         }
     });
 
-    ['qaq-rs-random', 'qaq-rs-auto-pronounce', 'qaq-rs-show-phonetic', 'qaq-rs-show-example', 'qaq-rs-skip-marked'].forEach(function (id) {
-        document.getElementById(id + '-row').addEventListener('click', function () {
+    // 注意最后新加的一个元素
+['qaq-rs-random', 'qaq-rs-auto-pronounce', 'qaq-rs-show-phonetic', 'qaq-rs-show-example', 'qaq-rs-skip-marked', 'qaq-rs-mm-voice'].forEach(function (id) {
+    var el = document.getElementById(id + '-row');
+    if (el) {
+        el.addEventListener('click', function () {
             document.getElementById(id).classList.toggle('qaq-toggle-on');
         });
-    });
+    }
+});
 
     /* ===== 背单词会话存储 ===== */
     function qaqSaveCurrentReviewSession() {
@@ -1278,36 +1410,6 @@ function qaqPickVoiceForLang(lang) {
         voices.find(function (v) { return v.lang.toLowerCase().indexOf(langPrefix) === 0; }) ||
         null
     );
-}
-
-    function qaqSpeakWord(text) {
-    if (!text) return;
-    if (!('speechSynthesis' in window)) {
-        return qaqToast('当前设备不支持朗读');
-    }
-
-    var settings = qaqGetReviewSettings();
-    var langCfg = window.qaqGetCurrentLangConfig ? window.qaqGetCurrentLangConfig() : { ttsLang: 'en-US' };
-
-    var utter = new SpeechSynthesisUtterance(text);
-    utter.lang = langCfg.ttsLang || 'en-US';
-    utter.rate = Math.max(0.6, Math.min(1.2, Number(settings.speechRate || 0.9)));
-    utter.pitch = 1;
-    utter.volume = 1;
-
-    var voice = qaqPickVoiceForLang(langCfg.ttsLang || 'en-US');
-    if (voice) utter.voice = voice;
-
-    speechSynthesis.cancel();
-
-    setTimeout(function () {
-        try {
-            speechSynthesis.speak(utter);
-        } catch (e) {
-            console.error(e);
-            qaqToast('朗读失败');
-        }
-    }, 30);
 }
 
     if ('speechSynthesis' in window) {

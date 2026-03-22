@@ -2810,15 +2810,18 @@ function qaqBindPetFloatDragAndScale(floatId, pageKey) {
     el.style.right = state.right + 'px';
     el.style.bottom = state.bottom + 'px';
     el.style.transform = 'scale(' + (state.scale || 1) + ')';
+    el.style.transformOrigin = 'bottom right'; // 确保从右下角固定放大
 
     var startX = 0;
     var startY = 0;
     var startRight = 0;
     var startBottom = 0;
     var dragging = false;
+    var hasMoved = false; // 新增：是否发生了拖动
 
     function onStart(clientX, clientY) {
         dragging = true;
+        hasMoved = false; // 每次触摸重置移动状态
         el.classList.add('qaq-pet-dragging');
         startX = clientX;
         startY = clientY;
@@ -2830,9 +2833,14 @@ function qaqBindPetFloatDragAndScale(floatId, pageKey) {
 
     function onMove(clientX, clientY) {
         if (!dragging) return;
-
+        
         var dx = clientX - startX;
         var dy = clientY - startY;
+
+        // 如果移动距离超过 5 像素，则判定为正在拖拽
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+            hasMoved = true;
+        }
 
         var newRight = Math.max(0, startRight - dx);
         var newBottom = Math.max(70, startBottom - dy);
@@ -2840,6 +2848,8 @@ function qaqBindPetFloatDragAndScale(floatId, pageKey) {
         el.style.right = newRight + 'px';
         el.style.bottom = newBottom + 'px';
     }
+
+    var lastTap = 0;
 
     function onEnd() {
         if (!dragging) return;
@@ -2852,7 +2862,23 @@ function qaqBindPetFloatDragAndScale(floatId, pageKey) {
         if (!all[pageKey]) all[pageKey] = {};
         all[pageKey].right = right;
         all[pageKey].bottom = bottom;
-        all[pageKey].scale = all[pageKey].scale || 1;
+
+        // 【最核心的缩放修复在这里】
+        // 如果没有发生明显位移，认定这是一次精准的“点击”
+        if (!hasMoved) {
+            var now = Date.now();
+            if (now - lastTap < 400) { // 放宽到 400 毫秒
+                var cur = all[pageKey].scale || 1;
+                var next = cur >= 1.3 ? 1 : 1.4; // 1.4倍放大
+                all[pageKey].scale = next;
+                el.style.transform = 'scale(' + next + ')';
+                if(window.qaqToast) window.qaqToast(next > 1 ? '桌宠已放大' : '桌宠恢复默认大小');
+                lastTap = 0; // 重置，防止无限触发
+            } else {
+                lastTap = now;
+            }
+        }
+        
         qaqSavePetFloatState(all);
     }
 
@@ -2874,28 +2900,12 @@ function qaqBindPetFloatDragAndScale(floatId, pageKey) {
 
     document.addEventListener('touchmove', function (e) {
         if (!dragging || !e.touches || !e.touches[0]) return;
+        // 如果系统开始移动了，阻止默认的页面滚动穿透
+        if (hasMoved && e.cancelable) e.preventDefault(); 
         onMove(e.touches[0].clientX, e.touches[0].clientY);
-    }, { passive: true });
+    }, { passive: false }); // 注意这里改成 false 才能在需要时阻止默认行为
 
     document.addEventListener('touchend', onEnd);
-
-    // 双击放大/缩小
-    var lastTap = 0;
-    el.addEventListener('click', function () {
-        var now = Date.now();
-        if (now - lastTap < 260) {
-            var all = qaqGetPetFloatState();
-            if (!all[pageKey]) all[pageKey] = { right: 14, bottom: 90, scale: 1 };
-
-            var cur = all[pageKey].scale || 1;
-            var next = cur >= 1.4 ? 1 : 1.25;
-            all[pageKey].scale = next;
-            qaqSavePetFloatState(all);
-            el.style.transform = 'scale(' + next + ')';
-            qaqToast(next > 1 ? '桌宠已放大' : '桌宠恢复默认大小');
-        }
-        lastTap = now;
-    });
 }
 
 
@@ -4053,59 +4063,82 @@ var qaqPetEncourageTexts = [
 var _qaqPetBubbleTimer = null;
 
 function qaqShowPetEncourageBubble(level, wordObj) {
-    var bubbleEl = null;
-    var floatEl = null;
+    try {
+        var bubbleEl = null;
+        var floatEl = null;
+        var avatarEl = null; // ★ 锁定对应头像
 
-    var reviewFloat = document.getElementById('qaq-review-pet-float');
-    var wordbankFloat = document.getElementById('qaq-wordbank-pet-float');
+        // 安全地获取各种页面元素，防崩溃
+        var reviewFloat = document.getElementById('qaq-review-pet-float');
+        var wordbankFloat = document.getElementById('qaq-wordbank-pet-float');
+        var pageReview = document.getElementById('qaq-word-review-page');
+        var pageWordbank = document.getElementById('qaq-wordbank-page');
 
-    if (reviewFloat && reviewFloat.style.display !== 'none' && qaqWordReviewPage.classList.contains('qaq-page-show')) {
-        floatEl = reviewFloat;
-        bubbleEl = document.getElementById('qaq-review-pet-bubble');
-    } else if (wordbankFloat && wordbankFloat.style.display !== 'none' && wordbankPage.classList.contains('qaq-page-show')) {
-        floatEl = wordbankFloat;
-        bubbleEl = document.getElementById('qaq-wordbank-pet-bubble');
+        if (reviewFloat && reviewFloat.style.display !== 'none' && pageReview && pageReview.classList.contains('qaq-page-show')) {
+            floatEl = reviewFloat;
+            bubbleEl = document.getElementById('qaq-review-pet-bubble');
+            avatarEl = document.getElementById('qaq-review-pet-avatar');
+        } else if (wordbankFloat && wordbankFloat.style.display !== 'none' && pageWordbank && pageWordbank.classList.contains('qaq-page-show')) {
+            floatEl = wordbankFloat;
+            bubbleEl = document.getElementById('qaq-wordbank-pet-bubble');
+            avatarEl = document.getElementById('qaq-wordbank-pet-avatar');
+        }
+
+        if (!floatEl || !bubbleEl) return;
+
+        var fallbackMap = {
+            known: [
+                '太棒了，这个你掌握得很好！',
+                '厉害呀，这个词你已经很熟啦！',
+                '表现真好，继续保持！'
+            ],
+            vague: [
+                '没关系，已经有印象了，再来几次就稳了。',
+                '你已经在进步啦，再看一眼就会更牢。',
+                '别急，这种状态最容易提升。'
+            ],
+            unknown: [
+                '没关系，我们一个个来。',
+                '不会也正常，我陪你继续记。',
+                '别灰心，这个词下次就会熟一点。'
+            ]
+        };
+
+        var text = '';
+        if (wordObj) {
+            if (level === 'known') text = wordObj.petMsgKnown || '';
+            if (level === 'vague') text = wordObj.petMsgVague || '';
+            if (level === 'unknown') text = wordObj.petMsgUnknown || '';
+        }
+
+        if (!text) {
+            var arr = fallbackMap[level] || fallbackMap.known;
+            text = arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        bubbleEl.textContent = text;
+        bubbleEl.style.display = '';
+
+        // ★ 蹦极鼓励一下
+        if (avatarEl && (level === 'known' || level === 'vague')) {
+            avatarEl.classList.remove('qaq-pet-jump');
+            void avatarEl.offsetWidth; // 触发页面重绘强制重置动画
+            avatarEl.classList.add('qaq-pet-jump');
+            // 等跳跃完了把清理工作收个尾，浮动接管
+            setTimeout(function(){
+                avatarEl.classList.remove('qaq-pet-jump');
+            }, 550);
+        }
+
+        clearTimeout(_qaqPetBubbleTimer);
+        _qaqPetBubbleTimer = setTimeout(function () {
+            bubbleEl.style.display = 'none';
+        }, 2300);
+        
+    } catch (e) {
+        // 利用 Try Catch 兜底，即使 UI 层面报错，也绝不阻塞背单词往下切
+        console.error("桌宠气泡展示出错:", e);
     }
-
-    if (!floatEl || !bubbleEl) return;
-
-    var fallbackMap = {
-        known: [
-            '太棒了，这个你掌握得很好！',
-            '厉害呀，这个词你已经很熟啦！',
-            '表现真好，继续保持！'
-        ],
-        vague: [
-            '没关系，已经有印象了，再来几次就稳了。',
-            '你已经在进步啦，再看一眼就会更牢。',
-            '别急，这种状态最容易提升。'
-        ],
-        unknown: [
-            '没关系，我们一个个来。',
-            '不会也正常，我陪你继续记。',
-            '别灰心，这个词下次就会熟一点。'
-        ]
-    };
-
-    var text = '';
-    if (wordObj) {
-        if (level === 'known') text = wordObj.petMsgKnown || '';
-        if (level === 'vague') text = wordObj.petMsgVague || '';
-        if (level === 'unknown') text = wordObj.petMsgUnknown || '';
-    }
-
-    if (!text) {
-        var arr = fallbackMap[level] || fallbackMap.known;
-        text = arr[Math.floor(Math.random() * arr.length)];
-    }
-
-    bubbleEl.textContent = text;
-    bubbleEl.style.display = '';
-
-    clearTimeout(_qaqPetBubbleTimer);
-    _qaqPetBubbleTimer = setTimeout(function () {
-        bubbleEl.style.display = 'none';
-    }, 2200);
 }
 
 // 替换原有的导出导入事件

@@ -7448,25 +7448,38 @@ body {
     pointer-events: auto;
 }
 
+/* 去掉白底圆球，使其悬浮在空中 */
 .qaq-wordbank-pet-avatar {
-    width: 54px;
-    height: 54px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.92);
-    border: 1px solid rgba(255,255,255,0.8);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    width: 65px;  /* 稍微放大点展示更好看 */
+    height: 65px;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
+    overflow: visible;
     animation: qaq-pet-float 2.6s ease-in-out infinite;
+    border-radius: 0;
+    cursor: pointer;
 }
 
-.qaq-wordbank-pet-avatar svg {
-    width: 42px;
-    height: 42px;
+/* 加上一层柔和的主体投影让其有立体感 */
+.qaq-wordbank-pet-avatar svg,
+.qaq-wordbank-pet-avatar img,
+.qaq-wordbank-pet-avatar canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15));
 }
 
+.qaq-theme-dark .qaq-wordbank-pet-avatar {
+    background: transparent !important;
+    border-color: transparent !important;
+}
+
+/* 气泡样式保持不变... */
 .qaq-wordbank-pet-bubble {
     max-width: 180px;
     background: rgba(255,255,255,0.96);
@@ -7479,9 +7492,22 @@ body {
     animation: qaq-pet-bubble-in 0.22s ease;
 }
 
+/* 浮动动画（只有上下，纯粹的 translateY） */
 @keyframes qaq-pet-float {
     0%,100% { transform: translateY(0); }
-    50% { transform: translateY(-4px); }
+    50% { transform: translateY(-6px); }
+}
+
+/* ★新增：答对时的跳跃动画 */
+.qaq-wordbank-pet-avatar.qaq-pet-jump {
+    animation: qaq-pet-jump-anim 0.5s ease !important;
+}
+
+@keyframes qaq-pet-jump-anim {
+    0% { transform: translateY(0); }
+    40% { transform: translateY(-24px) scaleY(1.05) scaleX(0.95); }
+    70% { transform: translateY(0) scaleY(0.9) scaleX(1.1); }
+    100% { transform: translateY(0) scale(1); }
 }
 
 @keyframes qaq-pet-bubble-in {

@@ -1,9 +1,9 @@
 (function () {
     'use strict';
 var wordbankPage = window.qaqWordbankPage || document.getElementById('qaq-wordbank-page');
-var modalTitle = window.qaqModalTitle;
-var modalBody = window.qaqModalBody;
-var modalBtns = window.qaqModalBtns;
+var modalTitle = window.qaqModalTitle || document.getElementById('qaq-modal-title');
+var modalBody = window.qaqModalBody || document.getElementById('qaq-modal-body');
+var modalBtns = window.qaqModalBtns || document.getElementById('qaq-modal-btns');
 var overlay = window.qaqModalOverlay;
 var fileInput = window.qaqFileInput;
 var qaqPageLock = window.qaqPageLock;
@@ -1811,85 +1811,103 @@ function qaq3DPreviewDestroy() {
     qaq3D.clock = null; qaq3D.particles = null;
 }
 
+/* ===== 修复版：强制读取 DOM 和 window 方法，带防崩溃 ===== */
+
 function qaqOpenShopItemDetail2D(item, isOwned, typeName) {
-    modalTitle.textContent = item.name;
-    modalBody.innerHTML =
-        '<div class="qaq-shop-detail-modal">' +
-            '<div class="qaq-shop-detail-stage" style="height:180px;display:flex;align-items:center;justify-content:center;">' +
-                '<div class="qaq-detail-preview">' +
-                    (qaqPlantSVGs[item.id]
-                        ? qaqPlantSVGs[item.id](1.8)
-                        : (qaqAnimalSVGs[item.id]
-                            ? qaqAnimalSVGs[item.id](1.8)
-                            : (qaqItemSVGs[item.id]
-                                ? qaqItemSVGs[item.id](1.8)
-                                : (item.svg || '')))) +
+    try {
+        var mTitle = document.getElementById('qaq-modal-title');
+        var mBody = document.getElementById('qaq-modal-body');
+        var mBtns = document.getElementById('qaq-modal-btns');
+
+        if(mTitle) mTitle.textContent = item.name;
+        if(mBody) mBody.innerHTML =
+            '<div class="qaq-shop-detail-modal">' +
+                '<div class="qaq-shop-detail-stage" style="height:180px;display:flex;align-items:center;justify-content:center;">' +
+                    '<div class="qaq-detail-preview">' +
+                        (qaqPlantSVGs[item.id]
+                            ? qaqPlantSVGs[item.id](1.8)
+                            : (qaqAnimalSVGs[item.id]
+                                ? qaqAnimalSVGs[item.id](1.8)
+                                : (qaqItemSVGs[item.id]
+                                    ? qaqItemSVGs[item.id](1.8)
+                                    : (item.svg || '')))) +
+                    '</div>' +
                 '</div>' +
-            '</div>' +
-            '<div class="qaq-shop-detail-info">' +
-                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">类型</span><span>' + typeName + '</span></div>' +
-                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">价格</span><span style="color:#e8c34f;font-weight:600;">' + item.price + ' 积分</span></div>' +
-                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">状态</span><span style="color:' + (isOwned ? '#7bab6e' : '#999') + ';">' + (isOwned ? '已拥有' : '未拥有') + '</span></div>' +
-                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">展示模式</span><span>普通展示</span></div>' +
-            '</div>' +
-        '</div>';
+                '<div class="qaq-shop-detail-info">' +
+                    '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">类型</span><span>' + typeName + '</span></div>' +
+                    '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">价格</span><span style="color:#e8c34f;font-weight:600;">' + item.price + ' 积分</span></div>' +
+                    '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">状态</span><span style="color:' + (isOwned ? '#7bab6e' : '#999') + ';">' + (isOwned ? '已拥有' : '未拥有') + '</span></div>' +
+                    '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">展示模式</span><span>普通展示</span></div>' +
+                '</div>' +
+            '</div>';
 
-    if (isOwned) {
-        modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-modal-cancel" style="flex:1;">关闭</button>';
-    } else {
-        modalBtns.innerHTML =
-            '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>' +
-            '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-shop-detail-buy">兑换</button>';
-    }
-
-    qaqOpenModal();
-
-    document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
-
-    var buyBtn = document.getElementById('qaq-shop-detail-buy');
-    if (buyBtn) {
-        buyBtn.onclick = function () {
-            try {
-                var points = qaqGetPoints();
-                if (points < item.price) return qaqToast('积分不足');
-
-                var ownedList = qaqGetOwnedItems() || [];
-                if (ownedList.some(function (x) { return x.id === item.id; })) {
-                    qaqCloseModal();
-                    return qaqToast('已拥有该物品');
-                }
-
-                ownedList.push({
-                    id: item.id,
-                    name: item.name,
-                    type: item.type,
-                    obtainedAt: Date.now()
-                });
-
-                qaqSaveOwnedItems(ownedList);
-                qaqSavePoints(points - item.price);
-
-                qaqCloseModal();
-                qaqRenderShopPage();
-                qaqRenderMinePanel();
-                if (typeof qaqRenderGardenPage === 'function') qaqRenderGardenPage();
-                if (typeof qaqRenderZooPage === 'function') qaqRenderZooPage();
-                if (typeof qaqRenderXiaoyuanGarden === 'function') qaqRenderXiaoyuanGarden();
-                if (typeof qaqRenderXiaoyuanZoo === 'function') qaqRenderXiaoyuanZoo();
-
-                qaqToast('兑换成功');
-            } catch (err) {
-                console.error(err);
-                qaqToast('购买失败：' + (err.message || '未知错误'));
+        if (mBtns) {
+            if (isOwned) {
+                mBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-modal-cancel" style="flex:1;">关闭</button>';
+            } else {
+                mBtns.innerHTML =
+                    '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>' +
+                    '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-shop-detail-buy">兑换</button>';
             }
-        };
+        }
+
+        if(window.qaqOpenModal) window.qaqOpenModal();
+
+        var mCancel = document.getElementById('qaq-modal-cancel');
+        if(mCancel && window.qaqCloseModal) mCancel.onclick = window.qaqCloseModal;
+
+        var buyBtn = document.getElementById('qaq-shop-detail-buy');
+        if (buyBtn) {
+            buyBtn.onclick = function () {
+                try {
+                    var points = window.qaqGetPoints ? window.qaqGetPoints() : qaqGetPoints();
+                    if (points < item.price) return window.qaqToast ? window.qaqToast('积分不足') : null;
+
+                    var ownedList = window.qaqGetOwnedItems ? window.qaqGetOwnedItems() : (qaqGetOwnedItems() || []);
+                    if (ownedList.some(function (x) { return x.id === item.id; })) {
+                        if(window.qaqCloseModal) window.qaqCloseModal();
+                        return window.qaqToast ? window.qaqToast('已拥有该物品') : null;
+                    }
+
+                    ownedList.push({
+                        id: item.id,
+                        name: item.name,
+                        type: item.type,
+                        obtainedAt: Date.now()
+                    });
+
+                    if(window.qaqSaveOwnedItems) window.qaqSaveOwnedItems(ownedList);
+                    if(window.qaqSavePoints) window.qaqSavePoints(points - item.price);
+
+                    if(window.qaqCloseModal) window.qaqCloseModal();
+                    qaqRenderShopPage();
+                    qaqRenderMinePanel();
+                    if (typeof qaqRenderGardenPage === 'function') qaqRenderGardenPage();
+                    if (typeof qaqRenderZooPage === 'function') qaqRenderZooPage();
+                    if (typeof qaqRenderXiaoyuanGarden === 'function') qaqRenderXiaoyuanGarden();
+                    if (typeof qaqRenderXiaoyuanZoo === 'function') qaqRenderXiaoyuanZoo();
+
+                    if(window.qaqToast) window.qaqToast('兑换成功');
+                } catch (err) {
+                    console.error(err);
+                    if(window.qaqToast) window.qaqToast('购买失败：' + (err.message || '未知错误'));
+                }
+            };
+        }
+    } catch (e) {
+        console.error("2D弹窗报错:", e);
+        if(window.qaqToast) window.qaqToast("商店弹窗初始化失败，请查看控制台");
     }
 }
 
 function qaqOpenShopItemDetail3DWithLazyLoad(item, isOwned, typeName) {
     if (!qaqThreeReady) {
-        modalTitle.textContent = '加载 3D 引擎';
-        modalBody.innerHTML =
+        var mTitle = document.getElementById('qaq-modal-title');
+        var mBody = document.getElementById('qaq-modal-body');
+        var mBtns = document.getElementById('qaq-modal-btns');
+
+        if(mTitle) mTitle.textContent = '加载 3D 引擎';
+        if(mBody) mBody.innerHTML =
             '<div style="text-align:center;">' +
                 '<div style="font-size:13px;color:#888;margin-bottom:12px;">正在下载 3D 渲染模块…</div>' +
                 '<div class="qaq-import-progress-bar" style="margin:0 auto;width:80%;">' +
@@ -1897,11 +1915,13 @@ function qaqOpenShopItemDetail3DWithLazyLoad(item, isOwned, typeName) {
                 '</div>' +
                 '<div id="qaq-3d-load-text" style="font-size:11px;color:#aaa;margin-top:8px;">0%</div>' +
             '</div>';
-        modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">取消</button>';
-        qaqOpenModal();
+        if(mBtns) mBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">取消</button>';
+        
+        if(window.qaqOpenModal) window.qaqOpenModal();
 
-        document.getElementById('qaq-modal-cancel').onclick = function () {
-            qaqCloseModal();
+        var cancelBtn = document.getElementById('qaq-modal-cancel');
+        if(cancelBtn) cancelBtn.onclick = function () {
+            if(window.qaqCloseModal) window.qaqCloseModal();
         };
 
         qaqEnsureThreeJS(
@@ -1912,7 +1932,7 @@ function qaqOpenShopItemDetail3DWithLazyLoad(item, isOwned, typeName) {
                 if (text) text.textContent = pct + '%';
             },
             function () {
-                qaqCloseModal();
+                if(window.qaqCloseModal) window.qaqCloseModal();
                 setTimeout(function () {
                     qaqOpenShopItemDetail3D(item, isOwned, typeName);
                 }, 160);
@@ -1925,73 +1945,90 @@ function qaqOpenShopItemDetail3DWithLazyLoad(item, isOwned, typeName) {
 }
 
 function qaqOpenShopItemDetail(itemId) {
-    var allItems = qaqShopCatalog.seeds.concat(qaqShopCatalog.animals, qaqShopCatalog.items);
-    var item = allItems.find(function (x) { return x.id === itemId; });
-    if (!item) return;
+    try {
+        var allItems = qaqShopCatalog.seeds.concat(qaqShopCatalog.animals, qaqShopCatalog.items);
+        var item = allItems.find(function (x) { return x.id === itemId; });
+        if (!item) return;
 
-    var owned = qaqGetOwnedItems();
-    var isOwned = owned.some(function (x) { return x.id === itemId; });
-    var typeNames = { seed: '种子', animal: '动物', item: '道具' };
-    var typeName = typeNames[item.type] || '物品';
+        var owned = window.qaqGetOwnedItems ? window.qaqGetOwnedItems() : (qaqGetOwnedItems() || []);
+        var isOwned = owned.some(function (x) { return x.id === itemId; });
+        var typeNames = { seed: '种子', animal: '动物', item: '道具' };
+        var typeName = typeNames[item.type] || '物品';
 
-    var settings = qaqGet3DSettings();
+        var settings = qaqGet3DSettings();
 
-    function open2DDetail() {
-        qaqOpenShopItemDetail2D(item, isOwned, typeName);
-    }
-
-    function open3DDetail() {
-        qaqOpenShopItemDetail3DWithLazyLoad(item, isOwned, typeName);
-    }
-
-    if (!settings.askBeforeRender) {
-        if (settings.defaultRender3D) open3DDetail();
-        else open2DDetail();
-        return;
-    }
-
-    modalTitle.textContent = '查看详情';
-    modalBody.innerHTML =
-        '<div style="text-align:center;font-size:13px;color:#666;line-height:1.8;">' +
-            '是否使用 <b>3D 模型</b> 查看「' + qaqEscapeHtml(item.name) + '」详情？<br>' +
-            '<span style="font-size:11px;color:#999;">3D 展示更精美，但首次加载会稍慢</span>' +
-        '</div>' +
-        '<label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;color:#888;justify-content:center;">' +
-            '<input type="checkbox" id="qaq-3d-ask-disable"> 下次不再询问，记住我的选择' +
-        '</label>';
-
-    modalBtns.innerHTML =
-        '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-shop-detail-open-2d">普通查看</button>' +
-        '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-shop-detail-open-3d">3D查看</button>';
-
-    qaqOpenModal();
-
-    document.getElementById('qaq-shop-detail-open-2d').onclick = function () {
-        var disableAsk = document.getElementById('qaq-3d-ask-disable').checked;
-        if (disableAsk) {
-            settings.askBeforeRender = false;
-            settings.defaultRender3D = false;
-            qaqSave3DSettings(settings);
+        function open2DDetail() {
+            qaqOpenShopItemDetail2D(item, isOwned, typeName);
         }
-        qaqCloseModal();
-        setTimeout(open2DDetail, 120);
-    };
 
-    document.getElementById('qaq-shop-detail-open-3d').onclick = function () {
-        var disableAsk = document.getElementById('qaq-3d-ask-disable').checked;
-        if (disableAsk) {
-            settings.askBeforeRender = false;
-            settings.defaultRender3D = true;
-            qaqSave3DSettings(settings);
+        function open3DDetail() {
+            qaqOpenShopItemDetail3DWithLazyLoad(item, isOwned, typeName);
         }
-        qaqCloseModal();
-        setTimeout(open3DDetail, 120);
-    };
+
+        if (!settings.askBeforeRender) {
+            if (settings.defaultRender3D) open3DDetail();
+            else open2DDetail();
+            return;
+        }
+
+        var mTitle = document.getElementById('qaq-modal-title');
+        var mBody = document.getElementById('qaq-modal-body');
+        var mBtns = document.getElementById('qaq-modal-btns');
+
+        // 安全的 escape HTML
+        var safeItemName = window.qaqEscapeHtml ? window.qaqEscapeHtml(item.name) : item.name.replace(/</g, "&lt;");
+
+        if(mTitle) mTitle.textContent = '查看详情';
+        if(mBody) mBody.innerHTML =
+            '<div style="text-align:center;font-size:13px;color:#666;line-height:1.8;">' +
+                '是否使用 <b>3D 模型</b> 查看「' + safeItemName + '」详情？<br>' +
+                '<span style="font-size:11px;color:#999;">3D 展示更精美，但首次加载会稍慢</span>' +
+            '</div>' +
+            '<label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;color:#888;justify-content:center;">' +
+                '<input type="checkbox" id="qaq-3d-ask-disable"> 下次不再询问，记住我的选择' +
+            '</label>';
+
+        if(mBtns) mBtns.innerHTML =
+            '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-shop-detail-open-2d">普通查看</button>' +
+            '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-shop-detail-open-3d">3D查看</button>';
+
+        if(window.qaqOpenModal) window.qaqOpenModal();
+
+        var btn2D = document.getElementById('qaq-shop-detail-open-2d');
+        if(btn2D) btn2D.onclick = function () {
+            var disableAsk = document.getElementById('qaq-3d-ask-disable');
+            if (disableAsk && disableAsk.checked) {
+                settings.askBeforeRender = false;
+                settings.defaultRender3D = false;
+                qaqSave3DSettings(settings);
+            }
+            if(window.qaqCloseModal) window.qaqCloseModal();
+            setTimeout(open2DDetail, 120);
+        };
+
+        var btn3D = document.getElementById('qaq-shop-detail-open-3d');
+        if(btn3D) btn3D.onclick = function () {
+            var disableAsk = document.getElementById('qaq-3d-ask-disable');
+            if (disableAsk && disableAsk.checked) {
+                settings.askBeforeRender = false;
+                settings.defaultRender3D = true;
+                qaqSave3DSettings(settings);
+            }
+            if(window.qaqCloseModal) window.qaqCloseModal();
+            setTimeout(open3DDetail, 120);
+        };
+    } catch(e) {
+        console.error("整体点击查看详情时崩溃:", e);
+    }
 }
 
 function qaqOpenShopItemDetail3D(item, isOwned, typeName) {
-    modalTitle.textContent = item.name;
-    modalBody.innerHTML =
+    var mTitle = document.getElementById('qaq-modal-title');
+    var mBody = document.getElementById('qaq-modal-body');
+    var mBtns = document.getElementById('qaq-modal-btns');
+
+    if(mTitle) mTitle.textContent = item.name;
+    if(mBody) mBody.innerHTML =
         '<div class="qaq-shop-detail-modal">' +
             '<div class="qaq-shop-detail-stage qaq-3d-stage" id="qaq-3d-stage">' +
                 '<canvas id="qaq-3d-canvas"></canvas>' +
@@ -2005,64 +2042,67 @@ function qaqOpenShopItemDetail3D(item, isOwned, typeName) {
             '</div>' +
         '</div>';
 
-    if (isOwned) {
-        modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-modal-cancel" style="flex:1;">关闭</button>';
-    } else {
-        modalBtns.innerHTML =
-            '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>' +
-            '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-shop-detail-buy">兑换</button>';
+    if(mBtns) {
+        if (isOwned) {
+            mBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-modal-cancel" style="flex:1;">关闭</button>';
+        } else {
+            mBtns.innerHTML =
+                '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>' +
+                '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-shop-detail-buy">兑换</button>';
+        }
     }
 
-    qaqOpenModal();
+    if(window.qaqOpenModal) window.qaqOpenModal();
 
     setTimeout(function () { qaq3DInit(item); }, 150);
 
-    document.getElementById('qaq-modal-cancel').onclick = function () {
-        qaq3DPreviewDestroy(); qaqCloseModal();
+    var cancelBtn = document.getElementById('qaq-modal-cancel');
+    if(cancelBtn) cancelBtn.onclick = function () {
+        qaq3DPreviewDestroy(); 
+        if(window.qaqCloseModal) window.qaqCloseModal();
     };
 
     var buyBtn = document.getElementById('qaq-shop-detail-buy');
     if (buyBtn) {
         buyBtn.onclick = function () {
-    try {
-        var points = qaqGetPoints();
-        if (points < item.price) return qaqToast('积分不足');
+            try {
+                var points = window.qaqGetPoints ? window.qaqGetPoints() : qaqGetPoints();
+                if (points < item.price) return window.qaqToast ? window.qaqToast('积分不足') : null;
 
-        var ownedList = qaqGetOwnedItems() || [];
+                var ownedList = window.qaqGetOwnedItems ? window.qaqGetOwnedItems() : (qaqGetOwnedItems() || []);
 
-        if (ownedList.some(function (x) { return x.id === item.id; })) {
-            qaq3DPreviewDestroy();
-            qaqCloseModal();
-            return qaqToast('已拥有该物品');
-        }
+                if (ownedList.some(function (x) { return x.id === item.id; })) {
+                    qaq3DPreviewDestroy();
+                    if(window.qaqCloseModal) window.qaqCloseModal();
+                    return window.qaqToast ? window.qaqToast('已拥有该物品') : null;
+                }
 
-        ownedList.push({
-            id: item.id,
-            name: item.name,
-            type: item.type,
-            obtainedAt: Date.now()
-        });
+                ownedList.push({
+                    id: item.id,
+                    name: item.name,
+                    type: item.type,
+                    obtainedAt: Date.now()
+                });
 
-        // 先保存拥有，再扣积分
-        qaqSaveOwnedItems(ownedList);
-        qaqSavePoints(points - item.price);
+                if(window.qaqSaveOwnedItems) window.qaqSaveOwnedItems(ownedList);
+                if(window.qaqSavePoints) window.qaqSavePoints(points - item.price);
 
-        qaq3DPreviewDestroy();
-        qaqCloseModal();
+                qaq3DPreviewDestroy();
+                if(window.qaqCloseModal) window.qaqCloseModal();
 
-        qaqRenderShopPage();
-        qaqRenderMinePanel();
-        if (typeof qaqRenderGardenPage === 'function') qaqRenderGardenPage();
-        if (typeof qaqRenderZooPage === 'function') qaqRenderZooPage();
-        if (typeof qaqRenderXiaoyuanGarden === 'function') qaqRenderXiaoyuanGarden();
-        if (typeof qaqRenderXiaoyuanZoo === 'function') qaqRenderXiaoyuanZoo();
+                qaqRenderShopPage();
+                qaqRenderMinePanel();
+                if (typeof qaqRenderGardenPage === 'function') qaqRenderGardenPage();
+                if (typeof qaqRenderZooPage === 'function') qaqRenderZooPage();
+                if (typeof qaqRenderXiaoyuanGarden === 'function') qaqRenderXiaoyuanGarden();
+                if (typeof qaqRenderXiaoyuanZoo === 'function') qaqRenderXiaoyuanZoo();
 
-        qaqToast('兑换成功');
-    } catch (err) {
-        console.error('详情页购买失败：', err);
-        qaqToast('购买失败：' + (err.message || '未知错误'));
-    }
-};
+                if(window.qaqToast) window.qaqToast('兑换成功');
+            } catch (err) {
+                console.error('详情页购买失败：', err);
+                if(window.qaqToast) window.qaqToast('购买失败：' + (err.message || '未知错误'));
+            }
+        };
     }
 }
 

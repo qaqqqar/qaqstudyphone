@@ -190,5 +190,24 @@
     window.qaqSaveMineProfile = function (p) {
         window.qaqCacheSet('qaq-mine-profile', p);
     };
+    /* ===== Import Settings ===== */
+window.qaqGetImportSettings = function () {
+    return window.qaqCacheGet('qaq-import-settings', {
+        importMode: 'fast' // fast | smart
+    });
+};
 
+window.qaqSaveImportSettings = function (settings) {
+    window.qaqCacheSet('qaq-import-settings', settings || {
+        importMode: 'fast'
+    });
+};
+/* ===== Wordbank Language ===== */
+window.qaqGetWordbankLanguage = function () {
+    return window.qaqCacheGet('qaq-wordbank-language', 'en');
+};
+
+window.qaqSaveWordbankLanguage = function (lang) {
+    window.qaqCacheSet('qaq-wordbank-language', lang || 'en');
+};
 })();

@@ -4004,13 +4004,18 @@ function qaqRenderPet3DTo(floatId, avatarId, itemId) {
     var canvas = document.getElementById(avatarId + '-canvas');
     if (!canvas || typeof THREE === 'undefined') return false;
 
-    var w = avatarEl.clientWidth || 54;
-    var h = avatarEl.clientHeight || 54;
+    // ★ 把内部画布稍稍加宽加大，防止截断
+    var w = 85; 
+    var h = 85;
+    
+    avatarEl.style.width = w + 'px';
+    avatarEl.style.height = h + 'px';
+    avatarEl.style.overflow = 'visible'; 
 
     var renderer = new THREE.WebGLRenderer({
         canvas: canvas,
         antialias: true,
-        alpha: true
+        alpha: true // 透明背景
     });
     renderer.setSize(w, h);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -4018,10 +4023,11 @@ function qaqRenderPet3DTo(floatId, avatarId, itemId) {
     var scene = new THREE.Scene();
 
     var camera = new THREE.PerspectiveCamera(35, w / h, 0.1, 100);
-    camera.position.set(0, 1.1, 3.4);
-    camera.lookAt(0, 0.9, 0);
+    // ★ 相机向后拉远一点 (Z轴变 4.8)，高度微调，保证安全框
+    camera.position.set(0, 1.2, 4.8);
+    camera.lookAt(0, 0.8, 0);
 
-    var ambient = new THREE.AmbientLight(0xffffff, 1);
+    var ambient = new THREE.AmbientLight(0xffffff, 1.2);
     scene.add(ambient);
 
     var dir = new THREE.DirectionalLight(0xffffff, 1.2);
@@ -4029,6 +4035,8 @@ function qaqRenderPet3DTo(floatId, avatarId, itemId) {
     scene.add(dir);
 
     var group = new THREE.Group();
+    // 如果觉得模型初始面朝前方不太好看，可以给定个固定角度例如:
+    // group.rotation.y = -Math.PI / 8;
     scene.add(group);
 
     qaq3DLoadGLB({ id: itemId, type: 'pet', name: 'pet' }, group).then(function () {
@@ -4037,7 +4045,9 @@ function qaqRenderPet3DTo(floatId, avatarId, itemId) {
                 try { renderer.dispose(); } catch (e) {}
                 return;
             }
-            group.rotation.y += 0.015;
+            
+            // ★ 已删除 group.rotation.y += 0.015; 让它不要再自转了！
+            
             renderer.render(scene, camera);
             requestAnimationFrame(animate);
         }

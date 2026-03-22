@@ -7529,7 +7529,7 @@ body {
     width: 100% !important;
     height: 100% !important;
     display: block;
-    border-radius: 50%;
+    border-radius: 0 !important;
 }
 
 .qaq-wordbank-pet-float.qaq-pet-dragging {

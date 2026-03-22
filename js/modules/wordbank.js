@@ -109,32 +109,39 @@ window.qaqPendingImportType = ''; // json | excel | pdf
     };
 
     /* ===== Tab Switch ===== */
-    window.qaqSwitchWordbankTab = function (tab) {
-        window.qaqCurrentWordbankTab = tab;
+    /* ===== Tab Switch ===== */
+window.qaqSwitchWordbankTab = function (tab) {
+    window.qaqCurrentWordbankTab = tab;
 
-        document.querySelectorAll('.qaq-wordbank-tab').forEach(function (el) {
-            if (el.dataset.tab) {
-                el.classList.toggle('qaq-wordbank-tab-active', el.dataset.tab === tab);
-            }
-        });
-
-        var booksPanel = document.getElementById('qaq-wordbank-panel-books');
-        var reviewPanel = document.getElementById('qaq-wordbank-panel-review');
-        var minePanel = document.getElementById('qaq-wordbank-panel-mine');
-
-        if (booksPanel) booksPanel.style.display = tab === 'books' ? '' : 'none';
-        if (reviewPanel) reviewPanel.style.display = tab === 'review' ? '' : 'none';
-        if (minePanel) minePanel.style.display = tab === 'mine' ? '' : 'none';
-
-        if (tab === 'books') {
-            var search = document.getElementById('qaq-wordbook-search');
-            window.qaqRenderWordbookHome(search ? search.value : '');
-        } else if (tab === 'review') {
-            if (window.qaqRenderReviewHome) window.qaqRenderReviewHome();
-        } else if (tab === 'mine') {
-            if (window.qaqRenderMinePanel) window.qaqRenderMinePanel();
+    document.querySelectorAll('.qaq-wordbank-tab').forEach(function (el) {
+        if (el.dataset.tab) {
+            el.classList.toggle('qaq-wordbank-tab-active', el.dataset.tab === tab);
         }
-    };
+    });
+
+    var booksPanel = document.getElementById('qaq-wordbank-panel-books');
+    var reviewPanel = document.getElementById('qaq-wordbank-panel-review');
+    var minePanel = document.getElementById('qaq-wordbank-panel-mine');
+
+    if (booksPanel) booksPanel.style.display = tab === 'books' ? '' : 'none';
+    if (reviewPanel) reviewPanel.style.display = tab === 'review' ? '' : 'none';
+    if (minePanel) minePanel.style.display = tab === 'mine' ? '' : 'none';
+
+    if (tab === 'books') {
+        var search = document.getElementById('qaq-wordbook-search');
+        window.qaqRenderWordbookHome(search ? search.value : '');
+        // 如果切回总览也需要确保桌宠存在，可以加上下面这句
+        if (window.qaqRenderWordbankPetFloat) window.qaqRenderWordbankPetFloat();
+    } else if (tab === 'review') {
+        if (window.qaqRenderReviewHome) window.qaqRenderReviewHome();
+        // 【补充这里】：在渲染完背单词主页后，调用桌宠渲染
+        if (window.qaqRenderWordbankPetFloat) window.qaqRenderWordbankPetFloat();
+    } else if (tab === 'mine') {
+        if (window.qaqRenderMinePanel) window.qaqRenderMinePanel();
+        // 如果“我的”页面也需要桌宠，同样可加上这句
+        if (window.qaqRenderWordbankPetFloat) window.qaqRenderWordbankPetFloat();
+    }
+};
     
     window.qaqGetImportAiConfig = function () {
     var globalCfg = {};

@@ -304,23 +304,25 @@ function qaqShuffle(array) {
     }
 
     function qaqSpeakText(text) {
-        if (!text) return;
-        if (!('speechSynthesis' in window)) return qaqToast('当前设备不支持朗读');
+    if (!text) return;
+    if (!('speechSynthesis' in window)) return qaqToast('当前设备不支持朗读');
 
-        var utter = new SpeechSynthesisUtterance(text);
-        utter.lang = 'en-US';
-        utter.rate = Math.max(0.6, Math.min(1.2, Number(qaqGetReviewSettings().speechRate || 0.9)));
-        utter.pitch = 1;
-        utter.volume = 1;
+    var langCfg = window.qaqGetCurrentLangConfig ? window.qaqGetCurrentLangConfig() : { ttsLang: 'en-US' };
 
-        var voice = qaqPickEnglishVoice();
-        if (voice) utter.voice = voice;
+    var utter = new SpeechSynthesisUtterance(text);
+    utter.lang = langCfg.ttsLang || 'en-US';
+    utter.rate = Math.max(0.6, Math.min(1.2, Number(qaqGetReviewSettings().speechRate || 0.9)));
+    utter.pitch = 1;
+    utter.volume = 1;
 
-        speechSynthesis.cancel();
-        setTimeout(function () {
-            speechSynthesis.speak(utter);
-        }, 30);
-    }
+    var voice = qaqPickVoiceForLang(langCfg.ttsLang || 'en-US');
+    if (voice) utter.voice = voice;
+
+    speechSynthesis.cancel();
+    setTimeout(function () {
+        speechSynthesis.speak(utter);
+    }, 30);
+}
 
     function qaqStopSpeakText() {
         if ('speechSynthesis' in window) {
@@ -476,12 +478,12 @@ function qaqShuffle(array) {
         qaqSaveReviewSettings(settings);
 
         var modeInstructionMap = {
-            story: '写一篇英语短篇故事',
-            dialogue: '写一篇以对话为主的英语短文',
-            diary: '写一篇英语日记',
-            essay: '写一篇英语议论文或观点短文',
-            cet: '写一篇适合四六级水平的英语作文'
-        };
+    story: '写一篇' + langName + '短篇故事',
+    dialogue: '写一篇以对话为主的' + langName + '短文',
+    diary: '写一篇' + langName + '日记',
+    essay: '写一篇' + langName + '议论文或观点短文',
+    cet: '写一篇适合中级水平的' + langName + '作文'
+};
 
         var bilingualInstruction = '';
         if (bilingualMode === 'en') {
@@ -493,43 +495,45 @@ function qaqShuffle(array) {
         }
 
         var targetWords = words.map(function (w) { return w.word; });
+var langCfg = window.qaqGetCurrentLangConfig ? window.qaqGetCurrentLangConfig() : { name: '英语' };
+var langName = langCfg.name || '英语';
 
-        var prompt =
-            '你是英语学习内容生成助手。请根据给定单词生成内容，并严格返回 JSON，不要输出 JSON 以外的任何文字。\n\n' +
-            '【必须覆盖的目标单词】\n' + targetWords.join(', ') + '\n\n' +
-            '【任务类型】' + (modeInstructionMap[storyMode] || '英语短篇故事') + '\n' +
-            '【风格标签】' + (tags.length ? tags.join('、') : '不限') + '\n' +
-            '【目标英文词数】约 ' + wordCount + ' 词\n' +
-            '【双语模式】' + bilingualMode + '\n\n' +
+var prompt =
+    '你是' + langName + '学习内容生成助手。请根据给定单词生成内容，并严格返回 JSON，不要输出 JSON 以外的任何文字。\n\n' +
+    '【必须覆盖的目标单词】\n' + targetWords.join(', ') + '\n\n' +
+    '【任务类型】' + (modeInstructionMap[storyMode] || langName + '短篇故事') + '\n' +
+    '【风格标签】' + (tags.length ? tags.join('、') : '不限') + '\n' +
+    '【目标' + langName + '词数】约 ' + wordCount + ' 词\n' +
+    '【双语模式】' + bilingualMode + '\n\n' +
 
-            '要求：\n' +
-            '1. 尽可能覆盖全部目标单词，优先保证每个单词至少出现一次。\n' +
-            '2. 内容自然、连贯、适合英语学习者。\n' +
-            '3. 每个段落必须同时给出英文和中文。\n' +
-            '4. 每个句子必须同时给出英文和中文。\n' +
-            '5. 返回中必须明确列出实际使用的单词 usedWords。\n' +
-            '6. 如果有漏掉的单词，必须列入 omittedWords。\n' +
-            '7. 只能返回合法 JSON。\n\n' +
+    '要求：\n' +
+    '1. 尽可能覆盖全部目标单词，优先保证每个单词至少出现一次。\n' +
+    '2. 内容使用' + langName + '，自然、连贯、适合' + langName + '学习者。\n' +
+    '3. 每个段落必须同时给出' + langName + '原文和中文。\n' +
+    '4. 每个句子必须同时给出' + langName + '原文和中文。\n' +
+    '5. 返回中必须明确列出实际使用的单词 usedWords。\n' +
+    '6. 如果有漏掉的单词，必须列入 omittedWords。\n' +
+    '7. 只能返回合法 JSON。\n\n' +
 
-            '返回格式如下：\n' +
-            '{\n' +
-            '  "title": "文章标题",\n' +
-            '  "usedWords": ["word1", "word2"],\n' +
-            '  "omittedWords": [],\n' +
-            '  "paragraphs": [\n' +
-            '    {\n' +
-            '      "en": "英文段落",\n' +
-            '      "cn": "中文段落",\n' +
-            '      "sentences": [\n' +
-            '        {\n' +
-            '          "en": "英文句子",\n' +
-            '          "cn": "中文句子",\n' +
-            '          "usedWords": ["word1"]\n' +
-            '        }\n' +
-            '      ]\n' +
-            '    }\n' +
-            '  ]\n' +
-            '}';
+    '返回格式如下：\n' +
+    '{\n' +
+    '  "title": "文章标题",\n' +
+    '  "usedWords": ["word1", "word2"],\n' +
+    '  "omittedWords": [],\n' +
+    '  "paragraphs": [\n' +
+    '    {\n' +
+    '      "en": "' + langName + '段落",\n' +
+    '      "cn": "中文段落",\n' +
+    '      "sentences": [\n' +
+    '        {\n' +
+    '          "en": "' + langName + '句子",\n' +
+    '          "cn": "中文句子",\n' +
+    '          "usedWords": ["word1"]\n' +
+    '        }\n' +
+    '      ]\n' +
+    '    }\n' +
+    '  ]\n' +
+    '}';
 
         var stopBtn = document.getElementById('qaq-review-story-stop-btn');
         var genBtn = document.getElementById('qaq-review-story-generate-btn');
@@ -1162,52 +1166,34 @@ function qaqShuffle(array) {
         qaqCacheSet('qaq-review-pet-messages', data || {});
     }
 
-    async function qaqGenerateWordStudyDataForItem(wordObj, cfg) {
-        var prompt =
-            '请为下面这个英语单词补全学习信息，并只返回 JSON，不要返回多余解释。\n' +
-            '单词：' + wordObj.word + '\n' +
-            '已知释义：' + (wordObj.meaning || '无') + '\n\n' +
-            '返回格式：\n' +
-            '{\n' +
-            '  "phonetic": "音标",\n' +
-            '  "example": "简短英文例句",\n' +
-            '  "exampleCn": "例句中文翻译",\n' +
-            '  "petMsgKnown": "答对时桌宠夸奖的话，简短温柔",\n' +
-            '  "petMsgVague": "有点印象时桌宠鼓励的话，简短温柔",\n' +
-            '  "petMsgUnknown": "不认识时桌宠安慰的话，简短温柔"\n' +
-            '}\n\n' +
-            '要求：\n' +
-            '1. 音标尽量标准\n' +
-            '2. 例句自然、简短，适合四六级学习\n' +
-            '3. 中文翻译准确\n' +
-            '4. 桌宠话术中文输出，语气温柔可爱但不要太夸张\n' +
-            '5. 三句桌宠话术都要不同\n' +
-            '6. 只返回 JSON';
+   async function qaqGenerateWordStudyDataForItem(wordObj, cfg) {
+    var langCfg = window.qaqGetCurrentLangConfig ? window.qaqGetCurrentLangConfig() : window.qaqWordbankLangConfig['en'];
+    var prompt = langCfg.studyDataPrompt(wordObj);
 
-        var content = '';
+    var content = '';
 
-        if (cfg.provider === 'openai' || cfg.provider === 'minimax-openai') {
-            content = await qaqReviewGenerateByOpenAICompatible(cfg, prompt);
-        } else if (cfg.provider === 'minimax-native') {
-            content = await qaqReviewGenerateByMiniMaxNative(cfg, prompt);
-        } else {
-            throw new Error('不支持的 provider');
-        }
-
-        var parsed = qaqExtractJsonBlock(content);
-        if (!parsed) {
-            throw new Error('模型返回内容无法解析为 JSON');
-        }
-
-        return {
-            phonetic: parsed.phonetic || '',
-            example: parsed.example || '',
-            exampleCn: parsed.exampleCn || '',
-            petMsgKnown: parsed.petMsgKnown || '',
-            petMsgVague: parsed.petMsgVague || '',
-            petMsgUnknown: parsed.petMsgUnknown || ''
-        };
+    if (cfg.provider === 'openai' || cfg.provider === 'minimax-openai') {
+        content = await qaqReviewGenerateByOpenAICompatible(cfg, prompt);
+    } else if (cfg.provider === 'minimax-native') {
+        content = await qaqReviewGenerateByMiniMaxNative(cfg, prompt);
+    } else {
+        throw new Error('不支持的 provider');
     }
+
+    var parsed = qaqExtractJsonBlock(content);
+    if (!parsed) {
+        throw new Error('模型返回内容无法解析为 JSON');
+    }
+
+    return {
+        phonetic: parsed.phonetic || '',
+        example: parsed.example || '',
+        exampleCn: parsed.exampleCn || '',
+        petMsgKnown: parsed.petMsgKnown || '',
+        petMsgVague: parsed.petMsgVague || '',
+        petMsgUnknown: parsed.petMsgUnknown || ''
+    };
+}
 
     async function qaqGenerateRoundStudyData(words) {
         var cfg = qaqGetReviewApiConfig();
@@ -1278,33 +1264,51 @@ function qaqShuffle(array) {
         );
     }
 
+function qaqPickVoiceForLang(lang) {
+    if (!lang || /^en/i.test(lang)) return qaqPickEnglishVoice();
+
+    var voices = qaqLoadSpeechVoices();
+    if (!voices.length && qaqSpeechVoiceCache) voices = qaqSpeechVoiceCache;
+    if (!voices || !voices.length) return null;
+
+    var langPrefix = lang.split('-')[0].toLowerCase();
+
+    return (
+        voices.find(function (v) { return v.lang.toLowerCase() === lang.toLowerCase(); }) ||
+        voices.find(function (v) { return v.lang.toLowerCase().indexOf(langPrefix) === 0; }) ||
+        null
+    );
+}
+
     function qaqSpeakWord(text) {
-        if (!text) return;
-        if (!('speechSynthesis' in window)) {
-            return qaqToast('当前设备不支持朗读');
-        }
-
-        var settings = qaqGetReviewSettings();
-        var utter = new SpeechSynthesisUtterance(text);
-        utter.lang = 'en-US';
-        utter.rate = Math.max(0.6, Math.min(1.2, Number(settings.speechRate || 0.9)));
-        utter.pitch = 1;
-        utter.volume = 1;
-
-        var voice = qaqPickEnglishVoice();
-        if (voice) utter.voice = voice;
-
-        speechSynthesis.cancel();
-
-        setTimeout(function () {
-            try {
-                speechSynthesis.speak(utter);
-            } catch (e) {
-                console.error(e);
-                qaqToast('朗读失败');
-            }
-        }, 30);
+    if (!text) return;
+    if (!('speechSynthesis' in window)) {
+        return qaqToast('当前设备不支持朗读');
     }
+
+    var settings = qaqGetReviewSettings();
+    var langCfg = window.qaqGetCurrentLangConfig ? window.qaqGetCurrentLangConfig() : { ttsLang: 'en-US' };
+
+    var utter = new SpeechSynthesisUtterance(text);
+    utter.lang = langCfg.ttsLang || 'en-US';
+    utter.rate = Math.max(0.6, Math.min(1.2, Number(settings.speechRate || 0.9)));
+    utter.pitch = 1;
+    utter.volume = 1;
+
+    var voice = qaqPickVoiceForLang(langCfg.ttsLang || 'en-US');
+    if (voice) utter.voice = voice;
+
+    speechSynthesis.cancel();
+
+    setTimeout(function () {
+        try {
+            speechSynthesis.speak(utter);
+        } catch (e) {
+            console.error(e);
+            qaqToast('朗读失败');
+        }
+    }, 30);
+}
 
     if ('speechSynthesis' in window) {
         qaqLoadSpeechVoices();
@@ -1354,9 +1358,11 @@ function qaqShuffle(array) {
             repeatCard.classList.add('qaq-disabled');
         }
 
-        var books = qaqGetWordbooks().filter(function (book) {
-            return book.words && book.words.length;
-        });
+        var currentLang = window.qaqGetWordbankLanguage ? window.qaqGetWordbankLanguage() : 'en';
+var books = qaqGetWordbooks().filter(function (book) {
+    var bookLang = book.lang || 'en';
+    return book.words && book.words.length && bookLang === currentLang;
+});
 
         listEl.innerHTML = '';
 

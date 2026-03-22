@@ -64,6 +64,8 @@
 
     window.qaqWordEntrySelectMode = false;
     window.qaqSelectedWordIds = [];
+    window.qaqCurrentImportMode = 'fast'; // fast | smart
+window.qaqPendingImportType = ''; // json | excel | pdf
 
     /* ===== Open / Close ===== */
     window.qaqOpenWordbankPage = function () {
@@ -133,6 +135,114 @@
             if (window.qaqRenderMinePanel) window.qaqRenderMinePanel();
         }
     };
+    
+    window.qaqGetImportAiConfig = function () {
+    var globalCfg = {};
+    var reviewCfg = {};
+
+    try {
+        globalCfg = JSON.parse(localStorage.getItem('qaq-api-config') || '{}');
+    } catch (e) {}
+
+    try {
+        reviewCfg = JSON.parse(localStorage.getItem('qaq-word-review-settings') || '{}');
+    } catch (e) {}
+
+    return {
+        provider: reviewCfg.apiProvider || 'openai',
+        url: reviewCfg.apiUrl || globalCfg.url || '',
+        key: reviewCfg.apiKey || globalCfg.key || '',
+        model: reviewCfg.apiModel || globalCfg.model || '',
+        minimaxGroupId: reviewCfg.minimaxGroupId || ''
+    };
+};
+
+window.qaqNormalizeImportAiUrl = function (url) {
+    url = String(url || '').trim().replace(/\/+$/, '');
+    if (!url) return '';
+    if (/\/chat\/completions$/i.test(url)) return url;
+    if (/\/v\d+$/i.test(url)) return url + '/chat/completions';
+    return url + '/v1/chat/completions';
+};
+
+window.qaqCallImportAi = async function (cfg, prompt) {
+    var url = window.qaqNormalizeImportAiUrl(cfg.url);
+
+    var resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + cfg.key
+        },
+        body: JSON.stringify({
+            model: cfg.model,
+            messages: [
+                {
+                    role: 'system',
+                    content: '你是一个词库数据提取助手，只返回合法 JSON，不要输出任何解释。'
+                },
+                {
+                    role: 'user',
+                    content: prompt
+                }
+            ],
+            temperature: 0.1
+        })
+    });
+
+    if (!resp.ok) {
+        var errText = await resp.text().catch(function () { return ''; });
+        throw new Error('AI 接口请求失败：' + resp.status + ' ' + errText);
+    }
+
+    var data = await resp.json();
+    var content =
+        (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) ||
+        (data.choices && data.choices[0] && data.choices[0].text) ||
+        '';
+
+    if (!content) {
+        throw new Error('AI 返回内容为空');
+    }
+
+    return content;
+};
+
+window.qaqAiParseWordItems = async function (rawText, sourceName) {
+    var cfg = window.qaqGetImportAiConfig();
+
+    if (!cfg.key || !cfg.model || !cfg.url) {
+        throw new Error('未配置智能导入所需 API');
+    }
+
+    var langCfg = window.qaqGetCurrentLangConfig();
+    var prompt = langCfg.importPrompt(rawText, sourceName);
+
+    var content = await window.qaqCallImportAi(cfg, prompt);
+    var parsed = window.qaqExtractJsonBlock(content);
+
+    if (!Array.isArray(parsed)) {
+        throw new Error('AI 返回结果不是数组');
+    }
+
+    return parsed.map(function (item) {
+    var rawWord = window.qaqTrim(item.word || '');
+    // 强制剥离开头的数字序号（如 "1 ああ" → "ああ"，"123.abandon" → "abandon"）
+    rawWord = rawWord.replace(/^\d+[\.\s、．\-]*/, '').trim();
+
+    return {
+        id: window.qaqWordId(),
+        word: rawWord,
+        phonetic: window.qaqTrim(item.phonetic || ''),
+        meaning: window.qaqTrim(item.meaning || ''),
+        example: window.qaqTrim(item.example || ''),
+        exampleCn: window.qaqTrim(item.exampleCn || ''),
+        book: sourceName || ''
+    };
+}).filter(function (item) {
+    return item.word && item.meaning;
+});
+};
 
     /* ===== Helpers ===== */
     window.qaqFormatImportTime = function (ts) {
@@ -185,37 +295,238 @@
                /^(n|v|vt|vi|adj|adv|prep|conj|pron|num|art|int|aux|modal|det)\./.test(text) ||
                /^(n|v|vt|vi|adj|adv|prep|conj|pron|num|art|int|aux|modal|det)\b/.test(text);
     };
+    
+    /* ===== 多语言词库配置 ===== */
+window.qaqWordbankLangConfig = {
+    en: {
+        name: '英语',
+        flag: '🇬🇧',
+        wordLabel: '单词',
+        meaningLabel: '释义',
+        phoneticLabel: '音标',
+        exampleLabel: '例句',
+        ttsLang: 'en-US',
+        importPrompt: function (rawText, sourceName) {
+            return '请从以下词库原始文本中尽可能准确提取英语单词信息，并且只返回 JSON 数组，不要返回任何解释、不要 markdown。\n\n' +
+                '要求：\n' +
+                '1. 自动识别 OCR 打乱、错行、断行、跨行、混排内容。\n' +
+                '2. 尽量提取字段：word, phonetic, meaning, example, exampleCn。\n' +
+                '3. 没有的字段填空字符串。\n' +
+                '4. 自动过滤页码、标题、宣传语、无意义文本。\n' +
+                '5. 一个词若有多个释义，可以合并到 meaning。\n' +
+                '6. 只返回 JSON 数组。\n\n' +
+                '格式示例：\n' +
+                '[\n' +
+                '  {\n' +
+                '    "word": "abandon",\n' +
+                '    "phonetic": "/əˈbændən/",\n' +
+                '    "meaning": "vt. 放弃；抛弃",\n' +
+                '    "example": "",\n' +
+                '    "exampleCn": ""\n' +
+                '  }\n' +
+                ']\n\n' +
+                '原始文本如下：\n' + rawText;
+        },
+        studyDataPrompt: function (wordObj) {
+            return '请为下面这个英语单词补全学习信息，并只返回 JSON，不要返回多余解释。\n' +
+                '单词：' + wordObj.word + '\n' +
+                '已知释义：' + (wordObj.meaning || '无') + '\n\n' +
+                '返回格式：\n' +
+                '{\n' +
+                '  "phonetic": "音标",\n' +
+                '  "example": "简短英文例句",\n' +
+                '  "exampleCn": "例句中文翻译",\n' +
+                '  "petMsgKnown": "答对时桌宠夸奖的话，简短温柔",\n' +
+                '  "petMsgVague": "有点印象时桌宠鼓励的话，简短温柔",\n' +
+                '  "petMsgUnknown": "不认识时桌宠安慰的话，简短温柔"\n' +
+                '}\n\n' +
+                '要求：\n' +
+                '1. 音标尽量标准\n' +
+                '2. 例句自然、简短，适合四六级学习\n' +
+                '3. 中文翻译准确\n' +
+                '4. 桌宠话术中文输出，语气温柔可爱但不要太夸张\n' +
+                '5. 三句桌宠话术都要不同\n' +
+                '6. 只返回 JSON';
+        },
+        looksLikeWord: function (text) {
+            text = window.qaqTrim(text);
+            if (!text) return false;
+            var lower = text.toLowerCase();
+            if (window.qaqLooksLikeWordHeader(text) || window.qaqLooksLikeMeaningHeader(text)) return false;
+            if (window.qaqLooksLikeNoiseLine(text)) return false;
+            if (window.qaqIsPureIndexLine(text)) return false;
+            if (window.qaqLooksLikePosLine(text)) return false;
+            if (!/^[A-Za-z][A-Za-z\s\-'\.\/()]{0,50}$/.test(text)) return false;
+            if (text.length > 40) return false;
+            if (lower === 'a' || lower === 'i') return false;
+            return true;
+        },
+        looksLikeMeaning: function (text) {
+            text = window.qaqTrim(text);
+            if (!text) return false;
+            if (window.qaqLooksLikeWordHeader(text) || window.qaqLooksLikeMeaningHeader(text)) return false;
+            if (window.qaqLooksLikeNoiseLine(text)) return false;
+            if (window.qaqIsPureIndexLine(text)) return false;
+            if (window.qaqLooksLikePosLine(text) && /[\u4e00-\u9fa5]/.test(text)) return true;
+            return /[\u4e00-\u9fa5]/.test(text);
+        },
+        validateWord: function (word, meaning) {
+            word = window.qaqTrim(word);
+            meaning = window.qaqTrim(meaning);
+            if (!word && !meaning) return { ok: false, reason: '单词和释义都为空' };
+            if (!word) return { ok: false, reason: '单词为空' };
+            if (!meaning) return { ok: false, reason: '释义为空' };
+            if (window.qaqShouldDropWordItem(word, meaning)) return { ok: false, reason: '疑似标题、页码或无效内容' };
+            var langCfg = window.qaqWordbankLangConfig['en'];
+            if (!langCfg.looksLikeWord(word)) return { ok: false, reason: '单词格式未通过校验' };
+            if (meaning.length > 800) return { ok: false, reason: '释义过长，疑似混入杂项文本' };
+            return { ok: true, reason: '' };
+        }
+    },
+    ja: {
+        name: '日语',
+        flag: '🇯🇵',
+        wordLabel: '假名/汉字',
+        meaningLabel: '释义',
+        phoneticLabel: '读音',
+        exampleLabel: '例句',
+        ttsLang: 'ja-JP',
+        importPrompt: function (rawText, sourceName) {
+            return '请从以下词库原始文本中尽可能准确提取日语单词信息，并且只返回 JSON 数组，不要返回任何解释、不要 markdown。\n\n' +
+                '要求：\n' +
+                '1. 自动识别 OCR 打乱、错行、断行、跨行、混排内容。\n' +
+                '2. 尽量提取字段：word（日语假名或汉字写法）, phonetic（平假名读音）, meaning（中文释义）, example（日文例句）, exampleCn（例句中文翻译）。\n' +
+                '3. 如果原文中有汉字写法，word 填汉字写法，phonetic 填假名读音。如果只有假名，word 填假名，phonetic 可留空。\n' +
+                '4. 没有的字段填空字符串。\n' +
+                '5. 自动过滤页码、标题、宣传语、无意义文本。\n' +
+                '6. 一个词若有多个释义，可以合并到 meaning。\n' +
+                '7. 如果原文包含词性标注（如 名、动1自、形1 等），请将词性信息放到 meaning 开头。\n' +
+                '8. word 字段中不要包含序号数字，只保留纯假名或汉字。如果原文是 "1 ああ"，word 应该是 "ああ" 而不是 "1 ああ"。\n' +
+'9. 只返回 JSON 数组。\n\n' +
+                '格式示例：\n' +
+                '[\n' +
+                '  {\n' +
+                '    "word": "愛",\n' +
+                '    "phonetic": "あい",\n' +
+                '    "meaning": "名・动3他 爱；爱情",\n' +
+                '    "example": "彼女を愛している。",\n' +
+                '    "exampleCn": "我爱她。"\n' +
+                '  },\n' +
+                '  {\n' +
+                '    "word": "あいさつ",\n' +
+                '    "phonetic": "",\n' +
+                '    "meaning": "名・动3自 寒暄；问候；致辞",\n' +
+                '    "example": "朝のあいさつをする。",\n' +
+                '    "exampleCn": "进行早上的问候。"\n' +
+                '  }\n' +
+                ']\n\n' +
+                '原始文本如下：\n' + rawText;
+        },
+        studyDataPrompt: function (wordObj) {
+            return '请为下面这个日语单词补全学习信息，并只返回 JSON，不要返回多余解释。\n' +
+                '单词：' + wordObj.word + '\n' +
+                '读音：' + (wordObj.phonetic || '无') + '\n' +
+                '已知释义：' + (wordObj.meaning || '无') + '\n\n' +
+                '返回格式：\n' +
+                '{\n' +
+                '  "phonetic": "平假名读音（如果已有可保留）",\n' +
+                '  "example": "简短日文例句",\n' +
+                '  "exampleCn": "例句中文翻译",\n' +
+                '  "petMsgKnown": "答对时桌宠夸奖的话，简短温柔，中文",\n' +
+                '  "petMsgVague": "有点印象时桌宠鼓励的话，简短温柔，中文",\n' +
+                '  "petMsgUnknown": "不认识时桌宠安慰的话，简短温柔，中文"\n' +
+                '}\n\n' +
+                '要求：\n' +
+                '1. 如果单词已有读音(phonetic)则保留原值\n' +
+                '2. 例句自然、简短，适合 N5-N3 日语学习\n' +
+                '3. 中文翻译准确\n' +
+                '4. 桌宠话术用中文输出，语气温柔可爱\n' +
+                '5. 三句桌宠话术都要不同\n' +
+                '6. 只返回 JSON';
+        },
+        looksLikeWord: function (text) {
+    text = window.qaqTrim(text);
+    if (!text) return false;
+    if (window.qaqIsPureIndexLine(text)) return false;
+    if (window.qaqLooksLikeNoiseLine(text)) return false;
+    
+    // 【新增】排除 JLPT 等级标签
+    if (/^N[1-5]$/.test(text)) return false;
+    
+    // 【新增】排除词性标注行
+    if (/^(名|动[1-3]?[自他]?|形[12]?|副|连体|感|接|后缀|前缀)(・(名|动[1-3]?[自他]?|形[12]?|副|连体|感|接|后缀|前缀))*$/.test(text)) return false;
+    
+    // 【新增】排除分类标签
+    if (/^(实义词汇|非实义词汇|抽象概念|动作与行为|状态与性质|人物与人际|自然与地理|空间与方向|身体与健康|服装与物品|建筑与场所|社会与经济|科技与媒体|交通与旅行|程度与频率|饮食|语言与沟通|教育与学习|文化.*娱乐|时间|感叹词|连接词|指示词.*疑问词|接头词.*接尾词|其他功能词)$/.test(text)) return false;
+
+    // 日语单词：包含平假名、片假名或日语汉字
+    if (/[\u3040-\u309F\u30A0-\u30FF]/.test(text)) return true;
+    // 纯汉字也可能是日语单词（需结合上下文）
+    if (/^[\u4e00-\u9faf\u3400-\u4dbf]+$/.test(text) && text.length <= 6) return true;
+    // 外来语片假名
+    if (/^[\u30A0-\u30FF\u30FC]+$/.test(text)) return true;
+    return false;
+},
+        looksLikeMeaning: function (text) {
+    text = window.qaqTrim(text);
+    if (!text) return false;
+    if (window.qaqIsPureIndexLine(text)) return false;
+    if (window.qaqLooksLikeNoiseLine(text)) return false;
+    
+    // 【新增】排除 JLPT 等级标签
+    if (/^N[1-5]$/.test(text)) return false;
+    
+    // 【新增】排除词性标注行
+    if (/^(名|动[1-3]?[自他]?|形[12]?|副|连体|感|接|后缀|前缀)(・(名|动[1-3]?[自他]?|形[12]?|副|连体|感|接|后缀|前缀))*$/.test(text)) return false;
+    
+    // 【新增】排除分类标签（这些虽然包含汉字，但不是释义）
+    if (/^(实义词汇|非实义词汇|抽象概念|动作与行为|状态与性质|人物与人际|自然与地理|空间与方向|身体与健康|服装与物品|建筑与场所|社会与经济|科技与媒体|交通与旅行|程度与频率|饮食|语言与沟通|教育与学习|文化.*娱乐|时间|感叹词|连接词|指示词.*疑问词|接头词.*接尾词|其他功能词)$/.test(text)) return false;
+    
+    // 中文释义
+    return /[\u4e00-\u9fa5]/.test(text);
+},
+        validateWord: function (word, meaning) {
+            word = window.qaqTrim(word);
+            meaning = window.qaqTrim(meaning);
+            if (!word && !meaning) return { ok: false, reason: '单词和释义都为空' };
+            if (!word) return { ok: false, reason: '单词为空' };
+            if (!meaning) return { ok: false, reason: '释义为空' };
+            if (window.qaqShouldDropWordItem(word, meaning)) return { ok: false, reason: '疑似标题、页码或无效内容' };
+            if (meaning.length > 800) return { ok: false, reason: '释义过长' };
+            return { ok: true, reason: '' };
+        }
+    }
+};
+
+window.qaqGetCurrentLangConfig = function () {
+    var lang = window.qaqGetWordbankLanguage ? window.qaqGetWordbankLanguage() : 'en';
+    return window.qaqWordbankLangConfig[lang] || window.qaqWordbankLangConfig['en'];
+};
 
     window.qaqLooksLikeEnglishWord = function (text) {
-        text = window.qaqTrim(text);
-        if (!text) return false;
-
-        var lower = text.toLowerCase();
-
-        if (window.qaqLooksLikeWordHeader(text) || window.qaqLooksLikeMeaningHeader(text)) return false;
-        if (window.qaqLooksLikeNoiseLine(text)) return false;
-        if (window.qaqIsPureIndexLine(text)) return false;
-        if (window.qaqLooksLikePosLine(text)) return false;
-
-        if (!/^[A-Za-z][A-Za-z\s\-'\.\/()]{0,50}$/.test(text)) return false;
-        if (text.length > 40) return false;
-        if (lower === 'a' || lower === 'i') return false;
-
-        return true;
-    };
+    var lang = window.qaqGetWordbankLanguage ? window.qaqGetWordbankLanguage() : 'en';
+    var langCfg = window.qaqWordbankLangConfig[lang];
+    if (langCfg && langCfg.looksLikeWord) {
+        return langCfg.looksLikeWord(text);
+    }
+    // 原始英语兜底
+    text = window.qaqTrim(text);
+    if (!text) return false;
+    if (!/^[A-Za-z][A-Za-z\s\-'\.\/()]{0,50}$/.test(text)) return false;
+    if (text.length > 40) return false;
+    return true;
+};
 
     window.qaqLooksLikeChineseMeaning = function (text) {
-        text = window.qaqTrim(text);
-        if (!text) return false;
-
-        if (window.qaqLooksLikeWordHeader(text) || window.qaqLooksLikeMeaningHeader(text)) return false;
-        if (window.qaqLooksLikeNoiseLine(text)) return false;
-        if (window.qaqIsPureIndexLine(text)) return false;
-
-        if (window.qaqLooksLikePosLine(text) && /[\u4e00-\u9fa5]/.test(text)) return true;
-
-        return /[\u4e00-\u9fa5]/.test(text);
-    };
+    var lang = window.qaqGetWordbankLanguage ? window.qaqGetWordbankLanguage() : 'en';
+    var langCfg = window.qaqWordbankLangConfig[lang];
+    if (langCfg && langCfg.looksLikeMeaning) {
+        return langCfg.looksLikeMeaning(text);
+    }
+    text = window.qaqTrim(text);
+    if (!text) return false;
+    return /[\u4e00-\u9fa5]/.test(text);
+};
 
     window.qaqShouldDropWordItem = function (word, meaning) {
         var w = window.qaqTrim(word).toLowerCase();
@@ -236,6 +547,8 @@
 
     window.qaqNormalizeWordItem = function (raw, bookName) {
         var word = window.qaqTrim(raw.word || raw.en || raw.english || raw.term || raw.vocab || '');
+// 剥离开头的数字序号
+word = word.replace(/^\d+[\.\s、．\-]*/, '').trim();
         var meaning = window.qaqTrim(raw.meaning || raw.cn || raw.chinese || raw.translation || raw.desc || '');
         var phonetic = window.qaqTrim(raw.phonetic || raw.uk || raw.us || '');
         var example = window.qaqTrim(raw.example || raw.sentence || '');
@@ -265,39 +578,41 @@
     };
 
     window.qaqCreateWordbook = function (name, words, sourceName) {
-        return {
-            id: window.qaqWordbookId(),
-            name: name || '未命名词库',
-            color: '#5b9bd5',
-            importedAt: Date.now(),
-            sourceName: sourceName || '',
-            words: words.map(function (item) {
-                return {
-                    id: item.id || window.qaqWordId(),
-                    word: item.word || '',
-                    meaning: item.meaning || '',
-                    phonetic: item.phonetic || '',
-                    example: item.example || '',
-                    exampleCn: item.exampleCn || ''
-                };
-            })
-        };
+    return {
+        id: window.qaqWordbookId(),
+        name: name || '未命名词库',
+        color: '#5b9bd5',
+        importedAt: Date.now(),
+        sourceName: sourceName || '',
+        lang: window.qaqGetWordbankLanguage ? window.qaqGetWordbankLanguage() : 'en',
+        words: words.map(function (item) {
+            return {
+                id: item.id || window.qaqWordId(),
+                word: item.word || '',
+                meaning: item.meaning || '',
+                phonetic: item.phonetic || '',
+                example: item.example || '',
+                exampleCn: item.exampleCn || ''
+            };
+        })
     };
+};
 
     /* ===== Validation / Classification ===== */
-    window.qaqValidateWordCandidate = function (word, meaning) {
-        word = window.qaqTrim(word);
-        meaning = window.qaqTrim(meaning);
-
-        if (!word && !meaning) return { ok: false, reason: '单词和释义都为空' };
-        if (!word) return { ok: false, reason: '单词为空' };
-        if (!meaning) return { ok: false, reason: '释义为空' };
-        if (window.qaqShouldDropWordItem(word, meaning)) return { ok: false, reason: '疑似标题、页码或无效内容' };
-        if (!window.qaqLooksLikeEnglishWord(word)) return { ok: false, reason: '单词格式未通过校验' };
-        if (meaning.length > 800) return { ok: false, reason: '释义过长，疑似混入杂项文本' };
-
-        return { ok: true, reason: '' };
-    };
+   window.qaqValidateWordCandidate = function (word, meaning) {
+    var lang = window.qaqGetWordbankLanguage ? window.qaqGetWordbankLanguage() : 'en';
+    var langCfg = window.qaqWordbankLangConfig[lang];
+    if (langCfg && langCfg.validateWord) {
+        return langCfg.validateWord(word, meaning);
+    }
+    // 兜底
+    word = window.qaqTrim(word);
+    meaning = window.qaqTrim(meaning);
+    if (!word && !meaning) return { ok: false, reason: '单词和释义都为空' };
+    if (!word) return { ok: false, reason: '单词为空' };
+    if (!meaning) return { ok: false, reason: '释义为空' };
+    return { ok: true, reason: '' };
+};
 
     window.qaqDedupeWordItemsWithLog = function (items) {
         var seen = {};
@@ -325,190 +640,277 @@
     };
 
     window.qaqClassifyWordCandidates = function (items) {
-        var accepted = [];
-        var rejected = [];
+    var accepted = [];
+    var rejected = [];
 
-        (items || []).forEach(function (item) {
-            var word = window.qaqTrim(item.word || '');
-            var meaning = window.qaqTrim(item.meaning || '');
+    var lang = window.qaqGetWordbankLanguage ? window.qaqGetWordbankLanguage() : 'en';
+    var langCfg = window.qaqWordbankLangConfig ? window.qaqWordbankLangConfig[lang] : null;
 
-            var check = window.qaqValidateWordCandidate(word, meaning);
-            if (!check.ok) {
-                rejected.push({
-                    word: word,
-                    meaning: meaning,
-                    reason: check.reason
-                });
-                return;
-            }
+    (items || []).forEach(function (item) {
+        var word = window.qaqTrim(item.word || '');
+        var meaning = window.qaqTrim(item.meaning || '');
 
-            accepted.push({
-                id: item.id || window.qaqWordId(),
+        // 使用当前语言的验证器
+        var check;
+        if (langCfg && langCfg.validateWord) {
+            check = langCfg.validateWord(word, meaning);
+        } else {
+            check = window.qaqValidateWordCandidate(word, meaning);
+        }
+
+        if (!check.ok) {
+            rejected.push({
                 word: word,
                 meaning: meaning,
-                phonetic: item.phonetic || '',
-                example: item.example || '',
-                exampleCn: item.exampleCn || '',
-                book: item.book || ''
+                reason: check.reason
             });
+            return;
+        }
+
+        accepted.push({
+            id: item.id || window.qaqWordId(),
+            word: word,
+            meaning: meaning,
+            phonetic: item.phonetic || '',
+            example: item.example || '',
+            exampleCn: item.exampleCn || '',
+            book: item.book || ''
         });
+    });
 
-        var deduped = window.qaqDedupeWordItemsWithLog(accepted);
+    var deduped = window.qaqDedupeWordItemsWithLog(accepted);
 
-        return {
-            accepted: deduped.accepted,
-            rejected: rejected.concat(deduped.rejected)
-        };
+    return {
+        accepted: deduped.accepted,
+        rejected: rejected.concat(deduped.rejected)
     };
+};
 
     /* ===== Render Wordbook Home ===== */
     window.qaqRenderWordbookHome = function (keyword) {
-        var listEl = document.getElementById('qaq-wordbook-list');
-        var statsEl = document.getElementById('qaq-wordbook-stats');
-        var emptyEl = document.getElementById('qaq-wordbook-empty');
-        var batchBar = document.getElementById('qaq-wordbook-batchbar');
-        if (!listEl) return;
+    var listEl = document.getElementById('qaq-wordbook-list');
+    var statsEl = document.getElementById('qaq-wordbook-stats');
+    var emptyEl = document.getElementById('qaq-wordbook-empty');
+    var batchBar = document.getElementById('qaq-wordbook-batchbar');
+    if (!listEl) return;
 
-        var books = window.qaqGetWordbooks();
-        var kw = (keyword || '').trim().toLowerCase();
+    var books = window.qaqGetWordbooks();
+    var currentLang = window.qaqGetWordbankLanguage ? window.qaqGetWordbankLanguage() : 'en';
+    books = books.filter(function (book) {
+        // 没有 lang 字段的老词库默认当作英语
+        var bookLang = book.lang || 'en';
+        return bookLang === currentLang;
+    });
+    var kw = (keyword || '').trim().toLowerCase();
 
-        if (kw) {
-            books = books.filter(function (book) {
-                return (book.name || '').toLowerCase().indexOf(kw) > -1;
-            });
-        }
-
-        statsEl.textContent = '共 ' + books.length + ' 本' +
-            (window.qaqWordbookSelectMode ? ' · 已选 ' + window.qaqSelectedWordbookIds.length + ' 本' : '');
-
-        if (batchBar) batchBar.style.display = window.qaqWordbookSelectMode ? 'flex' : 'none';
-
-        if (!books.length) {
-            listEl.innerHTML = '';
-            if (emptyEl) emptyEl.style.display = 'block';
-            return;
-        }
-
-        if (emptyEl) emptyEl.style.display = 'none';
-
-        var MAX_RENDER = 30;
-        var renderBooks = books.slice(0, MAX_RENDER);
-
-        var frag = document.createDocumentFragment();
-
-        renderBooks.forEach(function (book) {
-            var selected = window.qaqSelectedWordbookIds.indexOf(book.id) > -1;
-            var div = document.createElement('div');
-            div.className = 'qaq-wordbook-card' + (selected ? ' qaq-card-selected' : '');
-            div.dataset.bookId = book.id;
-            var bookColor = book.color || '#5b9bd5';
-
-            if (window.qaqWordbookSelectMode) {
-                div.innerHTML =
-                    '<div class="qaq-wordbook-card-top">' +
-                        '<div class="qaq-select-check' + (selected ? ' qaq-select-check-on' : '') + '"></div>' +
-                        '<div style="flex:1;min-width:0;">' +
-                            '<div style="display:flex;align-items:center;gap:8px;">' +
-                                '<div style="width:10px;height:10px;border-radius:50%;background:' + bookColor + ';flex-shrink:0;"></div>' +
-                                '<div class="qaq-wordbook-card-name">' + book.name + '</div>' +
-                            '</div>' +
-                            '<div class="qaq-wordbook-card-meta">导入：' + window.qaqFormatImportTime(book.importedAt) + '</div>' +
-                            '<div class="qaq-wordbook-card-count">共 ' + (book.words ? book.words.length : 0) + ' 条</div>' +
-                        '</div>' +
-                    '</div>';
-            } else {
-                div.innerHTML =
-                    '<div style="display:flex;align-items:center;gap:8px;">' +
-                        '<div style="width:10px;height:10px;border-radius:50%;background:' + bookColor + ';"></div>' +
-                        '<div class="qaq-wordbook-card-name">' + book.name + '</div>' +
-                    '</div>' +
-                    '<div class="qaq-wordbook-card-meta">导入：' + window.qaqFormatImportTime(book.importedAt) + '</div>' +
-                    '<div class="qaq-wordbook-card-count">共 ' + (book.words ? book.words.length : 0) + ' 条</div>';
-            }
-
-            frag.appendChild(div);
+    if (kw) {
+        books = books.filter(function (book) {
+            return (book.name || '').toLowerCase().indexOf(kw) > -1;
         });
+    }
 
+    statsEl.textContent = '共 ' + books.length + ' 本' +
+        (window.qaqWordbookSelectMode ? ' · 已选 ' + window.qaqSelectedWordbookIds.length + ' 本' : '');
+
+    if (batchBar) batchBar.style.display = window.qaqWordbookSelectMode ? 'flex' : 'none';
+
+    if (!books.length) {
         listEl.innerHTML = '';
-        listEl.appendChild(frag);
-    };
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+    }
+
+    if (emptyEl) emptyEl.style.display = 'none';
+
+    window._qaqHomeAllBooks = books;
+    window._qaqHomeRendered = 0;
+
+    listEl.innerHTML = '';
+    _qaqHomeAppendBatch(listEl, 30);
+
+    var scrollContainer = listEl.closest('.qaq-wordbank-content') || listEl.closest('.qaq-wordbank-panel');
+    if (scrollContainer) {
+        scrollContainer.removeEventListener('scroll', _qaqHomeScrollHandler);
+        scrollContainer.addEventListener('scroll', _qaqHomeScrollHandler);
+    }
+};
+
+function _qaqHomeScrollHandler(e) {
+    var el = e.target;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 100) {
+        var listEl = document.getElementById('qaq-wordbook-list');
+        if (listEl && window._qaqHomeAllBooks && window._qaqHomeRendered < window._qaqHomeAllBooks.length) {
+            _qaqHomeAppendBatch(listEl, 30);
+        }
+    }
+}
+
+function _qaqHomeAppendBatch(listEl, batchSize) {
+    var books = window._qaqHomeAllBooks || [];
+    var start = window._qaqHomeRendered || 0;
+    var end = Math.min(start + batchSize, books.length);
+
+    var frag = document.createDocumentFragment();
+
+    for (var i = start; i < end; i++) {
+        var book = books[i];
+        var selected = window.qaqSelectedWordbookIds.indexOf(book.id) > -1;
+        var div = document.createElement('div');
+        div.className = 'qaq-wordbook-card' + (selected ? ' qaq-card-selected' : '');
+        div.dataset.bookId = book.id;
+        var bookColor = book.color || '#5b9bd5';
+
+        if (window.qaqWordbookSelectMode) {
+            div.innerHTML =
+                '<div class="qaq-wordbook-card-top">' +
+                    '<div class="qaq-select-check' + (selected ? ' qaq-select-check-on' : '') + '"></div>' +
+                    '<div style="flex:1;min-width:0;">' +
+                        '<div style="display:flex;align-items:center;gap:8px;">' +
+                            '<div style="width:10px;height:10px;border-radius:50%;background:' + bookColor + ';flex-shrink:0;"></div>' +
+                            '<div class="qaq-wordbook-card-name">' + book.name + '</div>' +
+                        '</div>' +
+                        '<div class="qaq-wordbook-card-meta">导入：' + window.qaqFormatImportTime(book.importedAt) + '</div>' +
+                        '<div class="qaq-wordbook-card-count">共 ' + (book.words ? book.words.length : 0) + ' 条</div>' +
+                    '</div>' +
+                '</div>';
+        } else {
+            div.innerHTML =
+                '<div style="display:flex;align-items:center;gap:8px;">' +
+                    '<div style="width:10px;height:10px;border-radius:50%;background:' + bookColor + ';"></div>' +
+                    '<div class="qaq-wordbook-card-name">' + book.name + '</div>' +
+                '</div>' +
+                '<div class="qaq-wordbook-card-meta">导入：' + window.qaqFormatImportTime(book.importedAt) + '</div>' +
+                '<div class="qaq-wordbook-card-count">共 ' + (book.words ? book.words.length : 0) + ' 条</div>';
+        }
+
+        frag.appendChild(div);
+    }
+
+    listEl.appendChild(frag);
+    window._qaqHomeRendered = end;
+}
 
     /* ===== Render Wordbook Detail ===== */
     window.qaqRenderWordbookDetail = function (bookId, keyword) {
-        var books = window.qaqGetWordbooks();
-        var book = books.find(function (b) { return b.id === bookId; });
-        if (!book) return;
+    var books = window.qaqGetWordbooks();
+    var book = books.find(function (b) { return b.id === bookId; });
+    if (!book) return;
 
-        var titleEl = document.getElementById('qaq-wordbook-detail-title');
-        if (titleEl) titleEl.textContent = book.name;
+    var titleEl = document.getElementById('qaq-wordbook-detail-title');
+    if (titleEl) titleEl.textContent = book.name;
 
+    var listEl = document.getElementById('qaq-wordbook-detail-list');
+    var statsEl = document.getElementById('qaq-wordbook-detail-stats');
+    var emptyEl = document.getElementById('qaq-wordbook-detail-empty');
+    var batchBar = document.getElementById('qaq-word-entry-batchbar');
+
+    var items = book.words || [];
+    var kw = (keyword || '').trim().toLowerCase();
+
+    if (kw) {
+        items = items.filter(function (item) {
+            return (item.word || '').toLowerCase().indexOf(kw) > -1 ||
+                (item.meaning || '').toLowerCase().indexOf(kw) > -1;
+        });
+    }
+
+    if (statsEl) {
+        statsEl.textContent = '共 ' + items.length + ' 条' +
+            (window.qaqWordEntrySelectMode ? ' · 已选 ' + window.qaqSelectedWordIds.length + ' 条' : '');
+    }
+
+    if (batchBar) batchBar.style.display = window.qaqWordEntrySelectMode ? 'flex' : 'none';
+
+    if (!items.length) {
+        listEl.innerHTML = '';
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+    }
+
+    if (emptyEl) emptyEl.style.display = 'none';
+
+    // 存储完整列表供滚动加载使用
+    window._qaqDetailAllItems = items;
+    window._qaqDetailRendered = 0;
+
+    listEl.innerHTML = '';
+    _qaqDetailAppendBatch(listEl, 50);
+
+    // 移除旧的滚动监听，避免重复绑定
+    var scrollContainer = listEl.closest('.qaq-wordbook-detail-content');
+    if (scrollContainer) {
+        scrollContainer.removeEventListener('scroll', _qaqDetailScrollHandler);
+        scrollContainer.addEventListener('scroll', _qaqDetailScrollHandler);
+    }
+};
+
+function _qaqDetailScrollHandler(e) {
+    var el = e.target;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 100) {
         var listEl = document.getElementById('qaq-wordbook-detail-list');
-        var statsEl = document.getElementById('qaq-wordbook-detail-stats');
-        var emptyEl = document.getElementById('qaq-wordbook-detail-empty');
-        var batchBar = document.getElementById('qaq-word-entry-batchbar');
-
-        var items = book.words || [];
-        var kw = (keyword || '').trim().toLowerCase();
-
-        if (kw) {
-            items = items.filter(function (item) {
-                return (item.word || '').toLowerCase().indexOf(kw) > -1 ||
-                    (item.meaning || '').toLowerCase().indexOf(kw) > -1;
-            });
+        if (listEl && window._qaqDetailAllItems && window._qaqDetailRendered < window._qaqDetailAllItems.length) {
+            _qaqDetailAppendBatch(listEl, 50);
         }
+    }
+}
 
-        if (statsEl) {
-            statsEl.textContent = '共 ' + items.length + ' 条' +
-                (window.qaqWordEntrySelectMode ? ' · 已选 ' + window.qaqSelectedWordIds.length + ' 条' : '');
-        }
+function _qaqDetailAppendBatch(listEl, batchSize) {
+    var items = window._qaqDetailAllItems || [];
+    var start = window._qaqDetailRendered || 0;
+    var end = Math.min(start + batchSize, items.length);
 
-        if (batchBar) batchBar.style.display = window.qaqWordEntrySelectMode ? 'flex' : 'none';
+    var frag = document.createDocumentFragment();
 
-        if (!items.length) {
-            listEl.innerHTML = '';
-            if (emptyEl) emptyEl.style.display = 'block';
-            return;
-        }
+    for (var i = start; i < end; i++) {
+        var item = items[i];
+        var selected = window.qaqSelectedWordIds.indexOf(item.id) > -1;
+        var div = document.createElement('div');
+        div.className = 'qaq-word-entry-card' + (selected ? ' qaq-card-selected' : '');
+        div.dataset.wordId = item.id;
 
-        if (emptyEl) emptyEl.style.display = 'none';
-
-        var MAX_RENDER = 50;
-        var renderItems = items.slice(0, MAX_RENDER);
-        var frag = document.createDocumentFragment();
-
-        renderItems.forEach(function (item) {
-            var selected = window.qaqSelectedWordIds.indexOf(item.id) > -1;
-            var div = document.createElement('div');
-            div.className = 'qaq-word-entry-card' + (selected ? ' qaq-card-selected' : '');
-            div.dataset.wordId = item.id;
-
-            if (window.qaqWordEntrySelectMode) {
-                div.innerHTML =
-                    '<div class="qaq-word-entry-card-top">' +
-                        '<div class="qaq-select-check' + (selected ? ' qaq-select-check-on' : '') + '"></div>' +
-                        '<div class="qaq-word-entry-main">' +
-                            '<div class="qaq-word-entry-word">' + item.word + '</div>' +
-                            '<div class="qaq-word-entry-meaning">' + item.meaning + '</div>' +
-                        '</div>' +
-                    '</div>';
-            } else {
-                div.innerHTML =
+        if (window.qaqWordEntrySelectMode) {
+            div.innerHTML =
+                '<div class="qaq-word-entry-card-top">' +
+                    '<div class="qaq-select-check' + (selected ? ' qaq-select-check-on' : '') + '"></div>' +
                     '<div class="qaq-word-entry-main">' +
                         '<div class="qaq-word-entry-word">' + item.word + '</div>' +
                         '<div class="qaq-word-entry-meaning">' + item.meaning + '</div>' +
                     '</div>' +
-                    '<div class="qaq-word-entry-actions">' +
-                        '<button class="qaq-word-entry-btn qaq-word-entry-btn-edit" data-id="' + item.id + '">✎</button>' +
-                        '<button class="qaq-word-entry-btn qaq-word-entry-btn-del" data-id="' + item.id + '">✕</button>' +
-                    '</div>';
-            }
+                '</div>';
+        } else {
+            div.innerHTML =
+                '<div class="qaq-word-entry-main">' +
+                    '<div class="qaq-word-entry-word">' + item.word + '</div>' +
+                    '<div class="qaq-word-entry-meaning">' + item.meaning + '</div>' +
+                '</div>' +
+                '<div class="qaq-word-entry-actions">' +
+                    '<button class="qaq-word-entry-btn qaq-word-entry-btn-edit" data-id="' + item.id + '">✎</button>' +
+                    '<button class="qaq-word-entry-btn qaq-word-entry-btn-del" data-id="' + item.id + '">✕</button>' +
+                '</div>';
+        }
 
-            frag.appendChild(div);
-        });
+        frag.appendChild(div);
+    }
 
-        listEl.innerHTML = '';
-        listEl.appendChild(frag);
-    };
+    listEl.appendChild(frag);
+    window._qaqDetailRendered = end;
+
+    // 更新底部提示
+    var oldTip = listEl.querySelector('.qaq-load-more-tip');
+    if (oldTip) oldTip.remove();
+
+    if (end < items.length) {
+        var tip = document.createElement('div');
+        tip.className = 'qaq-load-more-tip';
+        tip.textContent = '已加载 ' + end + ' / ' + items.length + ' 条，继续下滑加载更多';
+        listEl.appendChild(tip);
+    } else if (items.length > 50) {
+        var doneTip = document.createElement('div');
+        doneTip.className = 'qaq-load-more-tip';
+        doneTip.textContent = '全部 ' + items.length + ' 条已加载完毕';
+        listEl.appendChild(doneTip);
+    }
+}
 
     /* ===== Edit Wordbook Meta ===== */
     window.qaqEditWordbookMeta = function (bookId) {
@@ -729,18 +1131,21 @@
 
     /* ===== Export ===== */
     window.qaqExportWordbooks = function () {
-        var data = window.qaqGetWordbooks();
-        if (!data.length) return window.qaqToast('暂无词库');
+    var currentLang = window.qaqGetWordbankLanguage ? window.qaqGetWordbankLanguage() : 'en';
+    var data = window.qaqGetWordbooks().filter(function (b) {
+        return (b.lang || 'en') === currentLang;
+    });
+    if (!data.length) return window.qaqToast('当前语言暂无词库');
 
-        var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = 'qaq-wordbooks.json';
-        a.click();
-        URL.revokeObjectURL(url);
-        window.qaqToast('已导出 JSON');
-    };
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'qaq-wordbooks-' + currentLang + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    window.qaqToast('已导出 JSON');
+};
 
     window.qaqExportSelectedWordbooks = function (ids) {
         var books = window.qaqGetWordbooks().filter(function (b) {
@@ -877,6 +1282,56 @@ window.qaqModalBody.querySelectorAll('.qaq-import-reject-check:checked').forEach
             window.qaqToast('导入成功，共 ' + finalItems.length + ' 条');
         };
     };
+    
+    window.qaqOpenImportModeModal = function (importType, onPick) {
+    var saved = window.qaqGetImportSettings ? window.qaqGetImportSettings() : { importMode: 'fast' };
+    var lastMode = saved.importMode || 'fast';
+
+    window.qaqModalTitle.textContent = '选择导入方式';
+   window.qaqModalBody.innerHTML =
+    '<div class="qaq-import-mode-list">' +
+        '<div class="qaq-import-mode-item" data-mode="fast">' +
+            '<div class="qaq-import-mode-title">快速导入</div>' +
+            '<div class="qaq-import-mode-desc">仅使用本地规则解析，速度快，不消耗 API。</div>' +
+            '<div class="qaq-import-mode-badge">推荐：格式比较规整的 JSON / Excel</div>' +
+        '</div>' +
+        '<div class="qaq-import-mode-item" data-mode="smart">' +
+            '<div class="qaq-import-mode-title">智能导入</div>' +
+            '<div class="qaq-import-mode-desc">先本地解析，再调用 AI 深度修复，适合 PDF、OCR、乱序文本。</div>' +
+            '<div class="qaq-import-mode-badge">推荐：PDF / 识别质量差 / 排版混乱</div>' +
+        '</div>' +
+    '</div>';
+
+    window.qaqModalBtns.innerHTML =
+        '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">取消</button>';
+
+    window.qaqOpenModal();
+
+    document.getElementById('qaq-modal-cancel').onclick = window.qaqCloseModal;
+
+    window.qaqModalBody.querySelectorAll('.qaq-import-mode-item').forEach(function (el) {
+        if (el.dataset.mode === lastMode) {
+            el.style.borderColor = 'rgba(196, 112, 104, 0.28)';
+        }
+
+        el.addEventListener('click', function () {
+            var mode = this.dataset.mode || 'fast';
+            window.qaqCurrentImportMode = mode;
+
+            if (window.qaqSaveImportSettings) {
+                window.qaqSaveImportSettings({
+                    importMode: mode
+                });
+            }
+
+            window.qaqCloseModal();
+
+            if (typeof onPick === 'function') {
+                onPick(mode, importType);
+            }
+        });
+    });
+};
 
     /* ===== Import ===== */
     window.qaqImportWordbankJson = function (file) {
@@ -895,7 +1350,7 @@ window.qaqModalBody.querySelectorAll('.qaq-import-reject-check:checked').forEach
                 }
             };
 
-            reader.onload = function (e) {
+            reader.onload = async function (e) {
                 try {
                     window.qaqRequireImportNotCancelled();
 
@@ -906,6 +1361,19 @@ window.qaqModalBody.querySelectorAll('.qaq-import-reject-check:checked').forEach
                     if (Array.isArray(data)) out = data;
                     else if (data && Array.isArray(data.items)) out = data.items;
                     else throw new Error('JSON 格式不正确');
+                    
+                    if (window.qaqCurrentImportMode === 'smart' && (!out || !out.length || (out.length < 10 && typeof e.target.result === 'string'))) {
+    try {
+        window.qaqRequireImportNotCancelled();
+        window.qaqUpdateImportProgress(94, '正在尝试 AI 智能修复 JSON 内容...');
+        var aiItems = await window.qaqAiParseWordItems(e.target.result, file.name);
+        if (aiItems && aiItems.length > (out ? out.length : 0)) {
+            out = aiItems;
+        }
+    } catch (err2) {
+        console.warn('JSON 智能修复失败：', err2);
+    }
+}
 
                     window.qaqUpdateImportProgress(100, '解析完成');
                     window.qaqImportCtrl.busy = false;
@@ -969,45 +1437,101 @@ window.qaqModalBody.querySelectorAll('.qaq-import-reject-check:checked').forEach
     };
 
     window.qaqParseExcelRowsToWordbank = function (rows, sheetName) {
-        if (!rows || !rows.length) return [];
+    if (!rows || !rows.length) return [];
 
-        var result = [];
-        var cleanRows = window.qaqGetNonEmptyRows(rows);
-        if (!cleanRows.length) return [];
+    var result = [];
+    var wIdx = -1, mIdx = -1;
+    var startRow = 0;
+    var foundMapping = false;
 
-        var startRow = 0;
-        var map = {};
-        var firstRow = cleanRows[0] || [];
+    // 1. 放弃不可靠的表头，直接向下扫描最多 30 行，通过“数据特征”嗅探列的正确位置
+    for (var r = 0; r < Math.min(30, rows.length); r++) {
+        var row = rows[r];
+        if (!row || !row.length) continue;
 
-        if (window.qaqLooksLikeHeader(firstRow)) {
-            map = window.qaqGuessHeaderMap(firstRow);
-            startRow = rows.indexOf(firstRow) + 1;
-        } else {
-            map.word = 0;
-            map.meaning = 1;
-            map.phonetic = 2;
-            map.example = 3;
-            map.exampleCn = 4;
+        var tempW = -1, tempM = -1;
+
+        for (var col = 0; col < row.length; col++) {
+            var cellVal = String(row[col] || '').trim();
+            if (!cellVal) continue;
+            
+            // 跳过纯数字（百词斩特有的序号列干扰）
+            if (/^\d+$/.test(cellVal)) continue;
+
+            // 寻找最像英文单词的列：调用原生的单词合法性检测，并排除刚好写着Word的那一行
+            if (tempW === -1 && window.qaqLooksLikeEnglishWord(cellVal)) {
+                var lower = cellVal.toLowerCase();
+                if (lower !== 'word' && lower !== 'meaning' && lower !== 'vocabulary') {
+                    tempW = col;
+                }
+            }
+            // 寻找最像释义的列：只要包含汉字就认定是释义
+            else if (tempM === -1 && window.qaqLooksLikeChineseMeaning(cellVal)) {
+                tempM = col;
+            }
         }
 
-        for (var i = startRow; i < rows.length; i++) {
-            var row = rows[i];
-            if (!row || !row.length) continue;
-
-            var item = window.qaqNormalizeWordItem({
-                word: row[map.word],
-                meaning: row[map.meaning],
-                phonetic: row[map.phonetic],
-                example: row[map.example],
-                exampleCn: row[map.exampleCn],
-                book: sheetName
-            }, sheetName);
-
-            if (item) result.push(item);
+        // 一旦在某一行同时摸到了真实的“单词列”和“中文列”，锁定列号！
+        if (tempW !== -1 && tempM !== -1) {
+            wIdx = tempW;
+            mIdx = tempM;
+            startRow = r; // 从这一行开始往下全当数据读
+            foundMapping = true;
+            break;
         }
+    }
 
-        return result;
-    };
+    // 2. 如果智能嗅探没探出来（可能是极特殊的残缺表），老规矩猜表头兜底
+    if (!foundMapping) {
+        for (var r = 0; r < Math.min(15, rows.length); r++) {
+            var map = window.qaqGuessHeaderMap(rows[r]);
+            if (map.word !== undefined || map.meaning !== undefined) {
+                wIdx = map.word !== undefined ? map.word : 0;
+                mIdx = map.meaning !== undefined ? map.meaning : 1;
+                startRow = r + 1;
+                foundMapping = true;
+                break;
+            }
+        }
+    }
+
+    // 3. 终极兜底：强行拿第0列和第1列
+    if (!foundMapping) {
+        wIdx = 0;
+        mIdx = 1;
+        startRow = 0;
+    }
+
+    // 4. 正式解析提取并清洗
+    for (var i = startRow; i < rows.length; i++) {
+        var row = rows[i];
+        if (!row || !row.length) continue;
+
+        var wordText = wIdx > -1 ? row[wIdx] : '';
+        var meaningText = mIdx > -1 ? row[mIdx] : '';
+
+        wordText = String(wordText || '').trim();
+        meaningText = String(meaningText || '').trim();
+
+        if (!wordText && !meaningText) continue;
+
+        // 过滤掉百词斩可能插播的“已背”、“未背”等夹缝标题
+        if (window.qaqShouldDropWordItem(wordText, meaningText)) continue;
+
+        var item = window.qaqNormalizeWordItem({
+            word: wordText,
+            meaning: meaningText,
+            book: sheetName
+        }, sheetName);
+
+        // 二次确认，没问题就收录
+        if (item && item.word && item.meaning) {
+            result.push(item);
+        }
+    }
+
+    return result;
+};
 
     window.qaqImportWordbankExcel = function (file) {
         return new Promise(function (resolve, reject) {
@@ -1025,7 +1549,7 @@ window.qaqModalBody.querySelectorAll('.qaq-import-reject-check:checked').forEach
                 }
             };
 
-            reader.onload = function (e) {
+            reader.onload = async function (e) {
                 try {
                     window.qaqRequireImportNotCancelled();
 
@@ -1043,6 +1567,30 @@ window.qaqModalBody.querySelectorAll('.qaq-import-reject-check:checked').forEach
                     });
 
                     result = window.qaqDedupeWordItems(result);
+                    
+                    if (window.qaqCurrentImportMode === 'smart' && result.length < 20) {
+    try {
+        window.qaqRequireImportNotCancelled();
+        window.qaqUpdateImportProgress(94, '本地识别较少，正在尝试 AI 智能修复...');
+
+        var workbookText = '';
+        workbook.SheetNames.forEach(function (sheetName) {
+            var sheet = workbook.Sheets[sheetName];
+            var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            workbookText += '\n# Sheet: ' + sheetName + '\n';
+            rows.forEach(function (row) {
+                workbookText += row.join(' | ') + '\n';
+            });
+        });
+
+        var aiItems = await window.qaqAiParseWordItems(workbookText, file.name);
+        if (aiItems && aiItems.length > result.length) {
+            result = window.qaqDedupeWordItems(aiItems);
+        }
+    } catch (e) {
+        console.warn('Excel 智能修复失败：', e);
+    }
+}
 
                     window.qaqUpdateImportProgress(100, '解析完成');
                     window.qaqImportCtrl.busy = false;
@@ -1080,37 +1628,382 @@ window.qaqModalBody.querySelectorAll('.qaq-import-reject-check:checked').forEach
         });
     };
 
-    window.qaqParsePdfLinesToWordbankAsync = async function (lines, bookName) {
-        var result = [];
+window.qaqParsePdfLinesToWordbankAsync = async function (lines, bookName) {
+    var cleanLines = [];
+    for (var i = 0; i < lines.length; i++) {
+        var l = lines[i].replace(/[\u200B-\u200D\uFEFF]/g, '');
+        l = window.qaqTrim(l);
+        
+        if (!l) continue;
 
-        lines = (lines || []).map(function (line) {
-            return window.qaqTrim(line);
-        }).filter(function (line) {
-            return !window.qaqLooksLikeNoiseLine(line);
-        });
+        // 【终极必杀：剥除所有的章节和分类表头】
+        // 把字符里的空格、字母和数字抹掉，只看纯汉字结构
+        var testStr = l.replace(/[\s　a-zA-Z0-9\-\.]/g, ''); 
+        // 只要它是典型的词书分类大纲，直接扔进垃圾桶，绝对不让解析器看到它！
+        if (/^(实义词汇|非实义词汇|実義词汇|抽象概念|动作与行为|状态与性质|人物与人际|自然与地理|空间与方向|身体与健康|服装与物品|建筑与场所|社会与经济|科技与媒体|交通与旅行|程度与频率|饮食|语言与沟通|教育与学习|文化艺术与娱乐|文化、艺术与娱乐|时间|感叹词|连接词|指示词与疑问词|接头词与接尾词|其他功能词|常用词汇|核心词汇)$/.test(testStr)) {
+    continue;
+}
+// 过滤 JLPT 等级标签（N1~N5）
+if (/^N[1-5]$/.test(l)) {
+    continue;
+}
+// 过滤日语词性标注行（如 "名"、"动1自"、"形2"、"名・动3他"、"副・形2"、"连体"、"感"、"接"、"后缀"、"前缀"、"副・名"等）
+if (/^(名|动[1-3]?[自他]*|形[12]?|副|连体|感|接|后缀|前缀)([\s・](名|动[1-3]?[自他]*|形[12]?|副|连体|感|接|后缀|前缀))*$/.test(l)) {
+    continue;
+}
 
-        for (var i = 0; i < lines.length - 1; i++) {
-            window.qaqRequireImportNotCancelled();
+        if (!window.qaqLooksLikeNoiseLine(l)) {
+            cleanLines.push(l);
+        }
+    }
 
-            var word = lines[i];
-            var meaning = lines[i + 1];
+    // ===== 智能导入：优先尝试 AI 深度解析 =====
+    if (window.qaqCurrentImportMode === 'smart') {
+        try {
+            var cfg = window.qaqGetImportAiConfig();
+            var canUseAi = !!(cfg.key && cfg.model && cfg.url);
 
-            if (window.qaqLooksLikeEnglishWord(word) && window.qaqLooksLikeChineseMeaning(meaning)) {
-                result.push({
-                    word: word,
-                    meaning: meaning,
-                    book: bookName
-                });
-                i++;
+            if (canUseAi) {
+                var joinedText = cleanLines.join('\n');
+                
+                var chunkSize = 2500;
+                var chunks = [];
+                var currentChunk = '';
+                var linesList = joinedText.split('\n');
+                
+                for (var li = 0; li < linesList.length; li++) {
+                    var testChunk = currentChunk + (currentChunk ? '\n' : '') + linesList[li];
+                    if (testChunk.length > chunkSize && currentChunk) {
+                        chunks.push(currentChunk);
+                        currentChunk = linesList[li];
+                    } else {
+                        currentChunk = testChunk;
+                    }
+                }
+                if (currentChunk) chunks.push(currentChunk);
+
+                var aiResults = [];
+
+                for (var idx = 0; idx < chunks.length; idx++) {
+                    window.qaqRequireImportNotCancelled();
+
+                    var pct = 30 + Math.round((idx / Math.max(1, chunks.length)) * 55);
+
+                    if (window.qaqUpdateImportProgress) {
+                        window.qaqUpdateImportProgress(pct, 'AI 深度解析中（第 ' + (idx + 1) + '/' + chunks.length + ' 段）...');
+                    }
+
+                    var parsedChunk = await window.qaqAiParseWordItems(chunks[idx], bookName);
+                    aiResults = aiResults.concat(parsedChunk);
+
+                    await window.qaqNextFrame();
+                }
+
+                aiResults = window.qaqDedupeWordItems(aiResults);
+
+                if (aiResults.length > 5) {
+                    console.log('[QAQ Import] AI 智能解析成功共 ' + aiResults.length + ' 条，直接使用 AI 数据！');
+                    window.qaqUpdateImportProgress(95, 'AI 数据清洗完成...');
+                    return aiResults;
+                } else {
+                    console.log('[QAQ Import] AI 解析数量异常少，将转入本地兜底...');
+                }
             }
+        } catch (err) {
+            if (window.qaqIsCancelError && window.qaqIsCancelError(err)) throw err;
+            console.warn('PDF 智能解析报错，回退本地解析：', err);
+        }
+    }
 
-            if (i % 80 === 0) {
-                await window.qaqNextFrame();
+    // ===== 本地兜底解析 =====
+    if (window.qaqUpdateImportProgress) window.qaqUpdateImportProgress(90, '正在执行本地解析...');
+    return await _qaqLocalPdfParse(cleanLines, bookName);
+};
+
+// 把本地解析逻辑抽出来复用
+async function _qaqLocalPdfParse(cleanLines, bookName) {
+    var lang = window.qaqGetWordbankLanguage ? window.qaqGetWordbankLanguage() : 'en';
+
+    if (window.qaqUpdateImportProgress) {
+        window.qaqUpdateImportProgress(92, '正在执行本地规则解析...');
+    }
+// 【新增】日语专用：按序号分组解析
+    if (lang === 'ja') {
+        var jaResult = _qaqLocalJaPdfParse(cleanLines, bookName);
+        if (jaResult.length > 5) {
+            return jaResult;
+        }
+        // 如果序号分组失败，继续走通用逻辑
+    }
+    var resultAdjacent = [], resultIndexed = [], resultInline = [];
+
+    var adjClean = cleanLines.filter(function (l) { return !window.qaqIsPureIndexLine(l); });
+    for (var n = 0; n < adjClean.length - 1; n++) {
+        var w = adjClean[n], m = adjClean[n + 1];
+        
+        var skipAdjacent = false;
+        if (lang === 'ja' && /[\s　]*[\u4e00-\u9fa5]+/.test(w)) {
+            skipAdjacent = true;
+        }
+
+        if (!skipAdjacent && window.qaqLooksLikeEnglishWord(w) && window.qaqLooksLikeChineseMeaning(m)) {
+            resultAdjacent.push({
+                id: window.qaqWordId(),
+                word: w, meaning: m, phonetic: '', example: '', exampleCn: '', book: bookName
+            });
+            n++;
+        }
+    }
+
+    var dictB = {};
+    var currentIdB = null;
+    for (var j = 0; j < cleanLines.length; j++) {
+        var lineB = cleanLines[j];
+        if (/^\d+$/.test(lineB)) {
+            currentIdB = parseInt(lineB, 10);
+            if (!dictB[currentIdB]) dictB[currentIdB] = { word: '', meaning: '' };
+            continue;
+        }
+        if (currentIdB !== null) {
+            if (window.qaqLooksLikeEnglishWord(lineB) && lineB.toLowerCase() !== 'word' && lineB.toLowerCase() !== 'meaning') {
+                if (!dictB[currentIdB].word) dictB[currentIdB].word = lineB;
+            } else if (window.qaqLooksLikeChineseMeaning(lineB) || window.qaqLooksLikePosLine(lineB)) {
+                dictB[currentIdB].meaning += (dictB[currentIdB].meaning ? ' ' : '') + lineB;
+            }
+        }
+    }
+    Object.keys(dictB).forEach(function (k) {
+        if (dictB[k].word && dictB[k].meaning) {
+            resultIndexed.push({ id: window.qaqWordId(), word: dictB[k].word, meaning: dictB[k].meaning, phonetic: '', example: '', exampleCn: '', book: bookName });
+        }
+    });
+
+    var lastInlineItem = null;
+    for (var c = 0; c < cleanLines.length; c++) {
+        var lineC = cleanLines[c];
+        if (window.qaqIsPureIndexLine(lineC)) continue;
+
+        var prefixMatch = lineC.match(/^(\d+)[\.、]\s*(.*)$/);
+        var tempWord = '', tempMeaning = '', tempPhonetic = '';
+        var inlineExtracted = false;
+
+        if (prefixMatch) {
+            var rest = prefixMatch[2];
+            var phoneMatch = rest.match(/^(.*?)\s*(?:\[(.*?)\]|\/(.*?)\/)\s*(.*)$/);
+            if (phoneMatch) {
+                tempWord = phoneMatch[1];
+                tempPhonetic = phoneMatch[2] || phoneMatch[3] || '';
+                tempMeaning = phoneMatch[4] || '';
+                inlineExtracted = true;
+            } else {
+                var cnIndex = rest.search(/[\u4e00-\u9fa5]/);
+                if (cnIndex > -1 && lang !== 'ja') { 
+                    tempWord = rest.substring(0, cnIndex);
+                    tempMeaning = rest.substring(cnIndex);
+                    inlineExtracted = true;
+                } else {
+                    tempWord = rest;
+                    inlineExtracted = true;
+                }
+            }
+        } else if (lang === 'ja') {
+            var jaInlineMatch = lineC.match(/^([^\s　]+)[\s　]+(.*[\u4e00-\u9fa5].*)$/);
+            if (jaInlineMatch) {
+                tempWord = jaInlineMatch[1];
+                tempMeaning = jaInlineMatch[2];
+                inlineExtracted = true;
+            } else {
+                var kanaToKanji = lineC.match(/^([\u3040-\u309F\u30A0-\u30FF\u30FCa-zA-Z0-9]+)([\u4e00-\u9fa5].*)$/);
+                if (kanaToKanji) {
+                    tempWord = kanaToKanji[1]; 
+                    tempMeaning = kanaToKanji[2]; 
+                    inlineExtracted = true;
+                }
             }
         }
 
-        return result;
-    };
+        if (inlineExtracted && tempWord) {
+            lastInlineItem = {
+                id: window.qaqWordId(),
+                word: window.qaqTrim(tempWord).replace(/[,;]$/, ''),
+                phonetic: window.qaqTrim(tempPhonetic),
+                meaning: window.qaqTrim(tempMeaning) || '待补全',
+                example: '', exampleCn: '', book: bookName
+            };
+            resultInline.push(lastInlineItem);
+        } else if (lastInlineItem) {
+            if (window.qaqLooksLikeChineseMeaning(lineC) || /^[a-z]/.test(lineC)) {
+                lastInlineItem.meaning += (lastInlineItem.meaning === '待补全' ? '' : ' ') + lineC;
+            }
+        }
+    }
+
+    var validInline = resultInline.filter(function (x) { return x.word && x.meaning; });
+    var validIndexed = resultIndexed.filter(function (x) { return x.word && x.meaning; });
+    var validAdj = resultAdjacent.filter(function (x) { return x.word && x.meaning; });
+
+    var maxCount = Math.max(validAdj.length, validIndexed.length, validInline.length);
+    if (maxCount === 0) return [];
+    if (maxCount === validInline.length && validInline.length > 5) return validInline;
+    if (maxCount === validIndexed.length && validIndexed.length > 5) return validIndexed;
+    return validAdj;
+}
+
+// 【新增】日语PDF专用解析：彻底利用空格打碎文本流，规避错行和长串粘连
+function _qaqLocalJaPdfParse(cleanLines, bookName) {
+    // 1. 将所有输入不管三七二十一，全部用空格强行打碎为独立 Token
+    var allTokens = [];
+    for (var i = 0; i < cleanLines.length; i++) {
+        var line = cleanLines[i];
+        var parts = line.split(/[\s　]+/);
+        for (var j = 0; j < parts.length; j++) {
+            var p = parts[j].trim();
+            // 剥除无意义的独立标点造成的污染
+            if (p && p !== '；' && p !== '，') {
+                allTokens.push(p);
+            }
+        }
+    }
+
+    // 2. 利用最前面那个绝对可靠的 "纯数字序号" 重新编组
+    var groups = [];
+    var currentGroup = null;
+
+    for (var k = 0; k < allTokens.length; k++) {
+        var token = allTokens[k];
+        // 发现纯数字（不超过4位数，例如 1087 / 2424），立刻建立一个新词条的圈子！
+        if (/^\d+$/.test(token) && token.length <= 4) {
+            if (currentGroup && currentGroup.tokens.length > 0) {
+                groups.push(currentGroup);
+            }
+            currentGroup = { id: parseInt(token, 10), tokens: [] };
+            continue;
+        }
+        if (currentGroup) {
+            currentGroup.tokens.push(token);
+        }
+    }
+    if (currentGroup && currentGroup.tokens.length > 0) {
+        groups.push(currentGroup);
+    }
+
+    var result = [];
+
+    // 3. 对每个圈子里的数据，按排位归类清算
+    for (var g = 0; g < groups.length; g++) {
+        var tokens = groups[g].tokens;
+        
+        var validTokens = [];
+        for (var j = 0; j < tokens.length; j++) {
+            var t = tokens[j];
+            // 毫不留情地过滤掉 N3、N4、N5
+            if (/^N[1-5]$/.test(t)) continue;
+            // 毫不留情地过滤掉诸如 实义词汇、时间 等分类噪音
+            if (/^(实义词汇|非实义词汇|抽象概念|动作与行为|状态与性质|人物与人际|自然与地理|空间与方向|身体与健康|服装与物品|建筑与场所|社会与经济|科技与媒体|交通与旅行|程度与频率|饮食|语言与沟通|教育与学习|文化.*娱乐|时间|感叹词|连接词|指示词.*疑问词|接头词.*接尾词|其他功能词|常用词汇|核心词汇)$/.test(t)) continue;
+            validTokens.push(t);
+        }
+
+        if (validTokens.length === 0) continue;
+
+        var posTag = '';
+        // 剥离第一位的 词性（如 名、后缀、名・动3他）
+        if (/^(名|动[1-3]?[自他]*|形[12]?|副|连体|感|接|后缀|前缀)([\s・](名|动[1-3]?[自他]*|形[12]?|副|连体|感|接|后缀|前缀))*$/.test(validTokens[0])) {
+            posTag = validTokens.shift() + ' ';
+        }
+
+        if (validTokens.length === 0) continue;
+
+        var word = '';
+        var phonetic = '';
+        var meaning = '';
+
+        // 走到这一步，噪音已经完全清理干净，留下的顺序必然是： 假名 - 汉字写法(可能有) - 中文释义
+        var t0 = validTokens[0];
+        
+        if (validTokens.length === 1) {
+            word = t0;
+            meaning = "待补全";
+        } else if (validTokens.length === 2) {
+            // 没有汉字写法，只有[假名, 释义]
+            if (/[\u3040-\u309F\u30A0-\u30FF]/.test(t0)) {
+                phonetic = t0;
+                word = t0;
+            } else {
+                word = t0;
+            }
+            meaning = validTokens[1];
+        } else {
+            // [词0, 词1, 词2...] —— 关键：判断夹在中间的是日语汉字，还是长释义的第一部分
+            var t1 = validTokens[1];
+            var t1IsKanji = false;
+
+            if (/[\u3040-\u309F\u30A0-\u30FF]/.test(t1)) {
+                t1IsKanji = true; // 含有平/片假名，必然是日语词（如~人）
+            } else if (/[；，（）、：!?\.,;]/.test(t1)) {
+                t1IsKanji = false; // 含有明显中文释义符号
+            } else {
+                t1IsKanji = true; // 默认视为存在汉字写法
+            }
+
+            if (t1IsKanji) {
+                phonetic = t0;
+                word = t1;
+                // 余下所有碎片，全部缝合归入中文释义
+                meaning = validTokens.slice(2).join(' ');
+            } else {
+                if (/[\u3040-\u309F\u30A0-\u30FF]/.test(t0)) phonetic = t0;
+                word = t0;
+                meaning = validTokens.slice(1).join(' ');
+            }
+        }
+
+        if (word && meaning) {
+            result.push({
+                id: window.qaqWordId ? window.qaqWordId() : ('w_' + Date.now() + Math.random().toString(36).substr(2, 5)),
+                word: word,
+                phonetic: phonetic,
+                meaning: (posTag + meaning).trim(),
+                example: '',
+                exampleCn: '',
+                book: bookName
+            });
+        }
+    }
+
+    return result;
+}
+
+// 【新增】合并两个解析结果，以 word 为 key 去重，优先保留信息更完整的
+function _qaqMergeWordResults(localItems, aiItems) {
+    var map = {};
+    
+    // 先放本地的
+    localItems.forEach(function(item) {
+        var key = window.qaqTrim(item.word).toLowerCase();
+        if (key) map[key] = item;
+    });
+    
+    // AI 的覆盖或补充
+    aiItems.forEach(function(item) {
+        var key = window.qaqTrim(item.word).toLowerCase();
+        if (!key) return;
+        
+        if (!map[key]) {
+            // 本地没有的，补充进来
+            map[key] = item;
+        } else {
+            // 本地有的，如果 AI 的信息更丰富就替换
+            var existing = map[key];
+            var aiScore = (item.phonetic ? 1 : 0) + (item.meaning ? item.meaning.length : 0);
+            var localScore = (existing.phonetic ? 1 : 0) + (existing.meaning ? existing.meaning.length : 0);
+            if (aiScore > localScore) {
+                map[key] = item;
+            }
+        }
+    });
+    
+    return Object.keys(map).map(function(k) { return map[k]; });
+}
 
     window.qaqImportWordbankPdf = async function (file) {
         window.qaqShowImportProgress('正在导入 PDF', '正在读取文件…');
@@ -1135,8 +2028,56 @@ window.qaqModalBody.querySelectorAll('.qaq-import-reject-check:checked').forEach
 
             var page = await pdf.getPage(i);
             var textContent = await page.getTextContent();
-            var pageText = textContent.items.map(function (it) { return it.str; }).join('\n');
-            lines = lines.concat(pageText.split(/\n+/));
+            var lastY = null;
+var lastX = 0;
+var currentLine = '';
+var isJa = (window.qaqGetWordbankLanguage && window.qaqGetWordbankLanguage() === 'ja');
+
+textContent.items.forEach(function(item) {
+    var y = item.transform ? item.transform[5] : null;
+    var x = item.transform ? item.transform[4] : 0;
+    var w = item.width || 0;
+    var str = item.str || '';
+
+    // 日语PDF的关键修复：用更小的Y阈值来正确断行
+    // 这份RJ版PDF每个字段都在不同的Y坐标上，阈值必须非常小
+    var lineThreshold = isJa ? 1 : 5;
+    // 双栏检测的X间距
+    var columnGap = isJa ? 60 : 120;
+
+    if (lastY !== null && y !== null && Math.abs(y - lastY) > lineThreshold) {
+        // Y坐标变化 = 换行
+        if (currentLine.trim()) lines.push(currentLine.trim());
+        currentLine = str;
+    } else if (lastX > 0 && x > 0 && (x - lastX) > columnGap) {
+        // 同一行但X坐标跳跃太大 = 双栏分界
+        if (currentLine.trim()) lines.push(currentLine.trim());
+        currentLine = str;
+    } else {
+        // 同一行内的文本片段，加空格分隔（防止粘连）
+        if (currentLine && str && !currentLine.endsWith(' ') && !str.startsWith(' ')) {
+            // 但如果前一个字符和当前字符都是CJK，不加空格
+            var lastChar = currentLine[currentLine.length - 1];
+            var firstChar = str[0];
+            var isCJK = function(ch) {
+                var code = ch.charCodeAt(0);
+                return (code >= 0x3000 && code <= 0x9FFF) || 
+                       (code >= 0x30A0 && code <= 0x30FF) ||
+                       (code >= 0x3040 && code <= 0x309F);
+            };
+            if (isCJK(lastChar) && isCJK(firstChar)) {
+                currentLine += str;
+            } else {
+                currentLine += str;
+            }
+        } else {
+            currentLine += str;
+        }
+    }
+    lastY = y;
+    lastX = x + (w || 0);
+});
+if (currentLine.trim()) lines.push(currentLine.trim());
 
             var p = 40 + Math.round((i / totalPages) * 50);
             window.qaqUpdateImportProgress(p, '正在解析第 ' + i + ' / ' + totalPages + ' 页…');
@@ -1147,6 +2088,7 @@ window.qaqModalBody.querySelectorAll('.qaq-import-reject-check:checked').forEach
         window.qaqRequireImportNotCancelled();
 
         window.qaqUpdateImportProgress(93, '正在整理词条…');
+        
         var parsed = await window.qaqParsePdfLinesToWordbankAsync(lines, file.name);
 
         window.qaqUpdateImportProgress(100, '解析完成');
@@ -1312,6 +2254,16 @@ window.qaqModalBody.querySelectorAll('.qaq-import-reject-check:checked').forEach
                     var file = this.files[i];
                     var lower = file.name.toLowerCase();
                     var imported = [];
+                    
+                    if (window.qaqCurrentImportMode === 'smart') {
+    console.log('[QAQ Import] 当前模式：智能导入');
+} else {
+    console.log('[QAQ Import] 当前模式：快速导入');
+}
+
+if (window.qaqToast) {
+    window.qaqToast(window.qaqCurrentImportMode === 'smart' ? '正在使用智能导入' : '正在使用快速导入');
+}
 
                     if (lower.endsWith('.json')) {
                         imported = await window.qaqImportWordbankJson(file);
@@ -1460,22 +2412,31 @@ window.qaqModalBody.querySelectorAll('.qaq-import-reject-check:checked').forEach
                 document.getElementById('qaq-modal-cancel').onclick = window.qaqCloseModal;
 
                 document.getElementById('qaq-import-json-btn').onclick = function () {
-                    window.qaqWordbankFileInput.accept = '.json';
-                    window.qaqWordbankFileInput.click();
-                    window.qaqCloseModal();
-                };
+    window.qaqOpenImportModeModal('json', function (mode) {
+        window.qaqPendingImportType = 'json';
+        window.qaqWordbankFileInput.accept = '.json';
+        window.qaqWordbankFileInput.click();
+    });
+    
+};
 
-                document.getElementById('qaq-import-excel-btn').onclick = function () {
-                    window.qaqWordbankFileInput.accept = '.xlsx,.xls';
-                    window.qaqWordbankFileInput.click();
-                    window.qaqCloseModal();
-                };
+document.getElementById('qaq-import-excel-btn').onclick = function () {
+    window.qaqOpenImportModeModal('excel', function (mode) {
+        window.qaqPendingImportType = 'excel';
+        window.qaqWordbankFileInput.accept = '.xlsx,.xls';
+        window.qaqWordbankFileInput.click();
+    });
+    
+};
 
-                document.getElementById('qaq-import-pdf-btn').onclick = function () {
-                    window.qaqWordbankFileInput.accept = '.pdf';
-                    window.qaqWordbankFileInput.click();
-                    window.qaqCloseModal();
-                };
+document.getElementById('qaq-import-pdf-btn').onclick = function () {
+    window.qaqOpenImportModeModal('pdf', function (mode) {
+        window.qaqPendingImportType = 'pdf';
+        window.qaqWordbankFileInput.accept = '.pdf';
+        window.qaqWordbankFileInput.click();
+    });
+    
+};
             });
         }
 
@@ -1848,6 +2809,25 @@ window.qaqModalBody.querySelectorAll('.qaq-import-reject-check:checked').forEach
             });
         }
     }
+    
+    // ===== 导入兜底修复 =====
+window.qaqWordId = window.qaqWordId || function() { 
+    return 'w_' + Date.now() + Math.random().toString(36).substr(2, 6); 
+};
+window.qaqWordbookId = window.qaqWordbookId || function() { 
+    return 'wb_' + Date.now() + Math.random().toString(36).substr(2, 6); 
+};
+
+// 覆盖原有的错误提示，让它能显示具体死在哪一步
+if (window.qaqWordbankFileInput) {
+    var oldOnChange = window.qaqWordbankFileInput.onchange;
+    window.qaqWordbankFileInput.addEventListener('change', function(e) {
+        // 通过劫持全局错误处理，把导入失败的具体原因打印出来
+        window.addEventListener('unhandledrejection', function(event) {
+            if(window.qaqToast) window.qaqToast("导入错误: " + (event.reason.message || "未知原因"));
+        }, { once: true });
+    });
+}
 
     /* ===== Initial Apply ===== */
     window.qaqApplyWordbankTheme();

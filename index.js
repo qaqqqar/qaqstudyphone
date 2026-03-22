@@ -4204,6 +4204,16 @@ function qaqShowPetEncourageBubble(level, wordObj) {
                     if (window.qaqSaveWordbankLanguage) window.qaqSaveWordbankLanguage(newLang);
                     updateLangLabel();
                     qaqCloseModal();
+                    
+                    // 【新增：刷新词库主页和背单词主页视图】
+                    var search = document.getElementById('qaq-wordbook-search');
+                    if (window.qaqRenderWordbookHome) {
+                        window.qaqRenderWordbookHome(search ? search.value : '');
+                    }
+                    if (window.qaqRenderReviewHome) {
+                        window.qaqRenderReviewHome();
+                    }
+                    
                     qaqToast('已切换到' + window.qaqWordbankLangConfig[newLang].name + '词库模式');
                 });
             });

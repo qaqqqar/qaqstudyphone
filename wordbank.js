@@ -969,45 +969,101 @@ window.qaqModalBody.querySelectorAll('.qaq-import-reject-check:checked').forEach
     };
 
     window.qaqParseExcelRowsToWordbank = function (rows, sheetName) {
-        if (!rows || !rows.length) return [];
+    if (!rows || !rows.length) return [];
 
-        var result = [];
-        var cleanRows = window.qaqGetNonEmptyRows(rows);
-        if (!cleanRows.length) return [];
+    var result = [];
+    var wIdx = -1, mIdx = -1;
+    var startRow = 0;
+    var foundMapping = false;
 
-        var startRow = 0;
-        var map = {};
-        var firstRow = cleanRows[0] || [];
+    // 1. 放弃不可靠的表头，直接向下扫描最多 30 行，通过“数据特征”嗅探列的正确位置
+    for (var r = 0; r < Math.min(30, rows.length); r++) {
+        var row = rows[r];
+        if (!row || !row.length) continue;
 
-        if (window.qaqLooksLikeHeader(firstRow)) {
-            map = window.qaqGuessHeaderMap(firstRow);
-            startRow = rows.indexOf(firstRow) + 1;
-        } else {
-            map.word = 0;
-            map.meaning = 1;
-            map.phonetic = 2;
-            map.example = 3;
-            map.exampleCn = 4;
+        var tempW = -1, tempM = -1;
+
+        for (var col = 0; col < row.length; col++) {
+            var cellVal = String(row[col] || '').trim();
+            if (!cellVal) continue;
+            
+            // 跳过纯数字（百词斩特有的序号列干扰）
+            if (/^\d+$/.test(cellVal)) continue;
+
+            // 寻找最像英文单词的列：调用原生的单词合法性检测，并排除刚好写着Word的那一行
+            if (tempW === -1 && window.qaqLooksLikeEnglishWord(cellVal)) {
+                var lower = cellVal.toLowerCase();
+                if (lower !== 'word' && lower !== 'meaning' && lower !== 'vocabulary') {
+                    tempW = col;
+                }
+            }
+            // 寻找最像释义的列：只要包含汉字就认定是释义
+            else if (tempM === -1 && window.qaqLooksLikeChineseMeaning(cellVal)) {
+                tempM = col;
+            }
         }
 
-        for (var i = startRow; i < rows.length; i++) {
-            var row = rows[i];
-            if (!row || !row.length) continue;
-
-            var item = window.qaqNormalizeWordItem({
-                word: row[map.word],
-                meaning: row[map.meaning],
-                phonetic: row[map.phonetic],
-                example: row[map.example],
-                exampleCn: row[map.exampleCn],
-                book: sheetName
-            }, sheetName);
-
-            if (item) result.push(item);
+        // 一旦在某一行同时摸到了真实的“单词列”和“中文列”，锁定列号！
+        if (tempW !== -1 && tempM !== -1) {
+            wIdx = tempW;
+            mIdx = tempM;
+            startRow = r; // 从这一行开始往下全当数据读
+            foundMapping = true;
+            break;
         }
+    }
 
-        return result;
-    };
+    // 2. 如果智能嗅探没探出来（可能是极特殊的残缺表），老规矩猜表头兜底
+    if (!foundMapping) {
+        for (var r = 0; r < Math.min(15, rows.length); r++) {
+            var map = window.qaqGuessHeaderMap(rows[r]);
+            if (map.word !== undefined || map.meaning !== undefined) {
+                wIdx = map.word !== undefined ? map.word : 0;
+                mIdx = map.meaning !== undefined ? map.meaning : 1;
+                startRow = r + 1;
+                foundMapping = true;
+                break;
+            }
+        }
+    }
+
+    // 3. 终极兜底：强行拿第0列和第1列
+    if (!foundMapping) {
+        wIdx = 0;
+        mIdx = 1;
+        startRow = 0;
+    }
+
+    // 4. 正式解析提取并清洗
+    for (var i = startRow; i < rows.length; i++) {
+        var row = rows[i];
+        if (!row || !row.length) continue;
+
+        var wordText = wIdx > -1 ? row[wIdx] : '';
+        var meaningText = mIdx > -1 ? row[mIdx] : '';
+
+        wordText = String(wordText || '').trim();
+        meaningText = String(meaningText || '').trim();
+
+        if (!wordText && !meaningText) continue;
+
+        // 过滤掉百词斩可能插播的“已背”、“未背”等夹缝标题
+        if (window.qaqShouldDropWordItem(wordText, meaningText)) continue;
+
+        var item = window.qaqNormalizeWordItem({
+            word: wordText,
+            meaning: meaningText,
+            book: sheetName
+        }, sheetName);
+
+        // 二次确认，没问题就收录
+        if (item && item.word && item.meaning) {
+            result.push(item);
+        }
+    }
+
+    return result;
+};
 
     window.qaqImportWordbankExcel = function (file) {
         return new Promise(function (resolve, reject) {
@@ -1081,36 +1137,97 @@ window.qaqModalBody.querySelectorAll('.qaq-import-reject-check:checked').forEach
     };
 
     window.qaqParsePdfLinesToWordbankAsync = async function (lines, bookName) {
-        var result = [];
+    // 策略A：传统相邻行解析（应对普通的词库 PDF）
+    var resultAdjacent = [];
+    var cleanLines = [];
+    for (var i = 0; i < lines.length; i++) {
+        var l = window.qaqTrim(lines[i]);
+        if (l && !window.qaqLooksLikeNoiseLine(l) && !window.qaqIsPureIndexLine(l)) {
+            cleanLines.push(l);
+        }
+    }
+    for (var n = 0; n < cleanLines.length - 1; n++) {
+        window.qaqRequireImportNotCancelled();
 
-        lines = (lines || []).map(function (line) {
-            return window.qaqTrim(line);
-        }).filter(function (line) {
-            return !window.qaqLooksLikeNoiseLine(line);
-        });
+        var w = cleanLines[n];
+        var m = cleanLines[n + 1];
 
-        for (var i = 0; i < lines.length - 1; i++) {
-            window.qaqRequireImportNotCancelled();
+        if (window.qaqLooksLikeEnglishWord(w) && window.qaqLooksLikeChineseMeaning(m)) {
+            resultAdjacent.push({
+                id: window.qaqWordId(),
+                word: w,
+                meaning: m,
+                phonetic: '',
+                example: '',
+                exampleCn: '',
+                book: bookName
+            });
+            n++; 
+        }
+        if (n % 80 === 0) await window.qaqNextFrame();
+    }
 
-            var word = lines[i];
-            var meaning = lines[i + 1];
 
-            if (window.qaqLooksLikeEnglishWord(word) && window.qaqLooksLikeChineseMeaning(meaning)) {
-                result.push({
-                    word: word,
-                    meaning: meaning,
-                    book: bookName
-                });
-                i++;
-            }
+    // 策略B：百词斩等基于全局序号映射的解析 (Word 和 Meaning 分开排列)
+    var dict = {};
+    var currentId = null;
 
-            if (i % 80 === 0) {
-                await window.qaqNextFrame();
-            }
+    for (var j = 0; j < lines.length; j++) {
+        window.qaqRequireImportNotCancelled();
+
+        var line = window.qaqTrim(lines[j]);
+        if (!line) continue;
+        if (window.qaqLooksLikeNoiseLine(line)) continue;
+
+        // 发现序号，切换当前关联 ID
+        if (/^\d+$/.test(line)) {
+            currentId = parseInt(line, 10);
+            if (!dict[currentId]) dict[currentId] = { word: '', meaning: '' };
+            continue;
         }
 
-        return result;
-    };
+        // 如果已经有了指向的 ID
+        if (currentId !== null) {
+            // 如果不仅全是英文，而且还不是个单纯的词性缩写（如 adj.）
+            if (/^[A-Za-z][A-Za-z\s\-']+$/.test(line) && !window.qaqLooksLikePosLine(line) && line.toLowerCase() !== 'word' && line.toLowerCase() !== 'meaning') {
+                if (!dict[currentId].word) {
+                    dict[currentId].word = line;
+                }
+            } 
+            // 如果包含中文字符，拼接到释义中（处理多行释义）
+            else if (window.qaqLooksLikeChineseMeaning(line)) {
+                dict[currentId].meaning += (dict[currentId].meaning ? ' ' : '') + line;
+            }
+        }
+        if (j % 80 === 0) await window.qaqNextFrame();
+    }
+
+    var resultIndexed = [];
+    var keys = Object.keys(dict);
+    // 按序号对齐提取
+    for (var k = 0; k < keys.length; k++) {
+        var item = dict[keys[k]];
+        if (item.word && item.meaning) {
+            resultIndexed.push({
+                id: window.qaqWordId(),
+                word: item.word,
+                meaning: item.meaning,
+                phonetic: '',
+                example: '',
+                exampleCn: '',
+                book: bookName
+            });
+        }
+        if (k % 80 === 0) await window.qaqNextFrame();
+    }
+
+    // ⭐ PK：返回捕获成功率更高的一方结果！
+    if (resultIndexed.length > resultAdjacent.length && resultIndexed.length > 5) {
+        return resultIndexed;
+    }
+
+    return resultAdjacent;
+};
 
     window.qaqImportWordbankPdf = async function (file) {
         window.qaqShowImportProgress('正在导入 PDF', '正在读取文件…');

@@ -2045,23 +2045,37 @@ function qaqOpenShopItemDetail(itemId) {
         // 安全的 escape HTML
         var safeItemName = window.qaqEscapeHtml ? window.qaqEscapeHtml(item.name) : item.name.replace(/</g, "&lt;");
 
-        if(mTitle) mTitle.textContent = '选择渲染方式';
+        if(mTitle) mTitle.textContent = '选择查看方式';
 
+// 🌟 神级重构：不要把大选项全塞进底部的 mBtns，要塞进宽敞的 mBody 里！
+// 而且直接复用你写好的巨好看的 import-mode 类名，这绝对最搭主题！
 if(mBody) mBody.innerHTML =
-    '<div style="text-align:center;font-size:13px;color:#666;line-height:1.8;padding-bottom:10px;">' +
-        '请选择您要查看「<b>' + safeItemName + '</b>」的方式：<br>' +
-        '<span style="font-size:11px;color:#999;">如果未加载Lottie或3D，将自动降级为静态插画</span>' +
+    '<div style="text-align:center;font-size:13px;color:#666;line-height:1.6;margin-bottom:16px;">' +
+        '您想以哪种引擎欣赏「<b>' + safeItemName + '</b>」？<br>' +
+        '<span style="font-size:10px;color:#999;">如果未加载高级资源将自动降级为静态插画</span>' +
+    '</div>' +
+    '<div class="qaq-import-mode-list">' +
+        '<div class="qaq-import-mode-item" id="qaq-shop-force-static">' +
+            '<div class="qaq-import-mode-title">2D 静态插画</div>' +
+            '<div class="qaq-import-mode-desc">一张精致的高清贴图，只看不撸。</div>' +
+        '</div>' +
+        '<div class="qaq-import-mode-item" id="qaq-shop-force-lottie" style="position:relative;">' +
+            '<div class="qaq-import-mode-title">2D 骨骼动画</div>' +
+            '<div class="qaq-import-mode-desc">享受顺滑的手绘画风和自然呼吸动作。</div>' +
+            '<span class="qaq-import-mode-badge" style="position:absolute; right:14px; top:14px;">推荐</span>' +
+        '</div>' +
+        '<div class="qaq-import-mode-item" id="qaq-shop-force-3d">' +
+            '<div class="qaq-import-mode-title">3D 立体模型</div>' +
+            '<div class="qaq-import-mode-desc">最高画质全角度查看，可能有微小加载延迟。</div>' +
+        '</div>' +
     '</div>';
 
-// 展现 3 个按钮
-if(mBtns) mBtns.innerHTML =
-    '<div style="display:flex; flex-direction:column; gap:8px; width:100%;">' +
-       '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-shop-force-static">2D 静态插画</button>' +
-       '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-shop-force-lottie" style="background: linear-gradient(135deg, #d0e8f2, #b8d4e4); color: #4a6fa5;">2D 动态 (Lottie)</button>' +
-       '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-shop-force-3d">3D 立体模型</button>' +
-    '</div>';
+// 底部乖乖只放一个取消按钮
+if(mBtns) mBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">取消</button>';
 
 if(window.qaqOpenModal) window.qaqOpenModal();
+var closeBtn = document.getElementById('qaq-modal-cancel');
+if(closeBtn && window.qaqCloseModal) closeBtn.onclick = window.qaqCloseModal;
 
 // 绑定静态SVG逻辑
 var btnStatic = document.getElementById('qaq-shop-force-static');
@@ -2075,13 +2089,11 @@ var btnLottie = document.getElementById('qaq-shop-force-lottie');
 if(btnLottie) btnLottie.onclick = function () {
     if(window.qaqCloseModal) window.qaqCloseModal();
     setTimeout(function(){
-        // 复用原本的 2D 详情页弹窗躯壳，把里面的图片替换为 Lottie
         qaqOpenShopItemDetail2D(item, isOwned, typeName);
         setTimeout(function(){
             var previewBox = document.querySelector('.qaq-detail-preview');
             if(previewBox) {
                 previewBox.id = 'temp-lottie-preview';
-                // 使用万能渲染器，强制指定 lottie 模式
                 qaqRenderVisualToDOM('temp-lottie-preview', item.id, item.type, 1.8, 'lottie');
             }
         }, 50);
@@ -2994,103 +3006,88 @@ document.getElementById('qaq-set-pet').addEventListener('click', function () {
 
     var currentPet = qaqGetActivePet();
     var currentId = currentPet ? currentPet.id : '';
-    
-    // 🌟 获取当前的全局画质模式 (前面配置好的函数)
     var currentMode = typeof qaqGetDisplayMode === 'function' ? qaqGetDisplayMode() : 'lottie';
 
-    // 🌟 这是我们要插入的新的下拉框 HTML
+    // 🌟 神级重构：复用原生的 qaq-custom-select-list，彻底告别浏览器原生 select 丑弹窗！
     var displayModeHtml = 
         '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,0.06);">' +
-            '<div class="qaq-settings-item" style="padding:8px 0;">' +
-                '<div class="qaq-settings-item-text" style="font-size:13px;">桌宠与小院画质</div>' +
-                '<select class="qaq-plan-form-input" id="qaq-global-display-select" style="width: auto; height: 32px; font-size: 12px; padding: 0 8px; border-radius: 8px;">' +
-                    '<option value="static" ' + (currentMode === 'static' ? 'selected' : '') + '>2D 静态 (省电)</option>' +
-                    '<option value="lottie" ' + (currentMode === 'lottie' ? 'selected' : '') + '>2D 动态 (推荐)</option>' +
-                    '<option value="3d" ' + (currentMode === '3d' ? 'selected' : '') + '>3D 模型 (丝滑)</option>' +
-                '</select>' +
+            '<div class="qaq-settings-group-title" style="padding-left:4px; margin-bottom:8px;">画质渲染引擎</div>' +
+            '<div class="qaq-custom-select-list" id="qaq-display-mode-list">' +
+                '<div class="qaq-custom-select-option' + (currentMode === 'static' ? ' qaq-custom-select-active' : '') + '" data-mode="static">' +
+                    '<span>2D 静态插图 (极速省电)</span>' + (currentMode === 'static' ? '<span style="color:#c47068;">✓</span>' : '') +
+                '</div>' +
+                '<div class="qaq-custom-select-option' + (currentMode === 'lottie' ? ' qaq-custom-select-active' : '') + '" data-mode="lottie">' +
+                    '<span>2D 骨骼动画 (原汁原味)</span>' + (currentMode === 'lottie' ? '<span style="color:#c47068;">✓</span>' : '') +
+                '</div>' +
+                '<div class="qaq-custom-select-option' + (currentMode === '3d' ? ' qaq-custom-select-active' : '') + '" data-mode="3d">' +
+                    '<span>3D 立体模型 (极致丝滑)</span>' + (currentMode === '3d' ? '<span style="color:#c47068;">✓</span>' : '') +
+                '</div>' +
             '</div>' +
         '</div>';
 
-    modalTitle.textContent = '桌宠设置';
+    modalTitle.textContent = '桌宠与场景设置';
+    modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>';
 
-    // === 情况1：如果没有桌宠 ===
+    var petsHtml = '';
     if (!owned.length) {
-        modalBody.innerHTML =
-            '<div style="text-align:center;font-size:13px;color:#999;line-height:1.8;">' +
-                '还没有可设置的桌宠<br>去商店兑换动物或种子吧' +
-            '</div>' + displayModeHtml; // 🌟 挂载新选项
-
-        modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-modal-cancel">关闭</button>';
-
-        qaqOpenModal();
-        document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
-
-        // 🌟 绑定下拉框切换事件
-        var selectEmpty = document.getElementById('qaq-global-display-select');
-        if (selectEmpty) {
-            selectEmpty.addEventListener('change', function() {
-                qaqSaveDisplayMode(this.value);
-                qaqToast('画质已切换');
-                if (typeof qaqRefreshXiaoyuanView === 'function') qaqRefreshXiaoyuanView();
-            });
-        }
-        return;
-    }
-
-    // === 情况2：如果有桌宠 ===
-    modalBody.innerHTML =
-        '<div class="qaq-custom-select-list">' +
+        petsHtml = '<div style="text-align:center;font-size:13px;color:#999;line-height:1.8;padding:10px 0;">还没有可设置的桌宠<br>去商店兑换动物或种子吧</div>';
+    } else {
+        petsHtml = '<div class="qaq-custom-select-list" id="qaq-pet-select-list">' +
             owned.map(function (item) {
-                var catItem = qaqShopCatalog.animals.concat(qaqShopCatalog.seeds).find(function (x) {
-                    return x.id === item.id;
-                });
+                var catItem = qaqShopCatalog.animals.concat(qaqShopCatalog.seeds).find(function (x) { return x.id === item.id; });
                 var isActive = item.id === currentId;
                 return '<div class="qaq-custom-select-option' + (isActive ? ' qaq-custom-select-active' : '') + '" data-pet-id="' + item.id + '">' +
-                    '<span>' + (catItem ? catItem.name : item.name) + '</span>' +
-                    (isActive ? '<span style="color:#c47068;">✓</span>' : '') +
+                    '<span>' + (catItem ? catItem.name : item.name) + '</span>' + (isActive ? '<span style="color:#c47068;">✓</span>' : '') +
                 '</div>';
             }).join('') +
-            '<div class="qaq-custom-select-option" data-pet-id=""><span style="color:#aaa;">不设置桌宠</span></div>' +
-        '</div>' + displayModeHtml; // 🌟 挂载新选项
+            '<div class="qaq-custom-select-option' + (!currentId ? ' qaq-custom-select-active' : '') + '" data-pet-id="">' +
+                '<span style="color:#aaa;">不设置桌宠</span>' + (!currentId ? '<span style="color:#c47068;">✓</span>' : '') +
+            '</div>' +
+        '</div>';
+    }
 
-    modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>';
+    modalBody.innerHTML = petsHtml + displayModeHtml;
 
     qaqOpenModal();
     document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
 
-    // 🌟 绑定下拉框切换事件
-    var selectOption = document.getElementById('qaq-global-display-select');
-    if (selectOption) {
-        selectOption.addEventListener('change', function() {
-            qaqSaveDisplayMode(this.value);
-            qaqToast('画质已切换');
-            // 切换后立即刷新当前的桌宠和场景
-            if (typeof qaqRenderWordbankPetFloat === 'function') qaqRenderWordbankPetFloat();
-            if (typeof qaqRenderReviewPetFloat === 'function') qaqRenderReviewPetFloat();
-            if (typeof qaqRefreshXiaoyuanView === 'function') qaqRefreshXiaoyuanView();
-        });
-    }
-
-    // 原有的选择哪只宠物当桌宠的逻辑保留
-    modalBody.querySelectorAll('.qaq-custom-select-option[data-pet-id]').forEach(function (opt) {
+    // 绑定桌宠选择事件
+    modalBody.querySelectorAll('[data-pet-id]').forEach(function (opt) {
         opt.addEventListener('click', function () {
-            var petId = this.dataset.petId;
+            // 互斥UI更新
+            modalBody.querySelectorAll('[data-pet-id]').forEach(function(o){o.classList.remove('qaq-custom-select-active'); o.innerHTML = o.innerHTML.replace('<span style="color:#c47068;">✓</span>', '');});
+            this.classList.add('qaq-custom-select-active');
+            if(this.dataset.petId) this.innerHTML += '<span style="color:#c47068;">✓</span>';
 
+            var petId = this.dataset.petId;
             if (!petId) {
                 qaqSaveActivePet(null);
                 document.getElementById('qaq-settings-pet-preview').textContent = '未设置';
             } else {
                 qaqSaveActivePet({ id: petId });
-                var catItem = qaqShopCatalog.animals.concat(qaqShopCatalog.seeds).find(function (x) {
-                    return x.id === petId;
-                });
+                var catItem = qaqShopCatalog.animals.concat(qaqShopCatalog.seeds).find(function (x) { return x.id === petId; });
                 document.getElementById('qaq-settings-pet-preview').textContent = catItem ? catItem.name : '已设置';
             }
+            if (typeof qaqRenderWordbankPetFloat === 'function') qaqRenderWordbankPetFloat();
+            if (typeof qaqRenderReviewPetFloat === 'function') qaqRenderReviewPetFloat();
+            qaqToast(petId ? '桌宠更替成功' : '桌宠已收起');
+        });
+    });
 
-            qaqCloseModal();
-            qaqRenderWordbankPetFloat();
-            qaqRenderReviewPetFloat();
-            qaqToast(petId ? '桌宠已设置' : '桌宠已取消');
+    // 绑定画质选择事件
+    modalBody.querySelectorAll('[data-mode]').forEach(function (opt) {
+        opt.addEventListener('click', function () {
+            // 互斥UI更新
+            modalBody.querySelectorAll('[data-mode]').forEach(function(o){o.classList.remove('qaq-custom-select-active');o.innerHTML = o.innerHTML.replace('<span style="color:#c47068;">✓</span>', '');});
+            this.classList.add('qaq-custom-select-active');
+            this.innerHTML += '<span style="color:#c47068;">✓</span>';
+            
+            qaqSaveDisplayMode(this.dataset.mode);
+            qaqToast('引擎已切换，画面重载中...');
+            // 即时重绘画面
+            if (typeof qaqRenderWordbankPetFloat === 'function') qaqRenderWordbankPetFloat();
+            if (typeof qaqRenderReviewPetFloat === 'function') qaqRenderReviewPetFloat();
+            if (typeof qaqRefreshXiaoyuanView === 'function') qaqRefreshXiaoyuanView();
         });
     });
 });

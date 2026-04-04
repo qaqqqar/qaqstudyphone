@@ -2089,12 +2089,21 @@ var btnLottie = document.getElementById('qaq-shop-force-lottie');
 if(btnLottie) btnLottie.onclick = function () {
     if(window.qaqCloseModal) window.qaqCloseModal();
     setTimeout(function(){
+        // 复用你的 2D 详情页框架，但把图片区换成 Lottie
         qaqOpenShopItemDetail2D(item, isOwned, typeName);
         setTimeout(function(){
             var previewBox = document.querySelector('.qaq-detail-preview');
             if(previewBox) {
                 previewBox.id = 'temp-lottie-preview';
-                qaqRenderVisualToDOM('temp-lottie-preview', item.id, item.type, 1.8, 'lottie');
+                
+                // 🌟 核心修复在这里：强制锁死预览区域的宽高为 130px，不让它暴走！
+                previewBox.style.width = '130px';
+                previewBox.style.height = '130px';
+                previewBox.style.display = 'flex';
+                previewBox.style.alignItems = 'center';
+                previewBox.style.justifyContent = 'center';
+                
+                qaqRenderVisualToDOM('temp-lottie-preview', item.id, item.type, 1.0, 'lottie');
             }
         }, 50);
     }, 120);

@@ -50,6 +50,53 @@ function qaqEnsureLive2D(callback) {
     loadNext();
 }
 
+/* ===== 1. 全局动画/模型映射配置 ===== */
+window.qaqAnimalLotties = {
+    // 这里填入你的 Lottie 动画路径，如果没有配置的会走 2D 静态降级
+    'animal-dog': './assets/lottie/dog1.json' 
+};
+
+/* ===== 2. 获取系统的全局展示模式 ===== */
+function qaqGetDisplayMode() {
+    // 模式分为: 'static' (2D静态), 'lottie' (2D动态), '3d' (3D模型)
+    return qaqCacheGet('qaq-global-display-mode', 'lottie'); 
+}
+
+function qaqSaveDisplayMode(mode) {
+    qaqCacheSet('qaq-global-display-mode', mode);
+}
+
+/* ===== 3. Lottie 引擎懒加载 (与 3D 逻辑同源) ===== */
+var qaqLottieReady = false;
+var qaqLottieLoading = false;
+var qaqLottieCallbacks = [];
+
+function qaqEnsureLottie(callback) {
+    // 如果存在 LottiePlayer，说明已经加载过了
+    if (qaqLottieReady || typeof LottiePlayer !== 'undefined') { 
+        if (callback) callback(); 
+        return; 
+    }
+    if (callback) qaqLottieCallbacks.push(callback);
+    if (qaqLottieLoading) return;
+    qaqLottieLoading = true;
+
+    // 动态插入 JS 脚本，不需要改 HTML
+    var s = document.createElement('script');
+    s.src = 'https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js';
+    s.onload = function () {
+        qaqLottieReady = true;
+        qaqLottieLoading = false;
+        qaqLottieCallbacks.forEach(function (cb) { try { cb(); } catch (e) {} });
+        qaqLottieCallbacks = [];
+    };
+    s.onerror = function () {
+        console.error('Lottie 引擎加载失败');
+        qaqLottieLoading = false;
+    };
+    document.head.appendChild(s);
+}
+
     /* ===== 时间更新 ===== */
     function qaqUpdateClock() {
         var now = new Date();
@@ -441,23 +488,43 @@ document.querySelectorAll('.qaq-app-item').forEach(function (item) {
     });
 
     document.getElementById('qaq-set-api').addEventListener('click', function () {
-        var sub = document.getElementById('qaq-sub-api');
-        var saved = JSON.parse(localStorage.getItem('qaq-api-config') || '{}');
-        document.getElementById('qaq-api-url').value = saved.url || '';
-        document.getElementById('qaq-api-key').value = saved.key || '';
-        document.getElementById('qaq-api-model').value = saved.model || '';
-        qaqSwitchTo(sub);
-    });
+    var sub = document.getElementById('qaq-sub-api');
+    
+    // 1. 读取全局 AI 配置
+    var saved = JSON.parse(localStorage.getItem('qaq-api-config') || '{}');
+    document.getElementById('qaq-api-url').value = saved.url || '';
+    document.getElementById('qaq-api-key').value = saved.key || '';
+    document.getElementById('qaq-api-model').value = saved.model || '';
+    
+    // 2. [新增] 读取 MiniMax 语音模型配置
+    var reviewCfg = JSON.parse(localStorage.getItem('qaq-word-review-settings') || '{}');
+    var minimaxModelSelect = document.getElementById('qaq-setting-minimax-model');
+    if (minimaxModelSelect) {
+        minimaxModelSelect.value = reviewCfg.minimaxModel || 'speech-02-hd'; 
+    }
+
+    qaqSwitchTo(sub);
+});
 
     document.getElementById('qaq-api-save').addEventListener('click', function () {
-        var config = {
-            url: document.getElementById('qaq-api-url').value.trim(),
-            key: document.getElementById('qaq-api-key').value.trim(),
-            model: document.getElementById('qaq-api-model').value.trim()
-        };
-        localStorage.setItem('qaq-api-config', JSON.stringify(config));
-        qaqToast('API 配置已保存');
-    });
+    // 1. 保存全局 AI 配置
+    var config = {
+        url: document.getElementById('qaq-api-url').value.trim(),
+        key: document.getElementById('qaq-api-key').value.trim(),
+        model: document.getElementById('qaq-api-model').value.trim()
+    };
+    localStorage.setItem('qaq-api-config', JSON.stringify(config));
+
+    // 2. [新增] 保存 MiniMax 语音模型配置
+    var reviewCfg = JSON.parse(localStorage.getItem('qaq-word-review-settings') || '{}');
+    var minimaxModelSelect = document.getElementById('qaq-setting-minimax-model');
+    if (minimaxModelSelect) {
+        reviewCfg.minimaxModel = minimaxModelSelect.value;
+        localStorage.setItem('qaq-word-review-settings', JSON.stringify(reviewCfg));
+    }
+
+    qaqToast('API 及语音配置已保存');
+});
 
     document.getElementById('qaq-set-theme').addEventListener('click', function () {
         qaqSwitchTo(document.getElementById('qaq-sub-theme'));
@@ -1978,45 +2045,55 @@ function qaqOpenShopItemDetail(itemId) {
         // 安全的 escape HTML
         var safeItemName = window.qaqEscapeHtml ? window.qaqEscapeHtml(item.name) : item.name.replace(/</g, "&lt;");
 
-        if(mTitle) mTitle.textContent = '查看详情';
-        if(mBody) mBody.innerHTML =
-            '<div style="text-align:center;font-size:13px;color:#666;line-height:1.8;">' +
-                '是否使用 <b>3D 模型</b> 查看「' + safeItemName + '」详情？<br>' +
-                '<span style="font-size:11px;color:#999;">3D 展示更精美，但首次加载会稍慢</span>' +
-            '</div>' +
-            '<label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;color:#888;justify-content:center;">' +
-                '<input type="checkbox" id="qaq-3d-ask-disable"> 下次不再询问，记住我的选择' +
-            '</label>';
+        if(mTitle) mTitle.textContent = '选择渲染方式';
 
-        if(mBtns) mBtns.innerHTML =
-            '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-shop-detail-open-2d">普通查看</button>' +
-            '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-shop-detail-open-3d">3D查看</button>';
+if(mBody) mBody.innerHTML =
+    '<div style="text-align:center;font-size:13px;color:#666;line-height:1.8;padding-bottom:10px;">' +
+        '请选择您要查看「<b>' + safeItemName + '</b>」的方式：<br>' +
+        '<span style="font-size:11px;color:#999;">如果未加载Lottie或3D，将自动降级为静态插画</span>' +
+    '</div>';
 
-        if(window.qaqOpenModal) window.qaqOpenModal();
+// 展现 3 个按钮
+if(mBtns) mBtns.innerHTML =
+    '<div style="display:flex; flex-direction:column; gap:8px; width:100%;">' +
+       '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-shop-force-static">2D 静态插画</button>' +
+       '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-shop-force-lottie" style="background: linear-gradient(135deg, #d0e8f2, #b8d4e4); color: #4a6fa5;">2D 动态 (Lottie)</button>' +
+       '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-shop-force-3d">3D 立体模型</button>' +
+    '</div>';
 
-        var btn2D = document.getElementById('qaq-shop-detail-open-2d');
-        if(btn2D) btn2D.onclick = function () {
-            var disableAsk = document.getElementById('qaq-3d-ask-disable');
-            if (disableAsk && disableAsk.checked) {
-                settings.askBeforeRender = false;
-                settings.defaultRender3D = false;
-                qaqSave3DSettings(settings);
+if(window.qaqOpenModal) window.qaqOpenModal();
+
+// 绑定静态SVG逻辑
+var btnStatic = document.getElementById('qaq-shop-force-static');
+if(btnStatic) btnStatic.onclick = function () {
+    if(window.qaqCloseModal) window.qaqCloseModal();
+    setTimeout(function(){ qaqOpenShopItemDetail2D(item, isOwned, typeName); }, 120);
+};
+
+// 绑定动态Lottie逻辑
+var btnLottie = document.getElementById('qaq-shop-force-lottie');
+if(btnLottie) btnLottie.onclick = function () {
+    if(window.qaqCloseModal) window.qaqCloseModal();
+    setTimeout(function(){
+        // 复用原本的 2D 详情页弹窗躯壳，把里面的图片替换为 Lottie
+        qaqOpenShopItemDetail2D(item, isOwned, typeName);
+        setTimeout(function(){
+            var previewBox = document.querySelector('.qaq-detail-preview');
+            if(previewBox) {
+                previewBox.id = 'temp-lottie-preview';
+                // 使用万能渲染器，强制指定 lottie 模式
+                qaqRenderVisualToDOM('temp-lottie-preview', item.id, item.type, 1.8, 'lottie');
             }
-            if(window.qaqCloseModal) window.qaqCloseModal();
-            setTimeout(open2DDetail, 120);
-        };
+        }, 50);
+    }, 120);
+};
 
-        var btn3D = document.getElementById('qaq-shop-detail-open-3d');
-        if(btn3D) btn3D.onclick = function () {
-            var disableAsk = document.getElementById('qaq-3d-ask-disable');
-            if (disableAsk && disableAsk.checked) {
-                settings.askBeforeRender = false;
-                settings.defaultRender3D = true;
-                qaqSave3DSettings(settings);
-            }
-            if(window.qaqCloseModal) window.qaqCloseModal();
-            setTimeout(open3DDetail, 120);
-        };
+// 绑定3D模型逻辑
+var btn3D = document.getElementById('qaq-shop-force-3d');
+if(btn3D) btn3D.onclick = function () {
+    if(window.qaqCloseModal) window.qaqCloseModal();
+    setTimeout(function(){ qaqOpenShopItemDetail3DWithLazyLoad(item, isOwned, typeName); }, 120);
+};
     } catch(e) {
         console.error("整体点击查看详情时崩溃:", e);
     }
@@ -2910,7 +2987,6 @@ function qaqBindPetFloatDragAndScale(floatId, pageKey) {
 
 
 /*===== 桌宠设置（设置页入口） ===== */
-var petSettings = qaqGetPetSettings();
 document.getElementById('qaq-set-pet').addEventListener('click', function () {
     var owned = qaqGetOwnedItems().filter(function (x) {
         return x.type === 'animal' || x.type === 'seed';
@@ -2918,45 +2994,50 @@ document.getElementById('qaq-set-pet').addEventListener('click', function () {
 
     var currentPet = qaqGetActivePet();
     var currentId = currentPet ? currentPet.id : '';
-    var petSettings = qaqGetPetSettings();
+    
+    // 🌟 获取当前的全局画质模式 (前面配置好的函数)
+    var currentMode = typeof qaqGetDisplayMode === 'function' ? qaqGetDisplayMode() : 'lottie';
+
+    // 🌟 这是我们要插入的新的下拉框 HTML
+    var displayModeHtml = 
+        '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,0.06);">' +
+            '<div class="qaq-settings-item" style="padding:8px 0;">' +
+                '<div class="qaq-settings-item-text" style="font-size:13px;">桌宠与小院画质</div>' +
+                '<select class="qaq-plan-form-input" id="qaq-global-display-select" style="width: auto; height: 32px; font-size: 12px; padding: 0 8px; border-radius: 8px;">' +
+                    '<option value="static" ' + (currentMode === 'static' ? 'selected' : '') + '>2D 静态 (省电)</option>' +
+                    '<option value="lottie" ' + (currentMode === 'lottie' ? 'selected' : '') + '>2D 动态 (推荐)</option>' +
+                    '<option value="3d" ' + (currentMode === '3d' ? 'selected' : '') + '>3D 模型 (丝滑)</option>' +
+                '</select>' +
+            '</div>' +
+        '</div>';
 
     modalTitle.textContent = '桌宠设置';
 
+    // === 情况1：如果没有桌宠 ===
     if (!owned.length) {
         modalBody.innerHTML =
             '<div style="text-align:center;font-size:13px;color:#999;line-height:1.8;">' +
                 '还没有可设置的桌宠<br>去商店兑换动物或种子吧' +
-            '</div>' +
-            '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,0.06);">' +
-                '<div class="qaq-settings-item" id="qaq-pet-3d-toggle-row" style="padding:8px 0;">' +
-                    '<div class="qaq-settings-item-text">使用 3D 桌宠</div>' +
-                    '<div class="qaq-toggle' + (petSettings.use3D ? ' qaq-toggle-on' : '') + '" id="qaq-pet-3d-toggle">' +
-                        '<div class="qaq-toggle-knob"></div>' +
-                    '</div>' +
-                '</div>' +
-            '</div>';
+            '</div>' + displayModeHtml; // 🌟 挂载新选项
 
-        modalBtns.innerHTML =
-            '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-modal-cancel">关闭</button>';
+        modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-modal-cancel">关闭</button>';
 
         qaqOpenModal();
-
         document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
 
-        var pet3dRowEmpty = document.getElementById('qaq-pet-3d-toggle-row');
-        if (pet3dRowEmpty) {
-            pet3dRowEmpty.addEventListener('click', function (e) {
-                e.stopPropagation();
-                var s = qaqGetPetSettings();
-                s.use3D = !s.use3D;
-                qaqSavePetSettings(s);
-                document.getElementById('qaq-pet-3d-toggle').classList.toggle('qaq-toggle-on', s.use3D);
-                qaqToast(s.use3D ? '已开启 3D 桌宠' : '已关闭 3D 桌宠');
+        // 🌟 绑定下拉框切换事件
+        var selectEmpty = document.getElementById('qaq-global-display-select');
+        if (selectEmpty) {
+            selectEmpty.addEventListener('change', function() {
+                qaqSaveDisplayMode(this.value);
+                qaqToast('画质已切换');
+                if (typeof qaqRefreshXiaoyuanView === 'function') qaqRefreshXiaoyuanView();
             });
         }
         return;
     }
 
+    // === 情况2：如果有桌宠 ===
     modalBody.innerHTML =
         '<div class="qaq-custom-select-list">' +
             owned.map(function (item) {
@@ -2970,34 +3051,27 @@ document.getElementById('qaq-set-pet').addEventListener('click', function () {
                 '</div>';
             }).join('') +
             '<div class="qaq-custom-select-option" data-pet-id=""><span style="color:#aaa;">不设置桌宠</span></div>' +
-        '</div>' +
-        '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,0.06);">' +
-            '<div class="qaq-settings-item" id="qaq-pet-3d-toggle-row" style="padding:8px 0;">' +
-                '<div class="qaq-settings-item-text">使用 3D 桌宠</div>' +
-                '<div class="qaq-toggle' + (petSettings.use3D ? ' qaq-toggle-on' : '') + '" id="qaq-pet-3d-toggle">' +
-                    '<div class="qaq-toggle-knob"></div>' +
-                '</div>' +
-            '</div>' +
-        '</div>';
+        '</div>' + displayModeHtml; // 🌟 挂载新选项
 
-    modalBtns.innerHTML =
-        '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>';
+    modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>';
 
     qaqOpenModal();
     document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
 
-    var pet3dRow = document.getElementById('qaq-pet-3d-toggle-row');
-    if (pet3dRow) {
-        pet3dRow.addEventListener('click', function (e) {
-            e.stopPropagation();
-            var s = qaqGetPetSettings();
-            s.use3D = !s.use3D;
-            qaqSavePetSettings(s);
-            document.getElementById('qaq-pet-3d-toggle').classList.toggle('qaq-toggle-on', s.use3D);
-            qaqToast(s.use3D ? '已开启 3D 桌宠' : '已关闭 3D 桌宠');
+    // 🌟 绑定下拉框切换事件
+    var selectOption = document.getElementById('qaq-global-display-select');
+    if (selectOption) {
+        selectOption.addEventListener('change', function() {
+            qaqSaveDisplayMode(this.value);
+            qaqToast('画质已切换');
+            // 切换后立即刷新当前的桌宠和场景
+            if (typeof qaqRenderWordbankPetFloat === 'function') qaqRenderWordbankPetFloat();
+            if (typeof qaqRenderReviewPetFloat === 'function') qaqRenderReviewPetFloat();
+            if (typeof qaqRefreshXiaoyuanView === 'function') qaqRefreshXiaoyuanView();
         });
     }
 
+    // 原有的选择哪只宠物当桌宠的逻辑保留
     modalBody.querySelectorAll('.qaq-custom-select-option[data-pet-id]').forEach(function (opt) {
         opt.addEventListener('click', function () {
             var petId = this.dataset.petId;
@@ -3334,25 +3408,28 @@ function qaqCreateSpriteInScene(sceneEl, spriteHtml, x, y, name, itemId, type) {
     container.dataset.itemId = itemId;
 
     var spriteWrap = document.createElement('div');
-    spriteWrap.className = type === 'plant' ? 'qaq-plant-sprite' : 'qaq-animal-sprite';
-    if (type === 'animal') spriteWrap.classList.add('qaq-walking');
-    spriteWrap.innerHTML = spriteHtml;
+    // 如果是动物，先加上默认的平移走路动画，Lottie加载后会自动去掉它
+    spriteWrap.className = type === 'plant' ? 'qaq-plant-sprite' : 'qaq-animal-sprite qaq-walking';
+    // 给它一个ID，方便传入万能渲染器
+    var innerId = 'scene-obj-' + itemId + '-' + Date.now();
+    spriteWrap.id = innerId;
+    spriteWrap.style.width = '75px';
+    spriteWrap.style.height = '75px';
 
     var nameTag = document.createElement('div');
     nameTag.className = 'qaq-sprite-name';
     nameTag.textContent = name;
 
-    spriteWrap.appendChild(nameTag);
     container.appendChild(spriteWrap);
+    container.appendChild(nameTag);
     sceneEl.appendChild(container);
 
-    // 交互
+    // 🌟 召唤万能渲染器 (第三个参数直接传读取到的全局设定)
+    qaqRenderVisualToDOM(innerId, itemId, type, 1.0, qaqGetDisplayMode());
+
     container.addEventListener('click', function() {
-        if (type === 'plant') {
-            qaqWaterPlant(container, itemId);
-        } else {
-            qaqPetAnimal(container, itemId);
-        }
+        if (type === 'plant') qaqWaterPlant(container, itemId);
+        else qaqPetAnimal(container, itemId);
     });
 
     return container;
@@ -3625,7 +3702,7 @@ document.getElementById('qaq-zoo-feed-all-btn').addEventListener('click', functi
     qaqToast('全部喂食完成 +' + owned.length + ' 积分');
 });
 
-/* ===== 分模块数据导出导入 ===== */
+/* ===== 完整升级版：全方位分模块数据导出导入清除 ===== */
 function qaqGetDataModules() {
     return {
         'all': {
@@ -3633,77 +3710,186 @@ function qaqGetDataModules() {
             keys: function() {
                 var keys = [];
                 for (var i = 0; i < localStorage.length; i++) {
-                    var key = localStorage.key(i);
-                    if (key.indexOf('qaq') === 0) keys.push(key);
+                    if (localStorage.key(i).indexOf('qaq') === 0) keys.push(localStorage.key(i));
                 }
                 return keys;
-            }
-        },
-        'plan': {
-            name: '今日计划',
-            keys: function() {
-                return Object.keys(localStorage).filter(function(k) {
-                    return k === 'qaq-plans' || 
-                           k === 'qaq-plan-categories' || 
-                           k === 'qaq-plan-theme';
-                });
             }
         },
         'wordbank': {
             name: '词库',
             keys: function() {
-                return Object.keys(localStorage).filter(function(k) {
-                    return k === 'qaq-wordbooks' || 
-                           k === 'qaq-wordbank-theme';
-                });
+                return Object.keys(localStorage).filter(function(k) { return k === 'qaq-wordbooks' || k === 'qaq-wordbank-theme'; });
             }
         },
         'review': {
-            name: '背单词',
+            name: '背单词设置与小说',
             keys: function() {
-                return Object.keys(localStorage).filter(function(k) {
-                    return k.indexOf('qaq-word-review') === 0 || 
-                           k.indexOf('qaq-review-story') === 0;
-                });
+                return Object.keys(localStorage).filter(function(k) { return k.indexOf('qaq-word-review') === 0 || k.indexOf('qaq-review-story') === 0; });
             }
         },
-        'settings': {
-            name: '基础设置',
+        'study': {
+            name: '学习数据与积分',
             keys: function() {
-                return Object.keys(localStorage).filter(function(k) {
-                    return k === 'qaq-theme' || 
-                           k === 'qaq-api-config' || 
-                           k === 'qaq-hidden-apps';
+                return Object.keys(localStorage).filter(function(k) { return k === 'qaq-study-log' || k === 'qaq-point-ledger' || k === 'qaq-daily-word-point-progress' || k === 'qaq-points' || k === 'qaq-token-total'; });
+            }
+        },
+        'garden': {
+            name: '小院桌宠数据',
+            keys: function() {
+                return Object.keys(localStorage).filter(function(k) { return k === 'qaq-owned-items' || k === 'qaq-sprite-states' || k === 'qaq-mine-active-pet' || k === 'qaq-pet-settings' || k === 'qaq-pet-float-state' || k === 'qaq-mine-profile'; });
+            }
+        },
+        'cache': {
+            name: '3D模型及基础设置',
+            keys: function() {
+                return Object.keys(localStorage).filter(function(k) { return k === 'qaq-3d-model-cache' || k === 'qaq-3d-settings' || k === 'qaq-theme' || k === 'qaq-api-config' || k === 'qaq-hidden-apps'; });
+            }
+        },
+        'plan': {
+            name: '日常规划',
+            keys: function() {
+                return Object.keys(localStorage).filter(function(k) { return k === 'qaq-plans' || k === 'qaq-plan-categories' || k === 'qaq-plan-theme'; });
+            }
+        },
+        'audio': {
+            name: '语音缓存库',
+            keys: function() { return []; }, // 强行把这个脱离普通的表，独立管理
+            customExport: async function() {
+                if (!window.qaqAudioCache) return {};
+                return await new Promise(async function(resolve) {
+                    try {
+                        var allData = await window.qaqAudioCache.getAllAsBase64();
+                        resolve({ '__QAQ_AUDIO_CACHE__': allData });
+                    } catch(e) { resolve({}); }
                 });
+            },
+            customImport: async function(data) {
+                if (!window.qaqAudioCache || !data['__QAQ_AUDIO_CACHE__']) return;
+                await window.qaqAudioCache.importFromBase64(data['__QAQ_AUDIO_CACHE__']);
             }
         }
     };
 }
 
-function qaqExportDataModule(moduleId) {
-    var modules = qaqGetDataModules();
-    var module = modules[moduleId];
-    if (!module) return;
+async function qaqExportDataModule(moduleId) {
+    if (window.qaqShowImportProgress) window.qaqShowImportProgress('正在打包数据...', '可能需要一点时间');
+    if (window.qaqUpdateImportProgress) window.qaqUpdateImportProgress(20, '正在读取表格...');
+    
+    try {
+        var modules = qaqGetDataModules();
+        var module = modules[moduleId];
+        if (!module) return;
 
-    var keys = module.keys();
-    if (!keys.length) {
-        return qaqToast('该模块暂无数据');
+        var data = {};
+        
+        // 1. 导出常规 LocalStorage 表区
+        var keys = module.keys();
+        keys.forEach(function(key) {
+            data[key] = localStorage.getItem(key);
+        });
+        
+        // 2. 若涉及 IndexedDB 则读取二进制大文件流区
+        if (module.customExport) {
+            if (window.qaqUpdateImportProgress) window.qaqUpdateImportProgress(50, '正在下载语音文件...');
+            var customData = await module.customExport();
+            Object.assign(data, customData);
+        }
+        
+        // 3. All 的强行连锅端扫描
+        if (moduleId === 'all') {
+            for (var id in modules) {
+                if (id !== 'all' && modules[id].customExport) {
+                    if (window.qaqUpdateImportProgress) window.qaqUpdateImportProgress(70, '读取语音缓存中...');
+                    var cData = await modules[id].customExport();
+                    Object.assign(data, cData);
+                }
+            }
+        }
+
+        if (Object.keys(data).length === 0) {
+            if (window.qaqHideImportProgress) window.qaqHideImportProgress();
+            return qaqToast('该模块暂无数据');
+        }
+
+        if (window.qaqUpdateImportProgress) window.qaqUpdateImportProgress(95, '正在打包 JSON');
+        var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'qaq-backup-' + moduleId + '-' + new Date().toISOString().slice(0, 10) + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        if (window.qaqHideImportProgress) window.qaqHideImportProgress();
+        qaqToast(module.name + ' 数据已为您导出');
+    } catch(e) {
+        if (window.qaqHideImportProgress) window.qaqHideImportProgress();
+        qaqToast('导出失败: ' + e.message);
     }
-
-    var data = {};
-    keys.forEach(function(key) {
-        data[key] = localStorage.getItem(key);
-    });
-
-    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'qaq-' + moduleId + '-' + new Date().toISOString().slice(0, 10) + '.json';
-    a.click();
-    URL.revokeObjectURL(url);
-    qaqToast(module.name + '已导出');
 }
+
+async function qaqImportDataModule(file, moduleId) {
+    if (window.qaqShowImportProgress) window.qaqShowImportProgress('数据导入中', '正在分析文件...');
+    
+    var reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            if (window.qaqUpdateImportProgress) window.qaqUpdateImportProgress(30, '分析结构...');
+            var data = JSON.parse(e.target.result);
+            var modules = qaqGetDataModules();
+            var module = modules[moduleId];
+            
+            if (window.qaqUpdateImportProgress) window.qaqUpdateImportProgress(60, '正在逐步导入...');
+            
+            if (moduleId === 'all') {
+                var allKeys = Object.keys(data);
+                for (var i = 0; i < allKeys.length; i++) {
+                    if (allKeys[i].indexOf('qaq') === 0) localStorage.setItem(allKeys[i], data[allKeys[i]]);
+                }
+                for (var id in modules) {
+                    if (id !== 'all' && modules[id].customImport) {
+                        await modules[id].customImport(data);
+                    }
+                }
+            } else {
+                var validKeys = module.keys ? module.keys() : [];
+                Object.keys(data).forEach(function(key) {
+                    if (validKeys.indexOf(key) > -1) localStorage.setItem(key, data[key]);
+                });
+                if (module.customImport) await module.customImport(data);
+            }
+            
+            if (window.qaqUpdateImportProgress) window.qaqUpdateImportProgress(100, '全部导入完成！');
+            if (window.qaqHideImportProgress) setTimeout(window.qaqHideImportProgress, 200);
+            
+            qaqToast(module.name + ' 导入成功，即将刷新页面... ');
+            setTimeout(function() { location.reload(); }, 1200);
+        } catch (err) {
+            console.error(err);
+            if (window.qaqHideImportProgress) window.qaqHideImportProgress();
+            qaqToast('格式损坏：文件格式无法阅读');
+        }
+    };
+    reader.readAsText(file);
+}
+
+// 修改掉底层清空数据那个毁灭按钮，顺手把 IndexedDB 拆房式爆爆破
+document.getElementById('qaq-set-clearall').addEventListener('click', function () {
+    qaqConfirm('清空', '警告：此操作亦会清空语音与3D缓存，不可逆！确定吗？', async function () {
+        var keys = [];
+        for (var i = 0; i < localStorage.length; i++) {
+            if (localStorage.key(i).indexOf('qaq') === 0) keys.push(localStorage.key(i));
+        }
+        keys.forEach(function (key) { localStorage.removeItem(key); });
+        
+        if (window.qaqAudioCache && window.qaqAudioCache.clearAll) {
+            await window.qaqAudioCache.clearAll();
+        }
+        
+        qaqToast('数据已清空');
+        setTimeout(function () { location.reload(); }, 1200);
+    });
+});
 
 function qaqOpenExportModal() {
     var modules = qaqGetDataModules();
@@ -3737,42 +3923,6 @@ function qaqOpenExportModal() {
             qaqExportDataModule(moduleId);
         });
     });
-}
-
-function qaqImportDataModule(file, moduleId) {
-    var reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            var data = JSON.parse(e.target.result);
-            var modules = qaqGetDataModules();
-            var module = modules[moduleId];
-            
-            if (moduleId === 'all') {
-                // 全部导入
-                Object.keys(data).forEach(function(key) {
-                    if (key.indexOf('qaq') === 0) {
-                        localStorage.setItem(key, data[key]);
-                    }
-                });
-            } else {
-                // 模块导入：只导入属于该模块的key
-                var validKeys = module.keys();
-                Object.keys(data).forEach(function(key) {
-                    if (validKeys.indexOf(key) > -1 || 
-                        (moduleId === 'all' && key.indexOf('qaq') === 0)) {
-                        localStorage.setItem(key, data[key]);
-                    }
-                });
-            }
-            
-            qaqToast(module.name + '已导入，刷新生效');
-            setTimeout(function() { location.reload(); }, 1000);
-        } catch (err) {
-            console.error(err);
-            qaqToast('文件格式错误');
-        }
-    };
-    reader.readAsText(file);
 }
 
 function qaqOpenImportModal() {
@@ -3921,58 +4071,23 @@ const rfs = el.requestFullscreen
 function qaqRenderPetFloatTo(floatId, avatarId) {
     var pet = qaqGetActivePet();
     var floatEl = document.getElementById(floatId);
-    var avatarEl = document.getElementById(avatarId);
-
-    if (!floatEl || !avatarEl) return;
+    if (!floatEl) return;
 
     if (!pet || !pet.id) {
         floatEl.style.display = 'none';
         return;
     }
-
-    var item = qaqShopCatalog.animals.concat(qaqShopCatalog.seeds).find(function (x) {
-        return x.id === pet.id;
-    });
-
-    if (!item) {
-        floatEl.style.display = 'none';
-        return;
-    }
-
+    
+    // 显示浮窗，并设置基础尺寸
     floatEl.style.display = '';
-
-    var petSettings = qaqGetPetSettings();
-    if (petSettings.use3D && qaqThreeReady) {
-        var ok = qaqRenderPet3DTo(floatId, avatarId, item.id);
-        if (ok) return;
+    var avatarEl = document.getElementById(avatarId);
+    if(avatarEl) {
+       avatarEl.style.width = '75px';
+       avatarEl.style.height = '75px';
     }
 
-    if (petSettings.use3D && !qaqThreeReady) {
-        qaqEnsureThreeJS(null, function () {
-            var latestPetSettings = qaqGetPetSettings();
-            if (latestPetSettings.use3D) {
-                var ok2 = qaqRenderPet3DTo(floatId, avatarId, item.id);
-                if (ok2) return;
-            }
-
-            if (qaqAnimalSVGs[item.id]) {
-                avatarEl.innerHTML = qaqAnimalSVGs[item.id](0.9);
-            } else if (qaqPlantSVGs[item.id]) {
-                avatarEl.innerHTML = qaqPlantSVGs[item.id](0.9);
-            } else {
-                avatarEl.innerHTML = item.svg || '';
-            }
-        });
-        return;
-    }
-
-    if (qaqAnimalSVGs[item.id]) {
-        avatarEl.innerHTML = qaqAnimalSVGs[item.id](0.9);
-    } else if (qaqPlantSVGs[item.id]) {
-        avatarEl.innerHTML = qaqPlantSVGs[item.id](0.9);
-    } else {
-        avatarEl.innerHTML = item.svg || '';
-    }
+    // 🌟 召唤万能渲染器接管一切
+    qaqRenderVisualToDOM(avatarId, pet.id, 'animal', 0.9, qaqGetDisplayMode());
 }
 
 function qaqRenderWordbankPetFloat() {
@@ -3989,77 +4104,93 @@ function qaqGetPetModelUrl(itemId) {
     return qaqGet3DModelUrl(itemId);
 }
 
-function qaqRenderPet3DTo(floatId, avatarId, itemId) {
-    var avatarEl = document.getElementById(avatarId);
-    if (!avatarEl) return;
+/* ===== 万能渲染引擎 (自动降级: 3D -> Lottie -> Static) ===== */
+function qaqRenderVisualToDOM(containerId, itemId, type, scale, preferredMode) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
 
-    var modelUrl = qaqGetPetModelUrl(itemId);
-    if (!modelUrl) {
-        // 没模型就回退 2D
-        return false;
-    }
-
-    avatarEl.innerHTML = '<canvas id="' + avatarId + '-canvas"></canvas>';
-
-    var canvas = document.getElementById(avatarId + '-canvas');
-    if (!canvas || typeof THREE === 'undefined') return false;
-
-    // ★ 把内部画布稍稍加宽加大，防止截断
-    var w = 85; 
-    var h = 85;
+    container.innerHTML = ''; // 清空旧内容
     
-    avatarEl.style.width = w + 'px';
-    avatarEl.style.height = h + 'px';
-    avatarEl.style.overflow = 'visible'; 
+    var has3D = !!qaqGet3DModelUrl(itemId);
+    var hasLottie = window.qaqAnimalLotties && window.qaqAnimalLotties[itemId];
+    
+    // 安全降级逻辑
+    var mode = preferredMode || qaqGetDisplayMode();
+    if (mode === '3d' && !has3D) mode = hasLottie ? 'lottie' : 'static';
+    if (mode === 'lottie' && !hasLottie) mode = 'static';
 
-    var renderer = new THREE.WebGLRenderer({
-        canvas: canvas,
-        antialias: true,
-        alpha: true // 透明背景
-    });
-    renderer.setSize(w, h);
+    if (mode === '3d') {
+        // 调用我们已经写好的 3D 懒加载
+        qaqEnsureThreeJS(null, function() {
+            // 给画布一个专属 ID 以防冲突
+            var canvasId = 'cvs-' + itemId + '-' + Date.now();
+            container.innerHTML = '<canvas id="' + canvasId + '"></canvas>';
+            
+            // 设定大小
+            var w = container.clientWidth || 75;
+            var h = container.clientHeight || 75;
+            container.style.width = w + 'px';
+            container.style.height = h + 'px';
+            
+            // 初始化这个物体的迷你 3D 场景
+            qaqRenderMini3D(canvasId, itemId, w, h);
+        });
+    } 
+    else if (mode === 'lottie') {
+        // 调用 Lottie 懒加载
+        qaqEnsureLottie(function() {
+            container.innerHTML = '<lottie-player src="' + window.qaqAnimalLotties[itemId] + '" background="transparent" speed="1" style="width:100%;height:100%;pointer-events:none;" loop autoplay></lottie-player>';
+            // 如果是动物，去掉死图独有的平移走路 CSS 动画（Lottie 自己会动）
+            if (container.parentElement && container.parentElement.classList) {
+                container.parentElement.classList.remove('qaq-walking');
+            }
+        });
+    } 
+    else {
+        // 渲染基础静态 SVG
+        var svgHtml = '';
+        if (type === 'plant' && qaqPlantSVGs[itemId]) svgHtml = qaqPlantSVGs[itemId](scale);
+        else if (type === 'animal' && qaqAnimalSVGs[itemId]) svgHtml = qaqAnimalSVGs[itemId](scale);
+        else if (qaqItemSVGs[itemId]) svgHtml = qaqItemSVGs[itemId](scale);
+        else svgHtml = qaqShopCatalog[type+'s'].find(function(x){return x.id===itemId}).svg || '';
+        
+        container.innerHTML = svgHtml;
+    }
+}
+
+/* --- 配合万能渲染器的专属 3D 迷你加载器 --- */
+function qaqRenderMini3D(canvasId, itemId, width, height) {
+    var canvas = document.getElementById(canvasId);
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
     var scene = new THREE.Scene();
-
-    var camera = new THREE.PerspectiveCamera(35, w / h, 0.1, 100);
-    // ★ 相机向后拉远一点 (Z轴变 4.8)，高度微调，保证安全框
+    var camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 100);
     camera.position.set(0, 1.2, 4.8);
     camera.lookAt(0, 0.8, 0);
 
-    var ambient = new THREE.AmbientLight(0xffffff, 1.2);
-    scene.add(ambient);
-
+    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
     var dir = new THREE.DirectionalLight(0xffffff, 1.2);
     dir.position.set(2, 3, 2);
     scene.add(dir);
 
     var group = new THREE.Group();
-    // 如果觉得模型初始面朝前方不太好看，可以给定个固定角度例如:
-    // group.rotation.y = -Math.PI / 8;
     scene.add(group);
 
-    qaq3DLoadGLB({ id: itemId, type: 'pet', name: 'pet' }, group).then(function () {
-    // ★ 这里稍微把模型往下调一点，防止头部被顶上天
-    group.position.y = -0.3; 
-    
-    function animate() {
-        if (!document.body.contains(canvas)) {
-            try { renderer.dispose(); } catch (e) {}
-            return;
+    qaq3DLoadGLB({ id: itemId, type: 'pet', name: 'pet' }, group).then(function() {
+        group.position.y = -0.3; // 防止越界
+        function animate() {
+            if (!document.body.contains(canvas)) {
+                try { renderer.dispose(); } catch (e) {} return;
+            }
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
         }
-        
-        // ★ 原来这里有一句 group.rotation.y += 0.015; 我已经去掉了，它再也不会转了！
-        
-        renderer.render(scene, camera);
-        requestAnimationFrame(animate);
-    }
-    animate();
-}).catch(function () {
-    try { renderer.dispose(); } catch (e) {}
-});
-
-    return true;
+        animate();
+    });
 }
 
 var qaqPetEncourageTexts = [

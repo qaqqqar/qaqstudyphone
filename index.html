@@ -1228,8 +1228,16 @@
         <input class="qaq-plan-form-input" id="qaq-rs-mm-api-key" type="password" placeholder="若为空，则借用上方文本 Key">
         <div class="qaq-plan-form-label">Group ID</div>
         <input class="qaq-plan-form-input" id="qaq-rs-minimax-group" type="text" placeholder="旧版账号必填，新版留空">
-        <div class="qaq-plan-form-label">模型</div>
-        <input class="qaq-plan-form-input" id="qaq-rs-mm-model" type="text" placeholder="默认: speech-01-turbo">
+        <div class="qaq-plan-form-label">MiniMax 语音模型</div>
+<select class="qaq-plan-form-input" id="qaq-rs-mm-model">
+    <option value="speech-02-hd">speech-02-hd (推荐, 高音质)</option>
+    <option value="speech-02-turbo">speech-02-turbo</option>
+    <option value="speech-2.8-hd">speech-2.8-hd</option>
+    <option value="speech-2.8-turbo">speech-2.8-turbo</option>
+    <option value="speech-2.6-hd">speech-2.6-hd</option>
+    <option value="speech-2.6-turbo">speech-2.6-turbo</option>
+    <option value="speech-01-turbo">speech-01-turbo</option>
+</select>
         <div class="qaq-plan-form-label">Voice ID</div>
         <input class="qaq-plan-form-input" id="qaq-rs-mm-voice-id" type="text" placeholder="默认: female-shaonv">
     </div>

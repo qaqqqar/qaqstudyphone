@@ -2089,23 +2089,23 @@ var btnLottie = document.getElementById('qaq-shop-force-lottie');
 if(btnLottie) btnLottie.onclick = function () {
     if(window.qaqCloseModal) window.qaqCloseModal();
     setTimeout(function(){
-        // 复用你的 2D 详情页框架，但把图片区换成 Lottie
+        // 1. 先搭好 2D 详情页的框架
         qaqOpenShopItemDetail2D(item, isOwned, typeName);
-        setTimeout(function(){
+        
+        // 2. 保证加载引擎，然后极其暴力地替换内容
+        qaqEnsureLottie(function(){
             var previewBox = document.querySelector('.qaq-detail-preview');
             if(previewBox) {
-                previewBox.id = 'temp-lottie-preview';
-                
-                // 🌟 核心修复在这里：强制锁死预览区域的宽高为 130px，不让它暴走！
-                previewBox.style.width = '130px';
-                previewBox.style.height = '130px';
-                previewBox.style.display = 'flex';
-                previewBox.style.alignItems = 'center';
-                previewBox.style.justifyContent = 'center';
-                
-                qaqRenderVisualToDOM('temp-lottie-preview', item.id, item.type, 1.0, 'lottie');
+                // 🌟 终极锁死法：绕过万能渲染器，直接把死尺寸带有 !important 的写在它自己的标签上！
+                previewBox.innerHTML = 
+                    '<lottie-player ' +
+                    'src="' + window.qaqAnimalLotties[item.id] + '" ' +
+                    'background="transparent" speed="1" ' +
+                    'style="width: 110px !important; height: 110px !important; margin: 0 auto; display: block; pointer-events: none;" ' +
+                    'loop autoplay>' +
+                    '</lottie-player>';
             }
-        }, 50);
+        });
     }, 120);
 };
 

@@ -51,11 +51,15 @@ function qaqEnsureLive2D(callback) {
 }
 
 /* ===== 1. 全局动画/模型映射配置 ===== */
-window.qaqAnimalLotties = {
-    // 这里填入你的 Lottie 动画路径，如果没有配置的会走 2D 静态降级
+// 💡 把字典名字改成 qaqLotties 更通用（可选，但不影响运行）
+window.qaqLotties = {
+    // 🐶 动物类
     'animal-dog': './assets/lottie/dog1.json',
-    // 🌟 在这里加上兔子的配置。注意上一行末尾要加个逗号（,）！
-    'animal-rabbit': './assets/lottie/rabbit1.json' 
+    'animal-rabbit': './assets/lottie/rabbit1.json',
+    'animal-cat': './assets/lottie/cat1.json',    // 🌟 新增：小猫
+
+    // 🌹 植物类 (只要这里的 Key 和 qaqShopCatalog 里的 id 一致即可完美替换)
+    'seed-rose': './assets/lottie/rose1.json'     // 🌟 新增：玫瑰
 };
 
 /* ===== 2. 获取系统的全局展示模式 ===== */
@@ -2101,7 +2105,7 @@ if(btnLottie) btnLottie.onclick = function () {
                 // 🌟 终极锁死法：绕过万能渲染器，直接把死尺寸带有 !important 的写在它自己的标签上！
                 previewBox.innerHTML = 
                     '<lottie-player ' +
-                    'src="' + window.qaqAnimalLotties[item.id] + '" ' +
+                    'src="' + window.qaqLotties[item.id] + '" ' +
                     'background="transparent" speed="1" ' +
                     'style="width: 110px !important; height: 110px !important; margin: 0 auto; display: block; pointer-events: none;" ' +
                     'loop autoplay>' +
@@ -4120,7 +4124,7 @@ function qaqRenderVisualToDOM(containerId, itemId, type, scale, preferredMode) {
     container.innerHTML = ''; // 清空旧内容
     
     var has3D = !!qaqGet3DModelUrl(itemId);
-    var hasLottie = window.qaqAnimalLotties && window.qaqAnimalLotties[itemId];
+    var hasLottie = window.qaqLotties && window.qaqLotties[itemId];
     
     // 安全降级逻辑
     var mode = preferredMode || qaqGetDisplayMode();
@@ -4147,7 +4151,7 @@ function qaqRenderVisualToDOM(containerId, itemId, type, scale, preferredMode) {
     else if (mode === 'lottie') {
         // 调用 Lottie 懒加载
         qaqEnsureLottie(function() {
-            container.innerHTML = '<lottie-player src="' + window.qaqAnimalLotties[itemId] + '" background="transparent" speed="1" style="width:100%;height:100%;pointer-events:none;" loop autoplay></lottie-player>';
+            container.innerHTML = '<lottie-player src="' + window.qaqLotties[itemId] + '" background="transparent" speed="1" style="width:100%;height:100%;pointer-events:none;" loop autoplay></lottie-player>';
             // 如果是动物，去掉死图独有的平移走路 CSS 动画（Lottie 自己会动）
             if (container.parentElement && container.parentElement.classList) {
                 container.parentElement.classList.remove('qaq-walking');

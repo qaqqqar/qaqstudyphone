@@ -53,7 +53,9 @@ function qaqEnsureLive2D(callback) {
 /* ===== 1. 全局动画/模型映射配置 ===== */
 window.qaqAnimalLotties = {
     // 这里填入你的 Lottie 动画路径，如果没有配置的会走 2D 静态降级
-    'animal-dog': './assets/lottie/dog1.json' 
+    'animal-dog': './assets/lottie/dog1.json',
+    // 🌟 在这里加上兔子的配置。注意上一行末尾要加个逗号（,）！
+    'animal-rabbit': './assets/lottie/rabbit1.json' 
 };
 
 /* ===== 2. 获取系统的全局展示模式 ===== */
@@ -2057,7 +2059,7 @@ if(mBody) mBody.innerHTML =
     '<div class="qaq-import-mode-list">' +
         '<div class="qaq-import-mode-item" id="qaq-shop-force-static">' +
             '<div class="qaq-import-mode-title">2D 静态插画</div>' +
-            '<div class="qaq-import-mode-desc">一张精致的高清贴图，只看不撸。</div>' +
+            '<div class="qaq-import-mode-desc">一张精致的高清贴图。</div>' +
         '</div>' +
         '<div class="qaq-import-mode-item" id="qaq-shop-force-lottie" style="position:relative;">' +
             '<div class="qaq-import-mode-title">2D 骨骼动画</div>' +

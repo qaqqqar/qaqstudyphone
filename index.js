@@ -72,6 +72,29 @@ function qaqSaveDisplayMode(mode) {
     qaqCacheSet('qaq-global-display-mode', mode);
 }
 
+function qaqGetXiaoyuanDisplaySettings() {
+    return qaqCacheGet('qaq-xiaoyuan-display-settings', {
+        plantMode: 'lottie',
+        animalMode: 'lottie',
+        itemMode: 'static'
+    });
+}
+
+function qaqSaveXiaoyuanDisplaySettings(data) {
+    qaqCacheSet('qaq-xiaoyuan-display-settings', {
+        plantMode: data && data.plantMode ? data.plantMode : 'lottie',
+        animalMode: data && data.animalMode ? data.animalMode : 'lottie',
+        itemMode: data && data.itemMode ? data.itemMode : 'static'
+    });
+}
+
+function qaqGetXiaoyuanModeByType(type) {
+    var s = qaqGetXiaoyuanDisplaySettings();
+    if (type === 'plant') return s.plantMode || 'lottie';
+    if (type === 'animal') return s.animalMode || 'lottie';
+    return s.itemMode || 'static';
+}
+
 /* ===== 3. Lottie 引擎懒加载 (与 3D 逻辑同源) ===== */
 var qaqLottieReady = false;
 var qaqLottieLoading = false;
@@ -647,22 +670,9 @@ document.querySelectorAll('.qaq-app-item').forEach(function (item) {
 var qaqXiaoyuanPage = document.getElementById('qaq-xiaoyuan-page');
 var qaqXyCurrentTab = 'plants';
 
-function qaqOpenXiaoyuanPage() {
-    qaqApplyXiaoyuanThemeClass();
-    qaqSwitchTo(qaqXiaoyuanPage);
-    requestAnimationFrame(qaqRenderXiaoyuanMain);
-}
-
-document.getElementById('qaq-xiaoyuan-back').addEventListener('click', function () {
-    qaqClosePage(qaqXiaoyuanPage);
-});
-
-// 小院设置页打开/返回
 document.getElementById('qaq-xiaoyuan-settings-btn').addEventListener('click', function () {
     var sub = document.getElementById('qaq-sub-xiaoyuan-settings');
-
-    document.getElementById('qaq-xy-engine-select').value =
-        typeof qaqGetDisplayMode === 'function' ? qaqGetDisplayMode() : 'lottie';
+    var settings = qaqGetXiaoyuanDisplaySettings();
 
     // 同步主题
     sub.classList.remove('qaq-theme-dark', 'qaq-theme-cool');
@@ -672,6 +682,11 @@ document.getElementById('qaq-xiaoyuan-settings-btn').addEventListener('click', f
         sub.classList.add('qaq-theme-cool');
     }
 
+    // 回填当前设置
+    document.getElementById('qaq-xy-plant-mode').value = settings.plantMode || 'lottie';
+    document.getElementById('qaq-xy-animal-mode').value = settings.animalMode || 'lottie';
+    document.getElementById('qaq-xy-item-mode').value = settings.itemMode || 'static';
+
     qaqSwitchTo(sub);
 });
 
@@ -680,10 +695,26 @@ document.getElementById('qaq-xiaoyuan-settings-back').addEventListener('click', 
     qaqGoBackTo(qaqXiaoyuanPage, document.getElementById('qaq-sub-xiaoyuan-settings'));
 });
 
-document.getElementById('qaq-xy-engine-select').addEventListener('change', function() {
-    if(typeof qaqSaveDisplayMode === 'function') qaqSaveDisplayMode(this.value);
-    qaqToast('引擎已更替，资源将重新加载');
-    qaqRenderXiaoyuanMain();
+document.getElementById('qaq-xy-settings-save-btn').addEventListener('click', function () {
+    qaqSaveXiaoyuanDisplaySettings({
+        plantMode: document.getElementById('qaq-xy-plant-mode').value,
+        animalMode: document.getElementById('qaq-xy-animal-mode').value,
+        itemMode: document.getElementById('qaq-xy-item-mode').value
+    });
+
+    qaqToast('小院渲染设置已保存');
+    qaqGoBackTo(qaqXiaoyuanPage, document.getElementById('qaq-sub-xiaoyuan-settings'));
+    setTimeout(qaqRenderXiaoyuanMain, 120);
+});
+
+function qaqOpenXiaoyuanPage() {
+    qaqApplyXiaoyuanThemeClass();
+    qaqSwitchTo(qaqXiaoyuanPage);
+    requestAnimationFrame(qaqRenderXiaoyuanMain);
+}
+
+document.getElementById('qaq-xiaoyuan-back').addEventListener('click', function () {
+    qaqClosePage(qaqXiaoyuanPage);
 });
 
 // Tab 切换分类功能
@@ -3488,7 +3519,9 @@ function qaqCreateSpriteInScene(sceneEl, spriteHtml, defaultX, defaultY, name, i
 
     var spriteWrap = document.createElement('div');
     spriteWrap.className = type === 'plant' ? 'qaq-plant-sprite' : 'qaq-animal-sprite';
-    if(type === 'animal' && qaqGetDisplayMode() !== 'lottie') spriteWrap.classList.add('qaq-walking');
+    if (type === 'animal' && qaqGetXiaoyuanModeByType('animal') !== 'lottie') {
+    spriteWrap.classList.add('qaq-walking');
+}
     
     var innerId = 'scene-obj-' + itemId + '-' + Date.now();
     spriteWrap.id = innerId;
@@ -3503,7 +3536,7 @@ function qaqCreateSpriteInScene(sceneEl, spriteHtml, defaultX, defaultY, name, i
     container.appendChild(nameTag);
     sceneEl.appendChild(container);
 
-    qaqRenderVisualToDOM(innerId, itemId, type, 1.0, qaqGetDisplayMode());
+    qaqRenderVisualToDOM(innerId, itemId, type, 1.0, qaqGetXiaoyuanModeByType(type));
 
     // 🌟 2. 绑定神级触控与拖拽联动 (防干扰)
     var isDragging = false;
@@ -4256,53 +4289,63 @@ function qaqRenderVisualToDOM(containerId, itemId, type, scale, preferredMode) {
     var container = document.getElementById(containerId);
     if (!container) return;
 
-    container.innerHTML = ''; // 清空旧内容
-    
+    container.innerHTML = '';
+
     var has3D = !!qaqGet3DModelUrl(itemId);
-    var hasLottie = window.qaqLotties && window.qaqLotties[itemId];
-    
-    // 安全降级逻辑
-    var mode = preferredMode || qaqGetDisplayMode();
+    var hasLottie = !!(window.qaqLotties && window.qaqLotties[itemId]);
+
+    var mode = preferredMode || 'static';
     if (mode === '3d' && !has3D) mode = hasLottie ? 'lottie' : 'static';
     if (mode === 'lottie' && !hasLottie) mode = 'static';
 
     if (mode === '3d') {
-        // 调用我们已经写好的 3D 懒加载
-        qaqEnsureThreeJS(null, function() {
-            // 给画布一个专属 ID 以防冲突
+        qaqEnsureThreeJS(null, function () {
             var canvasId = 'cvs-' + itemId + '-' + Date.now();
             container.innerHTML = '<canvas id="' + canvasId + '"></canvas>';
-            
-            // 设定大小
+
             var w = container.clientWidth || 75;
             var h = container.clientHeight || 75;
             container.style.width = w + 'px';
             container.style.height = h + 'px';
-            
-            // 初始化这个物体的迷你 3D 场景
+
             qaqRenderMini3D(canvasId, itemId, w, h);
         });
-    } 
-    else if (mode === 'lottie') {
-        // 调用 Lottie 懒加载
-        qaqEnsureLottie(function() {
-            container.innerHTML = '<lottie-player src="' + window.qaqLotties[itemId] + '" background="transparent" speed="1" style="width:100%;height:100%;pointer-events:none;" loop autoplay></lottie-player>';
-            // 如果是动物，去掉死图独有的平移走路 CSS 动画（Lottie 自己会动）
+        return;
+    }
+
+    if (mode === 'lottie') {
+        qaqEnsureLottie(function () {
+            container.innerHTML =
+                '<lottie-player src="' + window.qaqLotties[itemId] + '" background="transparent" speed="1" style="width:100%;height:100%;pointer-events:none;" loop autoplay></lottie-player>';
             if (container.parentElement && container.parentElement.classList) {
                 container.parentElement.classList.remove('qaq-walking');
             }
         });
-    } 
-    else {
-        // 渲染基础静态 SVG
-        var svgHtml = '';
-        if (type === 'plant' && qaqPlantSVGs[itemId]) svgHtml = qaqPlantSVGs[itemId](scale);
-        else if (type === 'animal' && qaqAnimalSVGs[itemId]) svgHtml = qaqAnimalSVGs[itemId](scale);
-        else if (qaqItemSVGs[itemId]) svgHtml = qaqItemSVGs[itemId](scale);
-        else svgHtml = qaqShopCatalog[type+'s'].find(function(x){return x.id===itemId}).svg || '';
-        
-        container.innerHTML = svgHtml;
+        return;
     }
+
+    // static
+    var svgHtml = '';
+
+    if (type === 'plant' && qaqPlantSVGs[itemId]) {
+        svgHtml = qaqPlantSVGs[itemId](scale || 1);
+    } else if (type === 'animal' && qaqAnimalSVGs[itemId]) {
+        svgHtml = qaqAnimalSVGs[itemId](scale || 1);
+    } else if (type === 'item' && qaqItemSVGs[itemId]) {
+        svgHtml = qaqItemSVGs[itemId](scale || 1);
+    } else {
+        var fallbackItem = null;
+        if (type === 'plant') {
+            fallbackItem = (qaqShopCatalog.seeds || []).find(function (x) { return x.id === itemId; });
+        } else if (type === 'animal') {
+            fallbackItem = (qaqShopCatalog.animals || []).find(function (x) { return x.id === itemId; });
+        } else if (type === 'item') {
+            fallbackItem = (qaqShopCatalog.items || []).find(function (x) { return x.id === itemId; });
+        }
+        svgHtml = fallbackItem ? (fallbackItem.svg || '') : '';
+    }
+
+    container.innerHTML = svgHtml;
 }
 
 /* --- 配合万能渲染器的专属 3D 迷你加载器 --- */

@@ -4489,15 +4489,21 @@ function qaqOpenImportModal() {
 
     // 2. 尝试进入全屏模式（需要用户手势触发）
     function tryFullscreen() {
-        const el = document.documentElement;
-const rfs = el.requestFullscreen
-    || el.webkitRequestFullscreen
-    || el.mozRequestFullScreen
-    || el.msRequestFullscreen;
-        if (rfs) {
-            rfs.call(el).catch(() => {});
-        }
+    const el = document.documentElement;
+    const rfs = el.requestFullscreen
+        || el.webkitRequestFullscreen
+        || el.mozRequestFullScreen
+        || el.msRequestFullscreen;
+
+    if (rfs) {
+        try {
+            var ret = rfs.call(el);
+            if (ret && typeof ret.catch === 'function') {
+                ret.catch(function () {});
+            }
+        } catch (e) {}
     }
+}
 
     // 3. 监听全屏状态变化
     function onFullscreenChange() {

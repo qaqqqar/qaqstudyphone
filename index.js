@@ -95,10 +95,10 @@ function qaqGetXiaoyuanModeByType(type) {
     return s.itemMode || 'static';
 }
 
-GetYardSkinCatalog() {
+function qaqGetYardSkinCatalog() {
     return [
-        {id:'default',name:'默认渐变',image:''},
-        {id:'yard1',name:'小院皮肤 1',image:'assets/images/yard1.jpg'}
+        { id: 'default', name: '默认渐变', image: '' },
+        { id: 'yard1', name: '小院皮肤 1', image: 'assets/images/yard1.jpg' }
     ];
 }
 

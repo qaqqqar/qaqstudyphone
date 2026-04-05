@@ -8032,3 +8032,18 @@ body {
         rgba(80, 130, 50, 0.22) 100%
     );
 }
+
+.qaq-xiaoyuan-scene-inner{
+    position:absolute;
+    inset:0;
+    transform-origin:center center;
+    will-change:transform;
+}
+.qaq-xiaoyuan-scene-scaler{
+    position:absolute;
+    inset:0;
+    transform-origin:center center;
+}
+.qaq-custom-select-btn{
+    min-height:38px;
+}

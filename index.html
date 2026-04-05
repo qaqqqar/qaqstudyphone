@@ -1511,38 +1511,44 @@
             <div class="qaq-theme-section-title">渲染设置</div>
             <div class="qaq-theme-section-card">
     <div class="qaq-plan-form-label">小院皮肤</div>
-    <select class="qaq-plan-form-input" id="qaq-xy-yard-skin">
-        <option value="yard1">小院皮肤 1</option>
-        <option value="yard2">小院皮肤 2</option>
-        <option value="yard3">小院皮肤 3</option>
-    </select>
+    <div class="qaq-custom-select-btn" id="qaq-xy-yard-skin-btn">
+        <span id="qaq-xy-yard-skin-text">小院皮肤 1</span>
+    </div>
+
+    <div class="qaq-plan-form-label">小院皮肤缩放</div>
+    <div class="qaq-theme-slider-row">
+        <span class="qaq-theme-slider-label">缩放比例</span>
+        <input type="range" class="qaq-theme-slider" id="qaq-xy-yard-scale" min="80" max="160" value="100">
+        <span class="qaq-theme-slider-val" id="qaq-xy-yard-scale-val">100%</span>
+    </div>
+
+    <div class="qaq-settings-item" id="qaq-xy-follow-scale-row" style="padding:12px 0;border-bottom:none;">
+        <div class="qaq-settings-item-text">动植物跟随场景缩放</div>
+        <div class="qaq-toggle qaq-toggle-on" id="qaq-xy-follow-scale-toggle">
+            <div class="qaq-toggle-knob"></div>
+        </div>
+    </div>
 
     <div class="qaq-plan-form-label">植物渲染方式</div>
-    <select class="qaq-plan-form-input" id="qaq-xy-plant-mode">
-        <option value="static">2D 静态</option>
-        <option value="lottie">2D 动态</option>
-        <option value="3d">3D 模型</option>
-    </select>
+    <div class="qaq-custom-select-btn" id="qaq-xy-plant-mode-btn">
+        <span id="qaq-xy-plant-mode-text">2D 动态</span>
+    </div>
 
     <div class="qaq-plan-form-label">动物渲染方式</div>
-    <select class="qaq-plan-form-input" id="qaq-xy-animal-mode">
-        <option value="static">2D 静态</option>
-        <option value="lottie">2D 动态</option>
-        <option value="3d">3D 模型</option>
-    </select>
+    <div class="qaq-custom-select-btn" id="qaq-xy-animal-mode-btn">
+        <span id="qaq-xy-animal-mode-text">2D 动态</span>
+    </div>
 
     <div class="qaq-plan-form-label">道具渲染方式</div>
-    <select class="qaq-plan-form-input" id="qaq-xy-item-mode">
-        <option value="static">2D 静态</option>
-        <option value="lottie">2D 动态</option>
-        <option value="3d">3D 模型</option>
-    </select>
+    <div class="qaq-custom-select-btn" id="qaq-xy-item-mode-btn">
+        <span id="qaq-xy-item-mode-text">2D 静态</span>
+    </div>
 
     <button class="qaq-api-save-btn" id="qaq-xy-settings-save-btn" style="margin-top:10px;">保存设置</button>
 
     <div style="font-size:11px;color:#999;line-height:1.7;padding-top:4px;">
         说明：若某种资源不存在，会自动降级显示。<br>
-        当前并非所有植物、动物、道具都具备 Lottie / 3D 资源。
+        开启“动植物跟随场景缩放”后，缩放小院皮肤时，场景内动植物会一起同步放大缩小。
     </div>
 </div>
         </div>

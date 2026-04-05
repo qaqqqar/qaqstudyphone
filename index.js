@@ -104,13 +104,18 @@ function qaqGetYardSkinCatalog() {
 
 function qaqGetXiaoyuanSceneSettings() {
     return qaqCacheGet('qaq-xiaoyuan-scene-settings', {
-        yardSkin: 'yard1'
+        yardSkin: 'yard1',
+        yardScale: 1,
+        followSceneScale: true
     });
 }
 
 function qaqSaveXiaoyuanSceneSettings(data) {
+    var old=qaqGetXiaoyuanSceneSettings();
     qaqCacheSet('qaq-xiaoyuan-scene-settings', {
-        yardSkin: data && data.yardSkin ? data.yardSkin : 'yard1'
+        yardSkin:data&&data.yardSkin?data.yardSkin:(old.yardSkin||'yard1'),
+        yardScale:data&&data.yardScale!=null?data.yardScale:(old.yardScale||1),
+        followSceneScale:data&&data.followSceneScale!=null?!!data.followSceneScale:(old.followSceneScale!==false)
     });
 }
 
@@ -120,17 +125,51 @@ function qaqGetCurrentYardSkin() {
     return list.find(function (x) { return x.id === settings.yardSkin; }) || list[0];
 }
 
+function qaqEnsureXiaoyuanSceneStructure() {
+    var sceneEl=document.getElementById('qaq-xy-main-scene');
+    if(!sceneEl) return null;
+    var inner=sceneEl.querySelector('.qaq-xiaoyuan-scene-inner');
+    if(!inner){
+        inner=document.createElement('div');
+        inner.className='qaq-xiaoyuan-scene-inner';
+        while(sceneEl.firstChild){
+            inner.appendChild(sceneEl.firstChild);
+        }
+        sceneEl.appendChild(inner);
+    }
+    var scaler=inner.querySelector('.qaq-xiaoyuan-scene-scaler');
+    if(!scaler){
+        scaler=document.createElement('div');
+        scaler.className='qaq-xiaoyuan-scene-scaler';
+        inner.appendChild(scaler);
+    }
+    return {sceneEl:sceneEl,inner:inner,scaler:scaler};
+}
+
 function qaqApplyXiaoyuanSceneSkin() {
-    var sceneEl = document.getElementById('qaq-xy-main-scene');
-    if (!sceneEl) return;
+    var refs=qaqEnsureXiaoyuanSceneStructure();
+    if(!refs) return;
+    var sceneEl=refs.sceneEl;
+    var inner=refs.inner;
+    var skin=qaqGetCurrentYardSkin();
+    var settings=qaqGetXiaoyuanSceneSettings();
+    var scale=settings.yardScale||1;
 
-    var skin = qaqGetCurrentYardSkin();
-    if (!skin) return;
+    if(skin){
+        inner.style.backgroundImage='url("' + skin.image + '")';
+        inner.style.backgroundSize='cover';
+        inner.style.backgroundPosition='center';
+        inner.style.backgroundRepeat='no-repeat';
+    }
 
-    sceneEl.style.backgroundImage = 'url("' + skin.image + '")';
-    sceneEl.style.backgroundSize = 'cover';
-    sceneEl.style.backgroundPosition = 'center';
-    sceneEl.style.backgroundRepeat = 'no-repeat';
+    inner.style.transform='scale(' + scale + ')';
+}
+
+function qaqGetXiaoyuanSpriteMount() {
+    var refs=qaqEnsureXiaoyuanSceneStructure();
+    if(!refs) return null;
+    var settings=qaqGetXiaoyuanSceneSettings();
+    return settings.followSceneScale ? refs.scaler : refs.sceneEl;
 }
 
 /* ===== 3. Lottie 引擎懒加载 (与 3D 逻辑同源) ===== */
@@ -708,26 +747,136 @@ document.querySelectorAll('.qaq-app-item').forEach(function (item) {
 var qaqXiaoyuanPage = document.getElementById('qaq-xiaoyuan-page');
 var qaqXyCurrentTab = 'plants';
 
-document.getElementById('qaq-xiaoyuan-settings-btn').addEventListener('click', function () {
-    var sub = document.getElementById('qaq-sub-xiaoyuan-settings');
-    var settings = qaqGetXiaoyuanDisplaySettings();
-    var sceneSettings = qaqGetXiaoyuanSceneSettings();
+function qaqGetRenderModeLabel(mode){
+    var map={
+        'static':'2D 静态',
+        'lottie':'2D 动态',
+        '3d':'3D 模型'
+    };
+    return map[mode]||mode;
+}
 
-    // 同步主题
-    sub.classList.remove('qaq-theme-dark', 'qaq-theme-cool');
-    if (qaqXiaoyuanPage.classList.contains('qaq-theme-dark')) {
+function qaqRefreshXiaoyuanSettingTexts() {
+    var display=qaqGetXiaoyuanDisplaySettings();
+    var scene=qaqGetXiaoyuanSceneSettings();
+    var skin=qaqGetCurrentYardSkin();
+
+    var skinText=document.getElementById('qaq-xy-yard-skin-text');
+    var plantText=document.getElementById('qaq-xy-plant-mode-text');
+    var animalText=document.getElementById('qaq-xy-animal-mode-text');
+    var itemText=document.getElementById('qaq-xy-item-mode-text');
+    var scaleInput=document.getElementById('qaq-xy-yard-scale');
+    var scaleVal=document.getElementById('qaq-xy-yard-scale-val');
+    var followToggle=document.getElementById('qaq-xy-follow-scale-toggle');
+
+    if(skinText) skinText.textContent=skin?skin.name:'小院皮肤 1';
+    if(plantText) plantText.textContent=qaqGetRenderModeLabel(display.plantMode||'lottie');
+    if(animalText) animalText.textContent=qaqGetRenderModeLabel(display.animalMode||'lottie');
+    if(itemText) itemText.textContent=qaqGetRenderModeLabel(display.itemMode||'static');
+    if(scaleInput) scaleInput.value=Math.round((scene.yardScale||1)*100);
+    if(scaleVal) scaleVal.textContent=Math.round((scene.yardScale||1)*100)+'%';
+    if(followToggle) followToggle.classList.toggle('qaq-toggle-on',scene.followSceneScale!==false);
+}
+
+document.getElementById('qaq-xiaoyuan-settings-btn').addEventListener('click', function () {
+    var sub=document.getElementById('qaq-sub-xiaoyuan-settings');
+
+    sub.classList.remove('qaq-theme-dark','qaq-theme-cool');
+    if(qaqXiaoyuanPage.classList.contains('qaq-theme-dark')){
         sub.classList.add('qaq-theme-dark');
-    } else if (qaqXiaoyuanPage.classList.contains('qaq-theme-cool')) {
+    }else if(qaqXiaoyuanPage.classList.contains('qaq-theme-cool')){
         sub.classList.add('qaq-theme-cool');
     }
 
-    // 回填当前设置
-    document.getElementById('qaq-xy-yard-skin').value = sceneSettings.yardSkin || 'yard1';
-    document.getElementById('qaq-xy-plant-mode').value = settings.plantMode || 'lottie';
-    document.getElementById('qaq-xy-animal-mode').value = settings.animalMode || 'lottie';
-    document.getElementById('qaq-xy-item-mode').value = settings.itemMode || 'static';
-
+    qaqRefreshXiaoyuanSettingTexts();
     qaqSwitchTo(sub);
+});
+
+function qaqOpenXiaoyuanSelectModal(title,list,currentValue,onSelect){
+    modalTitle.textContent=title;
+    modalBody.innerHTML='<div class="qaq-custom-select-list">'+list.map(function(item){
+        var active=item.value===currentValue;
+        return '<div class="qaq-custom-select-option'+(active?' qaq-custom-select-active':'')+'" data-value="'+item.value+'"><span>'+item.label+'</span>'+(active?'<span style="color:#c47068;">✓</span>':'')+'</div>';
+    }).join('')+'</div>';
+    modalBtns.innerHTML='<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">取消</button>';
+    qaqOpenModal();
+    document.getElementById('qaq-modal-cancel').onclick=qaqCloseModal;
+    modalBody.querySelectorAll('.qaq-custom-select-option').forEach(function(opt){
+        opt.addEventListener('click',function(){
+            var val=this.dataset.value;
+            onSelect(val);
+            qaqCloseModal();
+        });
+    });
+}
+
+document.getElementById('qaq-xy-yard-skin-btn').addEventListener('click',function(){
+    var scene=qaqGetXiaoyuanSceneSettings();
+    var list=qaqGetYardSkinCatalog().map(function(item){
+        return {value:item.id,label:item.name};
+    });
+    qaqOpenXiaoyuanSelectModal('选择小院皮肤',list,scene.yardSkin||'yard1',function(val){
+        qaqSaveXiaoyuanSceneSettings({yardSkin:val});
+        qaqRefreshXiaoyuanSettingTexts();
+    });
+});
+
+document.getElementById('qaq-xy-plant-mode-btn').addEventListener('click',function(){
+    var settings=qaqGetXiaoyuanDisplaySettings();
+    qaqOpenXiaoyuanSelectModal('植物渲染方式',[
+        {value:'static',label:'2D 静态'},
+        {value:'lottie',label:'2D 动态'},
+        {value:'3d',label:'3D 模型'}
+    ],settings.plantMode||'lottie',function(val){
+        settings.plantMode=val;
+        qaqSaveXiaoyuanDisplaySettings(settings);
+        qaqRefreshXiaoyuanSettingTexts();
+    });
+});
+
+document.getElementById('qaq-xy-animal-mode-btn').addEventListener('click',function(){
+    var settings=qaqGetXiaoyuanDisplaySettings();
+    qaqOpenXiaoyuanSelectModal('动物渲染方式',[
+        {value:'static',label:'2D 静态'},
+        {value:'lottie',label:'2D 动态'},
+        {value:'3d',label:'3D 模型'}
+    ],settings.animalMode||'lottie',function(val){
+        settings.animalMode=val;
+        qaqSaveXiaoyuanDisplaySettings(settings);
+        qaqRefreshXiaoyuanSettingTexts();
+    });
+});
+
+document.getElementById('qaq-xy-item-mode-btn').addEventListener('click',function(){
+    var settings=qaqGetXiaoyuanDisplaySettings();
+    qaqOpenXiaoyuanSelectModal('道具渲染方式',[
+        {value:'static',label:'2D 静态'},
+        {value:'lottie',label:'2D 动态'},
+        {value:'3d',label:'3D 模型'}
+    ],settings.itemMode||'static',function(val){
+        settings.itemMode=val;
+        qaqSaveXiaoyuanDisplaySettings(settings);
+        qaqRefreshXiaoyuanSettingTexts();
+    });
+});
+
+
+document.getElementById('qaq-xy-yard-scale').addEventListener('input',function(){
+    var v=parseInt(this.value,10)||100;
+    document.getElementById('qaq-xy-yard-scale-val').textContent=v+'%';
+    var scene=qaqGetXiaoyuanSceneSettings();
+    scene.yardScale=v/100;
+    qaqSaveXiaoyuanSceneSettings(scene);
+    qaqApplyXiaoyuanSceneSkin();
+    qaqRenderXiaoyuanMain();
+});
+
+document.getElementById('qaq-xy-follow-scale-row').addEventListener('click',function(){
+    var scene=qaqGetXiaoyuanSceneSettings();
+    scene.followSceneScale=!(scene.followSceneScale!==false);
+    qaqSaveXiaoyuanSceneSettings(scene);
+    qaqRefreshXiaoyuanSettingTexts();
+    qaqRenderXiaoyuanMain();
 });
 
 document.getElementById('qaq-xiaoyuan-settings-back').addEventListener('click', function (e) {
@@ -736,20 +885,10 @@ document.getElementById('qaq-xiaoyuan-settings-back').addEventListener('click', 
 });
 
 document.getElementById('qaq-xy-settings-save-btn').addEventListener('click', function () {
-    qaqSaveXiaoyuanSceneSettings({
-        yardSkin: document.getElementById('qaq-xy-yard-skin').value
-    });
-
-    qaqSaveXiaoyuanDisplaySettings({
-        plantMode: document.getElementById('qaq-xy-plant-mode').value,
-        animalMode: document.getElementById('qaq-xy-animal-mode').value,
-        itemMode: document.getElementById('qaq-xy-item-mode').value
-    });
-
     qaqApplyXiaoyuanSceneSkin();
     qaqToast('小院设置已保存');
     qaqGoBackTo(qaqXiaoyuanPage, document.getElementById('qaq-sub-xiaoyuan-settings'));
-    setTimeout(qaqRenderXiaoyuanMain, 120);
+    setTimeout(qaqRenderXiaoyuanMain,120);
 });
 
 function qaqOpenXiaoyuanPage() {
@@ -788,40 +927,48 @@ function qaqRenderXiaoyuanMain() {
 
     var currentList = currentMap[qaqXyCurrentTab] || [];
 
-    var gridEl = document.getElementById('qaq-xy-main-grid');
-    var emptyEl = document.getElementById('qaq-xy-main-empty');
-    var sceneEl = document.getElementById('qaq-xy-main-scene');
-    var interactBtn = document.getElementById('qaq-xy-interact-all-btn');
+    var gridEl=document.getElementById('qaq-xy-main-grid');
+var emptyEl=document.getElementById('qaq-xy-main-empty');
+var sceneEl=document.getElementById('qaq-xy-main-scene');
+var interactBtn=document.getElementById('qaq-xy-interact-all-btn');
+var mount=qaqGetXiaoyuanSpriteMount();
 
-    if (!gridEl || !emptyEl || !sceneEl || !interactBtn) return;
+if(!gridEl||!emptyEl||!sceneEl||!interactBtn||!mount) return;
 
-    gridEl.innerHTML = '';
-    sceneEl.querySelectorAll('.qaq-sprite-container, .qaq-scene-tip').forEach(function (el) {
+gridEl.innerHTML='';
+
+sceneEl.querySelectorAll('.qaq-sprite-container,.qaq-scene-tip').forEach(function(el){
+    el.remove();
+});
+var scaler=sceneEl.querySelector('.qaq-xiaoyuan-scene-scaler');
+if(scaler){
+    scaler.querySelectorAll('.qaq-sprite-container,.qaq-scene-tip').forEach(function(el){
         el.remove();
     });
+}
 
     // 上方场景：只展示植物和动物
     var sceneItems = plants.concat(animals);
-    if (sceneItems.length) {
-        var tip = document.createElement('div');
-        tip.className = 'qaq-scene-tip';
-        tip.textContent = '拖动布置位置 · 点击互动';
-        sceneEl.appendChild(tip);
+    if(sceneItems.length){
+    var tip=document.createElement('div');
+    tip.className='qaq-scene-tip';
+    tip.textContent='拖动布置位置 · 点击互动';
+    mount.appendChild(tip);
 
-        var spacing = (sceneEl.clientWidth || 300) / (sceneItems.length + 1);
+    var spacing=(sceneEl.clientWidth||300)/(sceneItems.length+1);
 
-        sceneItems.forEach(function (item, i) {
-            qaqCreateSpriteInScene(
-                sceneEl,
-                '',
-                spacing * (i + 1) - 20,
-                item.type === 'seed' ? 10 : 24,
-                item.name,
-                item.id,
-                item.type === 'seed' ? 'plant' : 'animal'
-            );
-        });
-    }
+    sceneItems.forEach(function(item,i){
+        qaqCreateSpriteInScene(
+            mount,
+            '',
+            spacing*(i+1)-20,
+            item.type==='seed'?10:24,
+            item.name,
+            item.id,
+            item.type==='seed'?'plant':'animal'
+        );
+    });
+}
 
     // 一键按钮
     if (qaqXyCurrentTab === 'plants') {

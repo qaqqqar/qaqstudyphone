@@ -292,11 +292,7 @@ function qaqHas3DModelCache(itemId) {
 function qaqRefreshXiaoyuanView() {
     if (!qaqXiaoyuanPage) return;
     if (qaqXiaoyuanPage.classList.contains('qaq-page-show')) {
-        if (qaqXiaoyuanCurrentTab === 'garden') {
-            qaqRenderXiaoyuanGarden();
-        } else {
-            qaqRenderXiaoyuanZoo();
-        }
+        qaqRenderXiaoyuanMain();
     }
 }
 
@@ -465,9 +461,11 @@ document.querySelectorAll('.qaq-app-item').forEach(function (item) {
     function qaqCloseSettings() {
     if (qaqPageLock) return;
 
-    var openedSubs = document.querySelectorAll('.qaq-settings-sub.qaq-page-show');
+    var openedSubs = settingsPage.querySelectorAll('.qaq-settings-sub.qaq-page-show');
     if (openedSubs.length) {
-        openedSubs.forEach(function (sub) { sub.classList.remove('qaq-page-show'); });
+        openedSubs.forEach(function (sub) {
+            sub.classList.remove('qaq-page-show');
+        });
         return;
     }
 
@@ -659,13 +657,25 @@ document.getElementById('qaq-xiaoyuan-back').addEventListener('click', function 
     qaqClosePage(qaqXiaoyuanPage);
 });
 
-// 设置页打开/联动/返回
-document.getElementById('qaq-xiaoyuan-settings-btn').addEventListener('click', function() {
-    document.getElementById('qaq-xy-engine-select').value = typeof qaqGetDisplayMode === 'function' ? qaqGetDisplayMode() : 'lottie';
-    qaqSwitchTo(document.getElementById('qaq-sub-xiaoyuan-settings'));
+// 小院设置页打开/返回
+document.getElementById('qaq-xiaoyuan-settings-btn').addEventListener('click', function () {
+    var sub = document.getElementById('qaq-sub-xiaoyuan-settings');
+
+    document.getElementById('qaq-xy-engine-select').value =
+        typeof qaqGetDisplayMode === 'function' ? qaqGetDisplayMode() : 'lottie';
+
+    // 同步主题
+    sub.classList.remove('qaq-theme-dark', 'qaq-theme-cool');
+    if (qaqXiaoyuanPage.classList.contains('qaq-theme-dark')) {
+        sub.classList.add('qaq-theme-dark');
+    } else if (qaqXiaoyuanPage.classList.contains('qaq-theme-cool')) {
+        sub.classList.add('qaq-theme-cool');
+    }
+
+    qaqSwitchTo(sub);
 });
 
-document.querySelector('[data-back="xiaoyuan-settings"]').addEventListener('click', function(e) {
+document.getElementById('qaq-xiaoyuan-settings-back').addEventListener('click', function (e) {
     e.stopPropagation();
     qaqGoBackTo(qaqXiaoyuanPage, document.getElementById('qaq-sub-xiaoyuan-settings'));
 });
@@ -692,51 +702,82 @@ function qaqRenderXiaoyuanMain() {
     var plants = ownedAll.filter(function (x) { return x.type === 'seed'; });
     var animals = ownedAll.filter(function (x) { return x.type === 'animal'; });
     var items = ownedAll.filter(function (x) { return x.type === 'item'; });
-    
-    var mapList = { 'plants': plants, 'animals': animals, 'items': items };
-    var currentList = mapList[qaqXyCurrentTab];
-    
+
+    var currentMap = {
+        plants: plants,
+        animals: animals,
+        items: items
+    };
+
+    var currentList = currentMap[qaqXyCurrentTab] || [];
+
     var gridEl = document.getElementById('qaq-xy-main-grid');
     var emptyEl = document.getElementById('qaq-xy-main-empty');
     var sceneEl = document.getElementById('qaq-xy-main-scene');
     var interactBtn = document.getElementById('qaq-xy-interact-all-btn');
 
+    if (!gridEl || !emptyEl || !sceneEl || !interactBtn) return;
+
     gridEl.innerHTML = '';
-    
-    // 清除上部的图景重绘
-    sceneEl.querySelectorAll('.qaq-sprite-container, .qaq-scene-tip').forEach(function(el) { el.remove(); });
-    
+    sceneEl.querySelectorAll('.qaq-sprite-container, .qaq-scene-tip').forEach(function (el) {
+        el.remove();
+    });
+
+    // 上方场景：只展示植物和动物
     var sceneItems = plants.concat(animals);
-    if(sceneItems.length) {
+    if (sceneItems.length) {
         var tip = document.createElement('div');
         tip.className = 'qaq-scene-tip';
         tip.textContent = '拖动布置位置 · 点击互动';
         sceneEl.appendChild(tip);
+
         var spacing = (sceneEl.clientWidth || 300) / (sceneItems.length + 1);
-        sceneItems.forEach(function(item, i) {
-            qaqCreateSpriteInScene(sceneEl, spacing * (i + 1) - 20, item.type === 'seed' ? 10 : 30, item.name, item.id, item.type);
+
+        sceneItems.forEach(function (item, i) {
+            qaqCreateSpriteInScene(
+                sceneEl,
+                '',
+                spacing * (i + 1) - 20,
+                item.type === 'seed' ? 10 : 24,
+                item.name,
+                item.id,
+                item.type === 'seed' ? 'plant' : 'animal'
+            );
         });
     }
 
-    // 切换一键按钮状态
+    // 一键按钮
     if (qaqXyCurrentTab === 'plants') {
         interactBtn.style.display = '';
-        interactBtn.textContent = '一键浇水(全部植物)';
-        interactBtn.onclick = function() {
-            if(!plants.length) return qaqToast('没有植物可供浇水');
-            plants.forEach(function(p){ var s = qaqGetSpriteState(p.id); s.growth = Math.min(100, (s.growth || 0) + 10); qaqSaveSpriteState(p.id, s); });
-            qaqAddPoints(plants.length); qaqRenderXiaoyuanMain(); qaqToast('浇水完成');
+        interactBtn.textContent = '一键浇水（全部植物）';
+        interactBtn.onclick = function () {
+            if (!plants.length) return qaqToast('没有植物可供浇水');
+            plants.forEach(function (p) {
+                var s = qaqGetSpriteState(p.id);
+                s.growth = Math.min(100, (s.growth || 0) + 10);
+                qaqSaveSpriteState(p.id, s);
+            });
+            qaqAddPoints(plants.length);
+            qaqRenderXiaoyuanMain();
+            qaqToast('浇水完成');
         };
     } else if (qaqXyCurrentTab === 'animals') {
         interactBtn.style.display = '';
-        interactBtn.textContent = '一键喂食(全部动物)';
-        interactBtn.onclick = function() {
-            if(!animals.length) return qaqToast('没有动物可供喂食');
-            animals.forEach(function(a){ var s = qaqGetSpriteState(a.id); s.mood = Math.min(100, (s.mood || 50) + 10); qaqSaveSpriteState(a.id, s); });
-            qaqAddPoints(animals.length); qaqRenderXiaoyuanMain(); qaqToast('喂食完成');
+        interactBtn.textContent = '一键喂食（全部动物）';
+        interactBtn.onclick = function () {
+            if (!animals.length) return qaqToast('没有动物可供喂食');
+            animals.forEach(function (a) {
+                var s = qaqGetSpriteState(a.id);
+                s.mood = Math.min(100, (s.mood || 50) + 10);
+                qaqSaveSpriteState(a.id, s);
+            });
+            qaqAddPoints(animals.length);
+            qaqRenderXiaoyuanMain();
+            qaqToast('喂食完成');
         };
     } else {
         interactBtn.style.display = 'none';
+        interactBtn.onclick = null;
     }
 
     if (!currentList.length) {
@@ -745,46 +786,56 @@ function qaqRenderXiaoyuanMain() {
     }
     emptyEl.style.display = 'none';
 
-    // 渲染下部的网格卡片
     currentList.forEach(function (item) {
         var isPlant = item.type === 'seed';
         var isAnimal = item.type === 'animal';
-        var catList = isPlant ? qaqShopCatalog.seeds : (isAnimal ? qaqShopCatalog.animals : qaqShopCatalog.items);
+
+        var catList = isPlant
+            ? qaqShopCatalog.seeds
+            : (isAnimal ? qaqShopCatalog.animals : qaqShopCatalog.items);
+
         var catItem = catList.find(function (x) { return x.id === item.id; });
         var state = qaqGetSpriteState(item.id);
-        
+
         var statusColor = '#999';
         var statusText = '摆件';
-        
+
         if (isPlant) {
-            statusColor = (state.growth||0) >= 100 ? '#e05565' : '#7bab6e';
-            statusText = (state.growth||0) >= 100 ? '已盛开' : '成长进度 ' + (state.growth||0) + '%';
+            statusColor = (state.growth || 0) >= 100 ? '#e05565' : '#7bab6e';
+            statusText = (state.growth || 0) >= 100
+                ? '已盛开'
+                : '成长进度 ' + (state.growth || 0) + '%';
         } else if (isAnimal) {
-            statusColor = (state.mood||50) >= 80 ? '#e8c34f' : '#e88d4f';
-            statusText = '当前心情 ' + (state.mood||50) + '%';
+            statusColor = (state.mood || 50) >= 80 ? '#e8c34f' : '#e88d4f';
+            statusText = '当前心情 ' + (state.mood || 50) + '%';
         }
-        
+
         var card = document.createElement('div');
         card.className = 'qaq-garden-card';
         card.innerHTML =
-            '<div class="qaq-garden-card-icon">' + (catItem ? catItem.svg.replace(/32/g, '48') : '') + '</div>' +
+            '<div class="qaq-garden-card-icon">' +
+                (catItem ? catItem.svg.replace(/32/g, '48') : '') +
+            '</div>' +
             '<div class="qaq-garden-card-name">' + item.name + '</div>' +
-            '<div class="qaq-garden-card-status" style="color:'+statusColor+';font-weight:600;">' + statusText + '</div>';
+            '<div class="qaq-garden-card-status" style="color:' + statusColor + ';font-weight:600;">' + statusText + '</div>';
 
-        // 卡片点击反向触发模型互动
         if (isPlant || isAnimal) {
             card.addEventListener('click', function () {
                 var targetBox = sceneEl.querySelector('[data-item-id="' + item.id + '"]');
-                if (isPlant) qaqWaterPlant(targetBox || card, item.id);
-                else qaqPetAnimal(targetBox || card, item.id);
+                if (isPlant) {
+                    qaqWaterPlant(targetBox || card, item.id);
+                } else {
+                    qaqPetAnimal(targetBox || card, item.id);
+                }
                 setTimeout(qaqRenderXiaoyuanMain, 300);
             });
         }
+
         gridEl.appendChild(card);
     });
 }
 
-function qaqCreateSpriteInScene(sceneEl, defaultX, defaultY, name, itemId, type) {
+function qaqCreateSpriteInSceneLegacy(sceneEl, defaultX, defaultY, name, itemId, type) {
     var state = qaqGetSpriteState(itemId);
     var savedX = state.posX != null ? state.posX : defaultX;
     var savedY = state.posY != null ? state.posY : defaultY;
@@ -906,17 +957,20 @@ document.getElementById('qaq-mine-shop-back').addEventListener('click', function
     });
 
 function qaqApplyXiaoyuanThemeClass() {
-    var page = document.getElementById('qaq-xiaoyuan-page');
     var frame = document.querySelector('.qaq-phone-frame');
-    if (!page || !frame) return;
+    var page = document.getElementById('qaq-xiaoyuan-page');
+    var sub = document.getElementById('qaq-sub-xiaoyuan-settings');
+    if (!frame) return;
 
-    page.classList.remove('qaq-theme-dark', 'qaq-theme-cool');
-
-    if (frame.classList.contains('qaq-theme-dark')) {
-        page.classList.add('qaq-theme-dark');
-    } else if (frame.classList.contains('qaq-theme-cool')) {
-        page.classList.add('qaq-theme-cool');
-    }
+    [page, sub].forEach(function (el) {
+        if (!el) return;
+        el.classList.remove('qaq-theme-dark', 'qaq-theme-cool');
+        if (frame.classList.contains('qaq-theme-dark')) {
+            el.classList.add('qaq-theme-dark');
+        } else if (frame.classList.contains('qaq-theme-cool')) {
+            el.classList.add('qaq-theme-cool');
+        }
+    });
 }
 
 /* ===== 我的页面 - 完整重构===== */

@@ -4026,7 +4026,8 @@ body {
 .qaq-mine-shop-page,
 .qaq-mine-garden-page,
 .qaq-mine-zoo-page,
-.qaq-xiaoyuan-page {
+.qaq-xiaoyuan-page,
+.qaq-xiaoyuan-subpage {
     contain: layout style paint;
     will-change: transform;
 }
@@ -5073,7 +5074,8 @@ body {
 .qaq-mine-shop-page,
 .qaq-mine-garden-page,
 .qaq-mine-zoo-page,
-.qaq-xiaoyuan-page {
+.qaq-xiaoyuan-page,
+.qaq-xiaoyuan-subpage {
     contain: layout paint style;
 }
 
@@ -5121,7 +5123,8 @@ body {
 .qaq-mine-shop-page.qaq-page-show,
 .qaq-mine-garden-page.qaq-page-show,
 .qaq-mine-zoo-page.qaq-page-show,
-.qaq-xiaoyuan-page.qaq-page-show {
+.qaq-xiaoyuan-page.qaq-page-show,
+.qaq-xiaoyuan-subpage.qaq-page-show {
     transform: translate3d(0, 0, 0);
     visibility: visible;
     pointer-events: auto;
@@ -5375,7 +5378,8 @@ body {
 .qaq-mine-stats-page,
 .qaq-mine-shop-page,
 .qaq-mine-garden-page,
-.qaq-mine-zoo-page {
+.qaq-mine-zoo-page,
+.qaq-xiaoyuan-subpage {
     padding-top: calc(var(--qaq-safe-top) + 3vw);
 }
 
@@ -6941,30 +6945,11 @@ body {
 }
 /* 在统一页面层管理部分追加 */
 .qaq-xiaoyuan-page { z-index: 70; }
+.qaq-xiaoyuan-subpage { z-index: 71; }
 
 /* 同步顶部安全留白 */
 .qaq-xiaoyuan-page {
     padding-top: calc(var(--qaq-safe-top) + 3vw);
-}
-
-/* Tab 行*/
-.qaq-xiaoyuan-tabs {
-    display: flex;
-    gap: 8px;
-    padding: 0 16px 10px;
-    flex-shrink: 0;
-}
-
-.qaq-xiaoyuan-tabs .qaq-wordbank-tab {
-    flex: 1;
-}
-
-/* 面板填满剩余 */
-.qaq-xiaoyuan-panel {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
 }
 
 /* ===== 我的页面 - 今日概览内嵌 ===== */
@@ -7273,13 +7258,6 @@ body {
 }
 
 /* ===== 修复：小院面板内滚动区padding 内的 inline style区域 ===== */
-.qaq-theme-dark .qaq-xiaoyuan-panel [style*="padding"] {
-    color: #ccc;
-}
-
-.qaq-theme-cool .qaq-xiaoyuan-panel [style*="padding"] {
-    color: #333;
-}
 
 /* 小院内场景、卡片、按钮的主题适配也加 !important 确保生效 */
 .qaq-theme-dark .qaq-xiaoyuan-page .qaq-settings-header .qaq-settings-title {
@@ -7895,4 +7873,135 @@ body {
 .qaq-phone-frame.qaq-theme-dark ~ .qaq-time-panel .qaq-time-panel-clear {
     border-color: #444 !important;
     color: #666 !important;
+}
+
+/* ===== 小院设置页（独立于设置APP） ===== */
+.qaq-xiaoyuan-subpage {
+    background: linear-gradient(
+        160deg,
+        #f6e9c9 0%,
+        #faebd7 25%,
+        #fce8e2 50%,
+        #fed2e0 75%,
+        #f6e9c9 100%
+    ) !important;
+}
+
+.qaq-xiaoyuan-subpage.qaq-theme-dark {
+    background: linear-gradient(
+        160deg,
+        #121212 0%,
+        #1a1a1a 25%,
+        #161616 50%,
+        #1c1c1c 75%,
+        #121212 100%
+    ) !important;
+}
+
+.qaq-xiaoyuan-subpage.qaq-theme-cool {
+    background: linear-gradient(
+        160deg,
+        #ebeef3 0%,
+        #f0f2f5 25%,
+        #f3f4f7 50%,
+        #eef0f4 75%,
+        #ebeef3 100%
+    ) !important;
+}
+
+/* ===== 小院页面最终布局 ===== */
+.qaq-xiaoyuan-layout {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.qaq-xiaoyuan-scene-wrap {
+    padding: 0 16px 12px;
+    flex-shrink: 0;
+}
+
+.qaq-xiaoyuan-scene {
+    height: 210px !important;
+    margin: 0 !important;
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px;
+}
+
+.qaq-xiaoyuan-toolbar {
+    padding: 0 16px 10px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.qaq-xiaoyuan-tabs {
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.qaq-xiaoyuan-action-btn {
+    width: 100%;
+    margin: 0 !important;
+    height: 38px;
+    font-size: 13px;
+    border-radius: 12px;
+}
+
+.qaq-xiaoyuan-main-scroll {
+    padding: 2px 16px 30px;
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: none;
+    min-height: 0;
+}
+
+.qaq-xiaoyuan-main-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.qaq-xiaoyuan-page .qaq-garden-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.qaq-xiaoyuan-page .qaq-garden-card {
+    border-radius: 16px;
+    padding: 14px 10px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.qaq-xiaoyuan-page .qaq-garden-card:active {
+    transform: scale(0.97);
+}
+
+.qaq-xiaoyuan-page .qaq-garden-card-name {
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.qaq-xiaoyuan-page .qaq-garden-card-status {
+    font-size: 11px;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.qaq-xiaoyuan-page .qaq-garden-card-icon {
+    width: 60px;
+    height: 60px;
+}
+
+.qaq-xiaoyuan-page .qaq-scene-tip {
+    bottom: 10px;
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 12px;
 }

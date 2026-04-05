@@ -8047,3 +8047,13 @@ body {
 .qaq-custom-select-btn{
     min-height:38px;
 }
+
+#qaq-xy-main-scene:not(.qaq-xiaoyuan-has-custom-skin){
+    background:linear-gradient(180deg,#e8f4fd 0%,#d4eaf8 40%,#c8dfb8 70%,#a8c898 100%) !important;
+}
+.qaq-theme-dark #qaq-xy-main-scene:not(.qaq-xiaoyuan-has-custom-skin){
+    background:linear-gradient(180deg,#1a2a1a 0%,#1e2e1e 40%,#223022 70%,#2a382a 100%) !important;
+}
+.qaq-theme-cool #qaq-xy-main-scene:not(.qaq-xiaoyuan-has-custom-skin){
+    background:linear-gradient(180deg,#e8eef6 0%,#dce4f0 40%,#c8d8c4 70%,#b8c8b0 100%) !important;
+}

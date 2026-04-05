@@ -95,25 +95,25 @@ function qaqGetXiaoyuanModeByType(type) {
     return s.itemMode || 'static';
 }
 
-function qaqGetYardSkinCatalog() {
+GetYardSkinCatalog() {
     return [
-        { id: 'yard1', name: '小院皮肤 1', image: 'assets/images/yard1.jpg' },
-        
+        {id:'default',name:'默认渐变',image:''},
+        {id:'yard1',name:'小院皮肤 1',image:'assets/images/yard1.jpg'}
     ];
 }
 
 function qaqGetXiaoyuanSceneSettings() {
     return qaqCacheGet('qaq-xiaoyuan-scene-settings', {
-        yardSkin: 'yard1',
-        yardScale: 1,
-        followSceneScale: true
+        yardSkin:'default',
+        yardScale:1,
+        followSceneScale:true
     });
 }
 
 function qaqSaveXiaoyuanSceneSettings(data) {
     var old=qaqGetXiaoyuanSceneSettings();
     qaqCacheSet('qaq-xiaoyuan-scene-settings', {
-        yardSkin:data&&data.yardSkin?data.yardSkin:(old.yardSkin||'yard1'),
+        yardSkin:data&&data.yardSkin!=null?data.yardSkin:(old.yardSkin||'default'),
         yardScale:data&&data.yardScale!=null?data.yardScale:(old.yardScale||1),
         followSceneScale:data&&data.followSceneScale!=null?!!data.followSceneScale:(old.followSceneScale!==false)
     });
@@ -146,7 +146,9 @@ function qaqEnsureXiaoyuanSceneStructure() {
     return {sceneEl:sceneEl,inner:inner,scaler:scaler};
 }
 
-function qaqApplyXiaoyuanSceneSkin() {
+var qaqXiaoyuanSkinLoader=null;
+
+function qaqApplyXiaoyuanSceneSkin(showProgress) {
     var refs=qaqEnsureXiaoyuanSceneStructure();
     if(!refs) return;
     var sceneEl=refs.sceneEl;
@@ -155,14 +157,71 @@ function qaqApplyXiaoyuanSceneSkin() {
     var settings=qaqGetXiaoyuanSceneSettings();
     var scale=settings.yardScale||1;
 
-    if(skin){
-        inner.style.backgroundImage='url("' + skin.image + '")';
-        inner.style.backgroundSize='cover';
-        inner.style.backgroundPosition='center';
-        inner.style.backgroundRepeat='no-repeat';
+    inner.style.transform='scale(' + scale + ')';
+    inner.style.backgroundImage='';
+    inner.style.backgroundSize='cover';
+    inner.style.backgroundPosition='center';
+    inner.style.backgroundRepeat='no-repeat';
+
+    if(qaqXiaoyuanSkinLoader){
+        qaqXiaoyuanSkinLoader.onload=null;
+        qaqXiaoyuanSkinLoader.onerror=null;
+        qaqXiaoyuanSkinLoader=null;
     }
 
-    inner.style.transform='scale(' + scale + ')';
+    if(!skin||skin.id==='default'||!skin.image){
+        sceneEl.classList.remove('qaq-xiaoyuan-has-custom-skin');
+        return;
+    }
+
+    sceneEl.classList.remove('qaq-xiaoyuan-has-custom-skin');
+
+    var img=new Image();
+    qaqXiaoyuanSkinLoader=img;
+
+    if(showProgress){
+        qaqOpenXiaoyuanLoadProgress('加载小院皮肤','正在读取皮肤资源...',function(){
+            if(qaqXiaoyuanSkinLoader){
+                qaqXiaoyuanSkinLoader.onload=null;
+                qaqXiaoyuanSkinLoader.onerror=null;
+                qaqXiaoyuanSkinLoader=null;
+            }
+            qaqToast('已取消皮肤加载');
+        },function(){
+            var scene=qaqGetXiaoyuanSceneSettings();
+            scene.yardSkin='default';
+            qaqSaveXiaoyuanSceneSettings(scene);
+            qaqRefreshXiaoyuanSettingTexts();
+            qaqApplyXiaoyuanSceneSkin(false);
+            qaqToast('已切换为默认渐变');
+        });
+        qaqUpdateXiaoyuanLoadProgress(5,'正在发起请求...');
+        setTimeout(function(){if(qaqXiaoyuanSkinLoader===img) qaqUpdateXiaoyuanLoadProgress(25,'正在下载图片...');},120);
+        setTimeout(function(){if(qaqXiaoyuanSkinLoader===img) qaqUpdateXiaoyuanLoadProgress(60,'正在解码图片...');},260);
+    }
+
+    img.onload=function(){
+        if(qaqXiaoyuanSkinLoader!==img) return;
+        inner.style.backgroundImage='url("' + skin.image + '")';
+        sceneEl.classList.add('qaq-xiaoyuan-has-custom-skin');
+        if(showProgress){
+            qaqUpdateXiaoyuanLoadProgress(100,'皮肤加载完成');
+            setTimeout(qaqCloseXiaoyuanLoadProgress,180);
+        }
+        qaqXiaoyuanSkinLoader=null;
+    };
+
+    img.onerror=function(){
+        if(qaqXiaoyuanSkinLoader!==img) return;
+        if(showProgress){
+            qaqUpdateXiaoyuanLoadProgress(100,'皮肤加载失败');
+            setTimeout(qaqCloseXiaoyuanLoadProgress,200);
+        }
+        qaqToast('皮肤加载失败，请检查图片路径');
+        qaqXiaoyuanSkinLoader=null;
+    };
+
+    img.src=skin.image;
 }
 
 function qaqGetXiaoyuanSpriteMount() {
@@ -170,6 +229,66 @@ function qaqGetXiaoyuanSpriteMount() {
     if(!refs) return null;
     var settings=qaqGetXiaoyuanSceneSettings();
     return settings.followSceneScale ? refs.scaler : refs.sceneEl;
+}
+
+var qaqXiaoyuanLoadAborter=null;
+var qaqXiaoyuanLoadChangingMode=false;
+
+function qaqOpenXiaoyuanLoadProgress(title,desc,onCancel,onChangeMode){
+    var layer=document.getElementById('qaq-import-progress');
+    var titleEl=document.getElementById('qaq-import-progress-title');
+    var descEl=document.getElementById('qaq-import-progress-desc');
+    var fillEl=document.getElementById('qaq-import-progress-fill');
+    var textEl=document.getElementById('qaq-import-progress-text');
+    var cancelBtn=document.getElementById('qaq-import-cancel-btn');
+    var retryBtn=document.getElementById('qaq-import-retry-btn');
+    if(!layer||!titleEl||!descEl||!fillEl||!textEl||!cancelBtn||!retryBtn) return;
+    titleEl.textContent=title||'加载中';
+    descEl.textContent=desc||'请稍候...';
+    fillEl.style.width='0%';
+    textEl.textContent='0%';
+    retryBtn.textContent='更换渲染方式';
+    retryBtn.style.display='';
+    cancelBtn.onclick=function(){
+        if(onCancel) onCancel();
+        qaqCloseXiaoyuanLoadProgress();
+    };
+    retryBtn.onclick=function(){
+        if(onChangeMode) onChangeMode();
+        qaqCloseXiaoyuanLoadProgress();
+    };
+    layer.classList.add('qaq-import-show');
+}
+
+function qaqUpdateXiaoyuanLoadProgress(percent,desc){
+    var fillEl=document.getElementById('qaq-import-progress-fill');
+    var textEl=document.getElementById('qaq-import-progress-text');
+    var descEl=document.getElementById('qaq-import-progress-desc');
+    if(fillEl) fillEl.style.width=(percent||0)+'%';
+    if(textEl) textEl.textContent=(percent||0)+'%';
+    if(descEl&&desc!=null) descEl.textContent=desc;
+}
+
+function qaqCloseXiaoyuanLoadProgress(){
+    var layer=document.getElementById('qaq-import-progress');
+    if(layer) layer.classList.remove('qaq-import-show');
+}
+function qaqOpenXiaoyuanRenderModeQuickSwitch(type){
+    var settings=qaqGetXiaoyuanDisplaySettings();
+    var current=type==='plant'?(settings.plantMode||'lottie'):type==='animal'?(settings.animalMode||'lottie'):(settings.itemMode||'static');
+    qaqOpenXiaoyuanSelectModal('更换' + (type==='plant'?'植物':type==='animal'?'动物':'道具') + '渲染方式',[
+        {value:'static',label:'2D 静态'},
+        {value:'lottie',label:'2D 动态'},
+        {value:'3d',label:'3D 模型'}
+    ],current,function(val){
+        if(type==='plant') settings.plantMode=val;
+        else if(type==='animal') settings.animalMode=val;
+        else settings.itemMode=val;
+        qaqSaveXiaoyuanDisplaySettings(settings);
+        qaqRefreshXiaoyuanSettingTexts();
+        qaqRenderXiaoyuanMain();
+        qaqToast('已切换渲染方式');
+    });
 }
 
 /* ===== 3. Lottie 引擎懒加载 (与 3D 逻辑同源) ===== */
@@ -769,7 +888,7 @@ function qaqRefreshXiaoyuanSettingTexts() {
     var scaleVal=document.getElementById('qaq-xy-yard-scale-val');
     var followToggle=document.getElementById('qaq-xy-follow-scale-toggle');
 
-    if(skinText) skinText.textContent=skin?skin.name:'小院皮肤 1';
+    if(skinText) skinText.textContent=skin?skin.name:'默认渐变';
     if(plantText) plantText.textContent=qaqGetRenderModeLabel(display.plantMode||'lottie');
     if(animalText) animalText.textContent=qaqGetRenderModeLabel(display.animalMode||'lottie');
     if(itemText) itemText.textContent=qaqGetRenderModeLabel(display.itemMode||'static');
@@ -817,7 +936,8 @@ document.getElementById('qaq-xy-yard-skin-btn').addEventListener('click',functio
     });
     qaqOpenXiaoyuanSelectModal('选择小院皮肤',list,scene.yardSkin||'yard1',function(val){
         qaqSaveXiaoyuanSceneSettings({yardSkin:val});
-        qaqRefreshXiaoyuanSettingTexts();
+qaqRefreshXiaoyuanSettingTexts();
+qaqApplyXiaoyuanSceneSkin(true);
     });
 });
 
@@ -885,15 +1005,20 @@ document.getElementById('qaq-xiaoyuan-settings-back').addEventListener('click', 
 });
 
 document.getElementById('qaq-xy-settings-save-btn').addEventListener('click', function () {
-    qaqApplyXiaoyuanSceneSkin();
+    qaqApplyXiaoyuanSceneSkin(false);
     qaqToast('小院设置已保存');
     qaqGoBackTo(qaqXiaoyuanPage, document.getElementById('qaq-sub-xiaoyuan-settings'));
     setTimeout(qaqRenderXiaoyuanMain,120);
 });
 
+setTimeout(function(){
+    qaqRefreshXiaoyuanSettingTexts();
+    qaqApplyXiaoyuanSceneSkin(false);
+},0);
+
 function qaqOpenXiaoyuanPage() {
     qaqApplyXiaoyuanThemeClass();
-    qaqApplyXiaoyuanSceneSkin();
+    qaqApplyXiaoyuanSceneSkin(false);
     qaqSwitchTo(qaqXiaoyuanPage);
     requestAnimationFrame(qaqRenderXiaoyuanMain);
 }
@@ -4478,67 +4603,90 @@ function qaqGetPetModelUrl(itemId) {
 }
 
 /* ===== 万能渲染引擎 (自动降级: 3D -> Lottie -> Static) ===== */
-function qaqRenderVisualToDOM(containerId, itemId, type, scale, preferredMode) {
-    var container = document.getElementById(containerId);
-    if (!container) return;
+function qaqRenderVisualToDOM(containerId,itemId,type,scale,preferredMode) {
+    var container=document.getElementById(containerId);
+    if(!container) return;
 
-    container.innerHTML = '';
+    container.innerHTML='';
 
-    var has3D = !!qaqGet3DModelUrl(itemId);
-    var hasLottie = !!(window.qaqLotties && window.qaqLotties[itemId]);
+    var has3D=!!qaqGet3DModelUrl(itemId);
+    var hasLottie=!!(window.qaqLotties&&window.qaqLotties[itemId]);
 
-    var mode = preferredMode || 'static';
-    if (mode === '3d' && !has3D) mode = hasLottie ? 'lottie' : 'static';
-    if (mode === 'lottie' && !hasLottie) mode = 'static';
+    var mode=preferredMode||'static';
+    if(mode==='3d'&&!has3D) mode=hasLottie?'lottie':'static';
+    if(mode==='lottie'&&!hasLottie) mode='static';
 
-    if (mode === '3d') {
-        qaqEnsureThreeJS(null, function () {
-            var canvasId = 'cvs-' + itemId + '-' + Date.now();
-            container.innerHTML = '<canvas id="' + canvasId + '"></canvas>';
+    function openModeSwitch(){
+        qaqOpenXiaoyuanRenderModeQuickSwitch(type);
+    }
 
-            var w = container.clientWidth || 75;
-            var h = container.clientHeight || 75;
-            container.style.width = w + 'px';
-            container.style.height = h + 'px';
-
-            qaqRenderMini3D(canvasId, itemId, w, h);
+    if(mode==='3d'){
+        qaqOpenXiaoyuanLoadProgress('加载3D模型','正在准备3D引擎...',function(){
+            container.innerHTML='';
+            qaqToast('已取消3D加载');
+        },function(){
+            openModeSwitch();
+        });
+        qaqEnsureThreeJS(function(pct){
+            qaqUpdateXiaoyuanLoadProgress(Math.min(90,pct||0),'正在加载3D引擎...');
+        },function(){
+            var canvasId='cvs-' + itemId + '-' + Date.now();
+            container.innerHTML='<canvas id="' + canvasId + '"></canvas>';
+            var w=container.clientWidth||75;
+            var h=container.clientHeight||75;
+            container.style.width=w+'px';
+            container.style.height=h+'px';
+            qaqUpdateXiaoyuanLoadProgress(95,'正在渲染3D模型...');
+            setTimeout(function(){
+                qaqRenderMini3D(canvasId,itemId,w,h);
+                qaqUpdateXiaoyuanLoadProgress(100,'3D模型加载完成');
+                setTimeout(qaqCloseXiaoyuanLoadProgress,180);
+            },120);
         });
         return;
     }
 
-    if (mode === 'lottie') {
-        qaqEnsureLottie(function () {
-            container.innerHTML =
-                '<lottie-player src="' + window.qaqLotties[itemId] + '" background="transparent" speed="1" style="width:100%;height:100%;pointer-events:none;" loop autoplay></lottie-player>';
-            if (container.parentElement && container.parentElement.classList) {
+    if(mode==='lottie'){
+        qaqOpenXiaoyuanLoadProgress('加载动态资源','正在准备Lottie引擎...',function(){
+            container.innerHTML='';
+            qaqToast('已取消动态资源加载');
+        },function(){
+            openModeSwitch();
+        });
+        qaqUpdateXiaoyuanLoadProgress(10,'正在加载动画引擎...');
+        qaqEnsureLottie(function(){
+            qaqUpdateXiaoyuanLoadProgress(75,'正在装配动画...');
+            container.innerHTML='<lottie-player src="' + window.qaqLotties[itemId] + '" background="transparent" speed="1" style="width:100%;height:100%;pointer-events:none;" loop autoplay></lottie-player>';
+            if(container.parentElement&&container.parentElement.classList){
                 container.parentElement.classList.remove('qaq-walking');
             }
+            qaqUpdateXiaoyuanLoadProgress(100,'动态资源加载完成');
+            setTimeout(qaqCloseXiaoyuanLoadProgress,180);
         });
         return;
     }
 
-    // static
-    var svgHtml = '';
+    var svgHtml='';
 
-    if (type === 'plant' && qaqPlantSVGs[itemId]) {
-        svgHtml = qaqPlantSVGs[itemId](scale || 1);
-    } else if (type === 'animal' && qaqAnimalSVGs[itemId]) {
-        svgHtml = qaqAnimalSVGs[itemId](scale || 1);
-    } else if (type === 'item' && qaqItemSVGs[itemId]) {
-        svgHtml = qaqItemSVGs[itemId](scale || 1);
-    } else {
-        var fallbackItem = null;
-        if (type === 'plant') {
-            fallbackItem = (qaqShopCatalog.seeds || []).find(function (x) { return x.id === itemId; });
-        } else if (type === 'animal') {
-            fallbackItem = (qaqShopCatalog.animals || []).find(function (x) { return x.id === itemId; });
-        } else if (type === 'item') {
-            fallbackItem = (qaqShopCatalog.items || []).find(function (x) { return x.id === itemId; });
+    if(type==='plant'&&qaqPlantSVGs[itemId]){
+        svgHtml=qaqPlantSVGs[itemId](scale||1);
+    }else if(type==='animal'&&qaqAnimalSVGs[itemId]){
+        svgHtml=qaqAnimalSVGs[itemId](scale||1);
+    }else if(type==='item'&&qaqItemSVGs[itemId]){
+        svgHtml=qaqItemSVGs[itemId](scale||1);
+    }else{
+        var fallbackItem=null;
+        if(type==='plant'){
+            fallbackItem=(qaqShopCatalog.seeds||[]).find(function(x){return x.id===itemId;});
+        }else if(type==='animal'){
+            fallbackItem=(qaqShopCatalog.animals||[]).find(function(x){return x.id===itemId;});
+        }else if(type==='item'){
+            fallbackItem=(qaqShopCatalog.items||[]).find(function(x){return x.id===itemId;});
         }
-        svgHtml = fallbackItem ? (fallbackItem.svg || '') : '';
+        svgHtml=fallbackItem?(fallbackItem.svg||''):'';
     }
 
-    container.innerHTML = svgHtml;
+    container.innerHTML=svgHtml;
 }
 
 /* --- 配合万能渲染器的专属 3D 迷你加载器 --- */

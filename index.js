@@ -645,216 +645,184 @@ document.querySelectorAll('.qaq-app-item').forEach(function (item) {
     });
 });
 
-/* ===== 小院页面 ===== */
+/* ===== 小院页面 (大一统引擎) ===== */
 var qaqXiaoyuanPage = document.getElementById('qaq-xiaoyuan-page');
-var qaqXiaoyuanCurrentTab = 'garden';
 
 function qaqOpenXiaoyuanPage() {
-    qaqApplyXiaoyuanThemeClass();   // ★ 新增
+    qaqApplyXiaoyuanThemeClass();
+    qaqApplyYardBackground(); // 加载小院皮肤
     qaqSwitchTo(qaqXiaoyuanPage);
     requestAnimationFrame(function () {
-        qaqSwitchXiaoyuanTab(qaqXiaoyuanCurrentTab || 'garden');
-        qaqRefreshXiaoyuanView();
+        qaqRenderXiaoyuanMain();
     });
 }
-function qaqSwitchXiaoyuanTab(tab) {
-    qaqXiaoyuanCurrentTab = tab;
-    document.querySelectorAll('[data-xiaoyuan-tab]').forEach(function (btn) {
-        btn.classList.toggle('qaq-wordbank-tab-active', btn.dataset.xiaoyuanTab === tab);
-    });
-    document.getElementById('qaq-xiaoyuan-panel-garden').style.display = tab === 'garden' ? '' : 'none';
-    document.getElementById('qaq-xiaoyuan-panel-zoo').style.display = tab === 'zoo' ? '' : 'none';
 
-    if (tab === 'garden') qaqRenderXiaoyuanGarden();
-    else qaqRenderXiaoyuanZoo();
+function qaqRefreshXiaoyuanView() {
+    if (!qaqXiaoyuanPage) return;
+    if (qaqXiaoyuanPage.classList.contains('qaq-page-show')) {
+        qaqRenderXiaoyuanMain();
+    }
 }
 
 document.getElementById('qaq-xiaoyuan-back').addEventListener('click', function () {
     qaqClosePage(qaqXiaoyuanPage);
 });
 
-document.querySelectorAll('[data-xiaoyuan-tab]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-        qaqSwitchXiaoyuanTab(this.dataset.xiaoyuanTab);
-    });
-});
+// 应用自定义小院皮肤
+function qaqApplyYardBackground() {
+    var sceneEl = document.getElementById('qaq-xy-main-scene');
+    var groundEl = sceneEl.querySelector('.qaq-live-scene-ground');
+    var bgImg = qaqCacheGet('qaq-yard-bg-img', null);
+    
+    if (bgImg) {
+        sceneEl.style.backgroundImage = 'url(' + bgImg + ')';
+        sceneEl.style.backgroundSize = 'cover';
+        sceneEl.style.backgroundPosition = 'center bottom';
+        if(groundEl) groundEl.style.display = 'none'; // 隐藏默认原版水草波纹
+    } else {
+        sceneEl.style.backgroundImage = '';
+        if(groundEl) groundEl.style.display = '';
+    }
+}
 
-function qaqRenderXiaoyuanGarden() {
-    var owned = qaqGetOwnedItems().filter(function (x) { return x.type === 'seed'; });
-    var gridEl = document.getElementById('qaq-xy-garden-grid');
-    var emptyEl = document.getElementById('qaq-xy-garden-empty');
-    var sceneEl = document.getElementById('qaq-xy-garden-scene');
+// 🌟 核心：一次性渲染所有动物和植物
+function qaqRenderXiaoyuanMain() {
+    var ownedPlants = qaqGetOwnedItems().filter(function (x) { return x.type === 'seed'; });
+    var ownedAnimals = qaqGetOwnedItems().filter(function (x) { return x.type === 'animal'; });
+    var allOwned = ownedPlants.concat(ownedAnimals);
+    
+    var gridEl = document.getElementById('qaq-xy-main-grid');
+    var emptyEl = document.getElementById('qaq-xy-main-empty');
+    var sceneEl = document.getElementById('qaq-xy-main-scene');
 
     gridEl.innerHTML = '';
     sceneEl.querySelectorAll('.qaq-sprite-container, .qaq-scene-tip').forEach(function (el) { el.remove(); });
 
-    if (!owned.length) {
+    if (!allOwned.length) {
         emptyEl.style.display = '';
         sceneEl.style.display = 'none';
+        document.getElementById('qaq-xy-actions-bar').style.display = 'none';
         return;
     }
     emptyEl.style.display = 'none';
     sceneEl.style.display = '';
+    document.getElementById('qaq-xy-actions-bar').style.display = 'flex';
 
     var tip = document.createElement('div');
     tip.className = 'qaq-scene-tip';
-    tip.textContent = '点击植物可浇水';
+    tip.textContent = '拖动布置位置 · 点击可互动';
     sceneEl.appendChild(tip);
 
     var sceneWidth = sceneEl.clientWidth || 300;
-    var spacing = sceneWidth / (owned.length + 1);
+    var spacing = sceneWidth / (allOwned.length + 1);
 
-    owned.forEach(function (item, idx) {
-        var catItem = qaqShopCatalog.seeds.find(function (x) { return x.id === item.id; });
+    // 渲染所有的物种！
+    allOwned.forEach(function (item, idx) {
+        var isPlant = item.type === 'seed';
+        var catList = isPlant ? qaqShopCatalog.seeds : qaqShopCatalog.animals;
+        var catItem = catList.find(function (x) { return x.id === item.id; });
         var state = qaqGetSpriteState(item.id);
-        var growth = state.growth || 0;
-        var growthStage = growth< 30 ? 0.7 : (growth < 70 ? 0.85 : 1);
+        
+        var defaultX = spacing * (idx + 1) - 30; // 默认横向排开
+        var defaultY = isPlant ? 10 : 30; // 动物默认站得比植物靠后一点点
+        
+        var name = catItem ? catItem.name : item.name;
+        var svgStr = '';
+        var statusColor = '#999';
+        var statusText = '';
+        
+        // 放入场景 (如果该 ID 恰好有拖拽保存坐标，会在函数内部自动复原)
+        qaqCreateSpriteInScene(sceneEl, "", defaultX, defaultY, name, item.id, isPlant ? 'plant' : 'animal');
 
-        var svgFn = qaqPlantSVGs[item.id];
-        if (svgFn) {
-            qaqCreateSpriteInScene(sceneEl, svgFn(growthStage),
-                spacing * (idx + 1) - 20, 10,
-                catItem ? catItem.name : item.name, item.id, 'plant');
-        }
-
+        // 生成底部互动面板卡片
         var card = document.createElement('div');
         card.className = 'qaq-garden-card';
 
-        var bloomSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e05565" stroke-width="1.8" style="vertical-align:-2px;margin-right:2px;"><circle cx="12" cy="12" r="4" fill="#e05565" opacity="0.3"/><circle cx="12" cy="5" r="2.5" fill="#f8b0b8"/><circle cx="12" cy="19" r="2.5" fill="#f8b0b8"/><circle cx="5" cy="12" r="2.5" fill="#f8b0b8"/><circle cx="19" cy="12" r="2.5" fill="#f8b0b8"/></svg>';
-        var growSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7bab6e" stroke-width="1.8" style="vertical-align:-2px;margin-right:2px;"><path d="M12 22V12" stroke-linecap="round"/><path d="M8 16c0-4 2-6 4-7" stroke-linecap="round"/><path d="M16 14c0-3-2-5-4-6" stroke-linecap="round"/></svg>';
-        var seedSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.8" style="vertical-align:-2px;margin-right:2px;"><path d="M12 22v-8" stroke-linecap="round"/><path d="M12 14c-3 0-5-2-5-5s4-7 5-7 5 4 5 7-2 5-5 5z" fill="#b8dfbf" opacity="0.3"/></svg>';
-        var statusText = growth >= 100 ? bloomSvg + '盛开' : (growth >= 50 ? growSvg + '成长中' : seedSvg + '幼苗');
-        var statusColor = growth >= 100 ? '#e05565' : (growth >= 50 ? '#7bab6e' : '#999');
+        if (isPlant) {
+            var growth = state.growth || 0;
+            var bloomSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e05565" stroke-width="2"><circle cx="12" cy="12" r="4"/></svg>';
+            statusColor = growth >= 100 ? '#e05565' : (growth >= 50 ? '#7bab6e' : '#999');
+            statusText = growth >= 100 ? bloomSvg + '盛开' : '成长 ' + growth + '%';
+            svgStr = catItem ? catItem.svg.replace(/width="32"/g, 'width="48"').replace(/height="32"/g, 'height="48"') : '';
+        } else {
+            var mood = state.mood || 50;
+            var happySvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#e8c34f" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>';
+            statusColor = mood >= 80 ? '#e8c34f' : (mood >= 50 ? '#e88d4f' : '#999');
+            statusText = moodEmoji = mood >= 80 ? happySvg + ' 开心' : '心情 ' + mood + '%';
+            svgStr = catItem ? catItem.svg.replace(/width="32"/g, 'width="48"').replace(/height="32"/g, 'height="48"') : '';
+        }
 
         card.innerHTML =
-            '<div class="qaq-garden-card-icon">' +
-                (catItem ? catItem.svg.replace(/width="32"/g, 'width="48"').replace(/height="32"/g, 'height="48"') : '') +
-            '</div>' +
-            '<div class="qaq-garden-card-name">' + (catItem ? catItem.name : item.name) + '</div>' +
-            '<div class="qaq-garden-card-status" style="color:' + statusColor + ';">' + statusText + '</div>' +
-            '<div class="qaq-garden-card-growth"><div class="qaq-garden-card-growth-fill" style="width:' + growth + '%;"></div></div>';
+            '<div class="qaq-garden-card-icon">' + svgStr + '</div>' +
+            '<div class="qaq-garden-card-name">' + name + '</div>' +
+            '<div class="qaq-garden-card-status" style="color:' + statusColor + '; font-weight:600;">' + statusText + '</div>';
 
+        // 卡片点击等于直接找场景里的模型触发互动
         card.addEventListener('click', function () {
-            qaqWaterPlant(
-                sceneEl.querySelector('[data-item-id="' + item.id + '"]') || card,
-                item.id
-            );
-            setTimeout(qaqRenderXiaoyuanGarden, 300);
+            var targetBox = sceneEl.querySelector('[data-item-id="' + item.id + '"]');
+            if (isPlant) qaqWaterPlant(targetBox || card, item.id);
+            else qaqPetAnimal(targetBox || card, item.id);
+            setTimeout(qaqRenderXiaoyuanMain, 300);
         });
 
         gridEl.appendChild(card);
     });
 }
 
-function qaqRenderXiaoyuanZoo() {
-    var owned = qaqGetOwnedItems().filter(function (x) { return x.type === 'animal'; });
-    var gridEl = document.getElementById('qaq-xy-zoo-grid');
-    var emptyEl = document.getElementById('qaq-xy-zoo-empty');
-    var sceneEl = document.getElementById('qaq-xy-zoo-scene');
+/* 🌟 万能小院设置弹窗 */
+document.getElementById('qaq-xiaoyuan-settings-btn').addEventListener('click', function() {
+    var currentMode = qaqGetDisplayMode();
+    var currentBg = qaqCacheGet('qaq-yard-bg-img', null);
 
-    gridEl.innerHTML = '';
-    sceneEl.querySelectorAll('.qaq-sprite-container, .qaq-scene-tip').forEach(function (el) { el.remove(); });
-
-    if (!owned.length) {
-        emptyEl.style.display = '';
-        sceneEl.style.display = 'none';
-        return;
-    }
-    emptyEl.style.display = 'none';
-    sceneEl.style.display = '';
-
-    var tip = document.createElement('div');
-    tip.className = 'qaq-scene-tip';
-    tip.textContent = '点击动物互动';
-    sceneEl.appendChild(tip);
-
-    var sceneWidth = sceneEl.clientWidth || 300;
-    var spacing = sceneWidth / (owned.length + 1);
-
-    owned.forEach(function (item, idx) {
-        var catItem = qaqShopCatalog.animals.find(function (x) { return x.id === item.id; });
-        var state = qaqGetSpriteState(item.id);
-        var mood = state.mood || 50;
-
-        var happySvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e8c34f" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="9" cy="10" r="1.2" fill="#e8c34f" stroke="none"/><circle cx="15" cy="10" r="1.2" fill="#e8c34f" stroke="none"/><path d="M8 15s1.5 24 2 4-2 4-2" stroke-linecap="round"/></svg>';
-        var neutralSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e88d4f" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="9" cy="10" r="1.2" fill="#e88d4f" stroke="none"/><circle cx="15" cy="10" r="1.2" fill="#e88d4f" stroke="none"/><line x1="9" y1="15" x2="15" y2="15" stroke-linecap="round"/></svg>';
-        var sadSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="9" cy="10" r="1.2" fill="#999" stroke="none"/><circle cx="15" cy="10" r="1.2" fill="#999" stroke="none"/><path d="M8 17s1.5-2 4-2 4 2 4 2" stroke-linecap="round"/></svg>';
-        var moodEmoji = mood >= 80 ? happySvg : (mood >= 50 ? neutralSvg : sadSvg);
-
-        var svgFn = qaqAnimalSVGs[item.id];
-        if (svgFn) {
-            qaqCreateSpriteInScene(sceneEl, svgFn(1),
-                spacing * (idx + 1) - 20, 10,
-                catItem ? catItem.name : item.name, item.id, 'animal');
-        }
-
-        var card = document.createElement('div');
-        card.className = 'qaq-garden-card';
-        card.innerHTML =
-            '<div class="qaq-garden-card-icon">' +
-                (catItem ? catItem.svg.replace(/width="32"/g, 'width="48"').replace(/height="32"/g, 'height="48"') : '') +
+    modalTitle.textContent = '小院设置';
+    modalBody.innerHTML = 
+        '<div class="qaq-settings-group-card" style="padding:10px 12px; margin-bottom:12px;">' +
+            '<div class="qaq-settings-group-title" style="padding-left:4px; margin-bottom:8px;">底层画质引擎</div>' +
+            '<select class="qaq-plan-form-input" id="qaq-xy-engine-select">' +
+                '<option value="static" ' + (currentMode === 'static' ? 'selected' : '') + '>省电: 2D 静态插图</option>' +
+                '<option value="lottie" ' + (currentMode === 'lottie' ? 'selected' : '') + '>推荐: 2D 动态骨骼</option>' +
+                '<option value="3d" ' + (currentMode === '3d' ? 'selected' : '') + '>极致: 3D 三维模型</option>' +
+            '</select>' +
+        '</div>' +
+        '<div class="qaq-settings-group-card" style="padding:10px 12px;">' +
+            '<div class="qaq-settings-group-title" style="padding-left:4px; margin-bottom:8px;">沙盒场景皮肤</div>' +
+            '<div style="display:flex;gap:10px;">' +
+               '<button class="qaq-import-ghost-btn" id="qaq-xy-bg-upload" style="flex:1;">上传 2D 图景</button>' +
+               '<button class="qaq-import-ghost-btn" id="qaq-xy-bg-clear" style="flex:1;color:#c44;' + (currentBg ? '' : 'display:none;') + '">重置默认</button>' +
             '</div>' +
-            '<div class="qaq-garden-card-name">' + (catItem ? catItem.name : item.name) + '</div>' +
-            '<div class="qaq-garden-card-mood">' + moodEmoji + '</div>' +
-            '<div class="qaq-garden-card-status">心情 ' + mood + '%</div>';
+        '</div>';
 
-        card.addEventListener('click', function () {
-            qaqPetAnimal(
-                sceneEl.querySelector('[data-item-id="' + item.id + '"]') || card,
-                item.id
-            );
-            setTimeout(qaqRenderXiaoyuanZoo, 300);
+    modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-modal-cancel">完成</button>';
+    qaqOpenModal();
+    document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
+
+    // 画质切换
+    document.getElementById('qaq-xy-engine-select').addEventListener('change', function() {
+        qaqSaveDisplayMode(this.value);
+        qaqToast('引擎已更替');
+        qaqRenderXiaoyuanMain(); // 瞬间重切院子里全员画质
+    });
+
+    // 换底图背景
+    document.getElementById('qaq-xy-bg-upload').addEventListener('click', function() {
+        qaqCloseModal();
+        qaqEditImage('上传小院背景图', function (src) {
+            qaqCacheSet('qaq-yard-bg-img', src);
+            qaqToast('加载全新场景皮肤成功！');
+            qaqApplyYardBackground();
         });
-
-        gridEl.appendChild(card);
-    });
-}
-
-// 全部浇水/喂食（小院版）
-document.getElementById('qaq-xy-water-all-btn').addEventListener('click', function () {
-    var owned = qaqGetOwnedItems().filter(function (x) { return x.type === 'seed'; });
-    if (!owned.length) return qaqToast('没有可浇水的植物');
-    owned.forEach(function (item) {
-        var state = qaqGetSpriteState(item.id);
-        state.growth = Math.min(100, (state.growth || 0) + 10);
-        state.lastWater = Date.now();
-        qaqSaveSpriteState(item.id, state);
-    });
-    qaqAddPoints(owned.length);
-    qaqRenderXiaoyuanGarden();qaqToast('全部浇水完成 +' + owned.length + ' 积分');
-});
-
-document.getElementById('qaq-xy-feed-all-btn').addEventListener('click', function () {
-    var owned = qaqGetOwnedItems().filter(function (x) { return x.type === 'animal'; });
-    if (!owned.length) return qaqToast('没有可喂食的动物');
-    owned.forEach(function (item) {
-        var state = qaqGetSpriteState(item.id);
-        state.mood = Math.min(100, (state.mood || 50) + 10);
-        state.lastFeed = Date.now();
-        qaqSaveSpriteState(item.id, state);
-    });
-    qaqAddPoints(owned.length);
-    qaqRenderXiaoyuanZoo();
-    qaqToast('全部喂食完成 +' + owned.length + ' 积分');
-});
-
-var qaqCurrentShopTab = 'seeds';
-function qaqSwitchShopTab(tab) {
-    qaqCurrentShopTab = tab;
-
-    document.querySelectorAll('[data-shop-tab]').forEach(function (btn) {
-        btn.classList.toggle('qaq-wordbank-tab-active', btn.dataset.shopTab === tab);
     });
 
-    document.getElementById('qaq-shop-panel-seeds').style.display = tab === 'seeds' ? '' : 'none';
-    document.getElementById('qaq-shop-panel-animals').style.display = tab === 'animals' ? '' : 'none';
-    document.getElementById('qaq-shop-panel-items').style.display = tab === 'items' ? '' : 'none';
-}
-
-document.querySelectorAll('[data-shop-tab]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-        qaqSwitchShopTab(this.dataset.shopTab);
-    });
+    // 恢复默认背景
+    var clearBtn = document.getElementById('qaq-xy-bg-clear');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            qaqCacheSet('qaq-yard-bg-img', null);
+            qaqToast('场景已重置默认');
+            qaqApplyYardBackground();
+            qaqCloseModal();
+        });
+    }
 });
 
 /* ===== 全局商店（底部导航入口） ===== */
@@ -3411,18 +3379,24 @@ async function qaqLoadLive2DModel(app, modelUrl, options) {
     }
 }
 
-// ---- 2D 精灵渲染到场景 ----
-function qaqCreateSpriteInScene(sceneEl, spriteHtml, x, y, name, itemId, type) {
+// ---- 2D 精灵渲染到场景 (🌟新增：完美拖拽放置 + 存档) ----
+function qaqCreateSpriteInScene(sceneEl, spriteHtml, defaultX, defaultY, name, itemId, type) {
     var container = document.createElement('div');
     container.className = 'qaq-sprite-container';
-    container.style.left = x + 'px';
-    container.style.bottom = '10px';
+    
+    // 🌟 1. 读取存档坐标 (如果没有存档，才用计算出来的 defaultX)
+    var state = qaqGetSpriteState(itemId);
+    var savedX = state.posX != null ? state.posX : defaultX;
+    var savedY = state.posY != null ? state.posY : defaultY;
+    
+    container.style.left = savedX + 'px';
+    container.style.bottom = savedY + 'px';
     container.dataset.itemId = itemId;
 
     var spriteWrap = document.createElement('div');
-    // 如果是动物，先加上默认的平移走路动画，Lottie加载后会自动去掉它
-    spriteWrap.className = type === 'plant' ? 'qaq-plant-sprite' : 'qaq-animal-sprite qaq-walking';
-    // 给它一个ID，方便传入万能渲染器
+    spriteWrap.className = type === 'plant' ? 'qaq-plant-sprite' : 'qaq-animal-sprite';
+    if(type === 'animal' && qaqGetDisplayMode() !== 'lottie') spriteWrap.classList.add('qaq-walking');
+    
     var innerId = 'scene-obj-' + itemId + '-' + Date.now();
     spriteWrap.id = innerId;
     spriteWrap.style.width = '75px';
@@ -3436,13 +3410,81 @@ function qaqCreateSpriteInScene(sceneEl, spriteHtml, x, y, name, itemId, type) {
     container.appendChild(nameTag);
     sceneEl.appendChild(container);
 
-    // 🌟 召唤万能渲染器 (第三个参数直接传读取到的全局设定)
     qaqRenderVisualToDOM(innerId, itemId, type, 1.0, qaqGetDisplayMode());
 
-    container.addEventListener('click', function() {
-        if (type === 'plant') qaqWaterPlant(container, itemId);
-        else qaqPetAnimal(container, itemId);
-    });
+    // 🌟 2. 绑定神级触控与拖拽联动 (防干扰)
+    var isDragging = false;
+    var hasMoved = false;
+    var startX, startY, initLeft, initBottom;
+    var sceneRect;
+
+    function onDragStart(e) {
+        var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        startX = clientX;
+        startY = clientY;
+        initLeft = parseFloat(container.style.left) || 0;
+        initBottom = parseFloat(container.style.bottom) || 0;
+        sceneRect = sceneEl.getBoundingClientRect();
+        
+        isDragging = true;
+        hasMoved = false;
+        container.style.zIndex = '999';
+        container.style.transition = 'none'; // 拖动时关掉动画防止飘
+    }
+
+    function onDragMove(e) {
+        if (!isDragging) return;
+        var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        var dx = clientX - startX;
+        var dy = clientY - startY;
+
+        // 滑动超过 5px 才算拖拽 (防止手指抖动误触)
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+            hasMoved = true;
+            if(e.cancelable) e.preventDefault(); // 防止拖动模型时带着网页滚动
+        }
+
+        if (hasMoved) {
+            var newLeft = initLeft + dx;
+            // 注意：Y轴向下是增加，而 bottom 是向上增加，所以要减去 dy！
+            var newBottom = initBottom - dy; 
+
+            // 限制不要拖出院子墙外
+            newLeft = Math.max(-20, Math.min(newLeft, sceneRect.width - 40));
+            newBottom = Math.max(0, Math.min(newBottom, sceneRect.height - 50));
+
+            container.style.left = newLeft + 'px';
+            container.style.bottom = newBottom + 'px';
+        }
+    }
+
+    function onDragEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        container.style.zIndex = '3';
+        container.style.transition = '';
+
+        if (!hasMoved) {
+            // 没有移动，说明是精准“点击” (触发浇水或逗弄)
+            if (type === 'plant') qaqWaterPlant(container, itemId);
+            else qaqPetAnimal(container, itemId);
+        } else {
+            // 发生了移动，保存新坐标！
+            state.posX = parseFloat(container.style.left);
+            state.posY = parseFloat(container.style.bottom);
+            qaqSaveSpriteState(itemId, state);
+            qaqToast('位置已保存');
+        }
+    }
+
+    container.addEventListener('mousedown', onDragStart);
+    document.addEventListener('mousemove', onDragMove, {passive: false});
+    document.addEventListener('mouseup', onDragEnd);
+    container.addEventListener('touchstart', onDragStart, {passive: true});
+    document.addEventListener('touchmove', onDragMove, {passive: false});
+    document.addEventListener('touchend', onDragEnd);
 
     return container;
 }

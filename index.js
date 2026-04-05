@@ -95,6 +95,44 @@ function qaqGetXiaoyuanModeByType(type) {
     return s.itemMode || 'static';
 }
 
+function qaqGetYardSkinCatalog() {
+    return [
+        { id: 'yard1', name: '小院皮肤 1', image: 'assets/images/yard1.jpg' },
+        
+    ];
+}
+
+function qaqGetXiaoyuanSceneSettings() {
+    return qaqCacheGet('qaq-xiaoyuan-scene-settings', {
+        yardSkin: 'yard1'
+    });
+}
+
+function qaqSaveXiaoyuanSceneSettings(data) {
+    qaqCacheSet('qaq-xiaoyuan-scene-settings', {
+        yardSkin: data && data.yardSkin ? data.yardSkin : 'yard1'
+    });
+}
+
+function qaqGetCurrentYardSkin() {
+    var settings = qaqGetXiaoyuanSceneSettings();
+    var list = qaqGetYardSkinCatalog();
+    return list.find(function (x) { return x.id === settings.yardSkin; }) || list[0];
+}
+
+function qaqApplyXiaoyuanSceneSkin() {
+    var sceneEl = document.getElementById('qaq-xy-main-scene');
+    if (!sceneEl) return;
+
+    var skin = qaqGetCurrentYardSkin();
+    if (!skin) return;
+
+    sceneEl.style.backgroundImage = 'url("' + skin.image + '")';
+    sceneEl.style.backgroundSize = 'cover';
+    sceneEl.style.backgroundPosition = 'center';
+    sceneEl.style.backgroundRepeat = 'no-repeat';
+}
+
 /* ===== 3. Lottie 引擎懒加载 (与 3D 逻辑同源) ===== */
 var qaqLottieReady = false;
 var qaqLottieLoading = false;
@@ -673,6 +711,7 @@ var qaqXyCurrentTab = 'plants';
 document.getElementById('qaq-xiaoyuan-settings-btn').addEventListener('click', function () {
     var sub = document.getElementById('qaq-sub-xiaoyuan-settings');
     var settings = qaqGetXiaoyuanDisplaySettings();
+    var sceneSettings = qaqGetXiaoyuanSceneSettings();
 
     // 同步主题
     sub.classList.remove('qaq-theme-dark', 'qaq-theme-cool');
@@ -683,6 +722,7 @@ document.getElementById('qaq-xiaoyuan-settings-btn').addEventListener('click', f
     }
 
     // 回填当前设置
+    document.getElementById('qaq-xy-yard-skin').value = sceneSettings.yardSkin || 'yard1';
     document.getElementById('qaq-xy-plant-mode').value = settings.plantMode || 'lottie';
     document.getElementById('qaq-xy-animal-mode').value = settings.animalMode || 'lottie';
     document.getElementById('qaq-xy-item-mode').value = settings.itemMode || 'static';
@@ -696,19 +736,25 @@ document.getElementById('qaq-xiaoyuan-settings-back').addEventListener('click', 
 });
 
 document.getElementById('qaq-xy-settings-save-btn').addEventListener('click', function () {
+    qaqSaveXiaoyuanSceneSettings({
+        yardSkin: document.getElementById('qaq-xy-yard-skin').value
+    });
+
     qaqSaveXiaoyuanDisplaySettings({
         plantMode: document.getElementById('qaq-xy-plant-mode').value,
         animalMode: document.getElementById('qaq-xy-animal-mode').value,
         itemMode: document.getElementById('qaq-xy-item-mode').value
     });
 
-    qaqToast('小院渲染设置已保存');
+    qaqApplyXiaoyuanSceneSkin();
+    qaqToast('小院设置已保存');
     qaqGoBackTo(qaqXiaoyuanPage, document.getElementById('qaq-sub-xiaoyuan-settings'));
     setTimeout(qaqRenderXiaoyuanMain, 120);
 });
 
 function qaqOpenXiaoyuanPage() {
     qaqApplyXiaoyuanThemeClass();
+    qaqApplyXiaoyuanSceneSkin();
     qaqSwitchTo(qaqXiaoyuanPage);
     requestAnimationFrame(qaqRenderXiaoyuanMain);
 }

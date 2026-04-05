@@ -8016,3 +8016,19 @@ body {
     display: flex;
     flex-direction: column;
 }
+
+.qaq-xiaoyuan-scene {
+    background-color: #dfead2;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+}
+
+.qaq-xiaoyuan-scene .qaq-live-scene-ground {
+    background: linear-gradient(
+        180deg,
+        transparent 0%,
+        rgba(120, 180, 80, 0.08) 35%,
+        rgba(80, 130, 50, 0.22) 100%
+    );
+}

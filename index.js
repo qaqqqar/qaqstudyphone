@@ -461,53 +461,6 @@ document.getElementById('qaq-sb-token-reset').addEventListener('click', function
 qaqApplyStatusBar();
 qaqInitBattery();
 
-function qaqGet3DSettings() {
-    return qaqCacheGet('qaq-3d-settings', {
-        askBeforeRender: true,
-        defaultRender3D: true
-    });
-}
-
-function qaqSave3DSettings(settings) {
-    qaqCacheSet('qaq-3d-settings', settings || {
-        askBeforeRender: true,
-        defaultRender3D: true
-    });
-}
-
-function qaqGet3DModelCache() {
-    return qaqCacheGet('qaq-3d-model-cache', {});
-}
-
-function qaqSave3DModelCache(data) {
-    qaqCacheSet('qaq-3d-model-cache', data || {});
-}
-
-function qaqClear3DModelCacheById(itemId) {
-    var cache = qaqGet3DModelCache();
-    delete cache[itemId];
-    qaqCacheSet('qaq-3d-model-cache', cache);
-}
-
-function qaqClearAll3DModelCache() {
-    qaqCacheSet('qaq-3d-model-cache', {});
-}
-
-function qaqMark3DModelLoaded(itemId, data) {
-    var cache = qaqGet3DModelCache();
-    cache[itemId] = {
-        loadedAt: Date.now(),
-        modelUrl: qaqGet3DModelUrl(itemId),
-        meta: data || {}
-    };
-    qaqCacheSet('qaq-3d-model-cache', cache);
-}
-
-function qaqHas3DModelCache(itemId) {
-    var cache = qaqGet3DModelCache();
-    return !!cache[itemId];
-}
-
 function qaqRefreshXiaoyuanView() {
     if (!qaqXiaoyuanPage) return;
     if (qaqXiaoyuanPage.classList.contains('qaq-page-show')) {

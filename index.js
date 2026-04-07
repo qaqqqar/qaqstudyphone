@@ -1264,6 +1264,27 @@ function qaqCreateSpriteInSceneLegacy(sceneEl, defaultX, defaultY, name, itemId,
     document.addEventListener('touchend', onDragEnd);
 }
 
+var qaqCurrentShopTab = 'seeds';
+
+function qaqSwitchShopTab(tab) {
+    qaqCurrentShopTab = tab || 'seeds';
+
+    document.querySelectorAll('[data-shop-tab]').forEach(function (btn) {
+        btn.classList.toggle('qaq-wordbank-tab-active', btn.dataset.shopTab === qaqCurrentShopTab);
+    });
+
+    ['seeds', 'animals', 'items'].forEach(function (name) {
+        var panel = document.getElementById('qaq-shop-panel-' + name);
+        if (panel) panel.style.display = (name === qaqCurrentShopTab ? '' : 'none');
+    });
+}
+
+document.querySelectorAll('[data-shop-tab]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        qaqSwitchShopTab(this.dataset.shopTab);
+    });
+});
+
 /* ===== 全局商店（底部导航入口） ===== */
 function qaqOpenGlobalShopPage() {
     qaqShopPageSource = 'global';
@@ -2102,7 +2123,7 @@ function qaqRenderShopPage() {
     renderGrid('qaq-shop-seeds-grid', qaqShopCatalog.seeds);
     renderGrid('qaq-shop-animals-grid', qaqShopCatalog.animals);
     renderGrid('qaq-shop-items-grid', qaqShopCatalog.items);
-    qaqSwitchShopTab(qaqCurrentShopTab || 'seeds');
+    qaqSwitchShopTab(typeof qaqCurrentShopTab !== 'undefined' ? qaqCurrentShopTab : 'seeds');
 }
 
 /*===== Three.js 懒加载 ===== */

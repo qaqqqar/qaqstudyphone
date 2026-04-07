@@ -8057,3 +8057,35 @@ body {
 .qaq-theme-cool #qaq-xy-main-scene:not(.qaq-xiaoyuan-has-custom-skin){
     background:linear-gradient(180deg,#e8eef6 0%,#dce4f0 40%,#c8d8c4 70%,#b8c8b0 100%) !important;
 }
+
+/* ===== 小院布局类名兜底：原 CSS 写的是 qaq-xiaoyuan-panel，但 HTML 用的是 qaq-xiaoyuan-layout ===== */
+
+.qaq-theme-dark .qaq-xiaoyuan-layout .qaq-import-ghost-btn {
+    background: rgba(40, 40, 40, 0.85);
+    border-color: rgba(255, 255, 255, 0.06);
+    color: #bbb;
+}
+
+.qaq-theme-dark .qaq-xiaoyuan-layout .qaq-garden-card {
+    background: rgba(40, 40, 40, 0.92) !important;
+    border-color: rgba(60, 60, 60, 0.5);
+}
+
+.qaq-theme-dark .qaq-xiaoyuan-layout .qaq-garden-card-name {
+    color: #ddd;
+}
+
+.qaq-theme-cool .qaq-xiaoyuan-layout .qaq-import-ghost-btn {
+    background: rgba(255, 255, 255, 0.88);
+    border-color: rgba(100, 130, 180, 0.16);
+    color: #4a5b72;
+}
+
+.qaq-theme-cool .qaq-xiaoyuan-layout .qaq-garden-card {
+    background: rgba(255, 255, 255, 0.92) !important;
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.qaq-theme-cool .qaq-xiaoyuan-layout .qaq-garden-card-name {
+    color: #222;
+}

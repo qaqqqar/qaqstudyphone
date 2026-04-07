@@ -1753,15 +1753,21 @@ document.getElementById('qaq-shop-point-detail-back').addEventListener('click', 
     qaqGoBackTo(document.getElementById('qaq-mine-shop-page'), document.getElementById('qaq-shop-point-detail-page'));
 });
 
-document.getElementById('qaq-mine-garden-back').addEventListener('click', function () {
-    qaqGoBackTo(wordbankPage, document.getElementById('qaq-mine-garden-page'));
-    qaqSwitchWordbankTab('mine');
-});
+var mineGardenBack = document.getElementById('qaq-mine-garden-back');
+if (mineGardenBack) {
+    mineGardenBack.addEventListener('click', function () {
+        qaqGoBackTo(wordbankPage, document.getElementById('qaq-mine-garden-page'));
+        qaqSwitchWordbankTab('mine');
+    });
+}
 
-document.getElementById('qaq-mine-zoo-back').addEventListener('click', function () {
-    qaqGoBackTo(wordbankPage, document.getElementById('qaq-mine-zoo-page'));
-    qaqSwitchWordbankTab('mine');
-});
+var mineZooBack = document.getElementById('qaq-mine-zoo-back');
+if (mineZooBack) {
+    mineZooBack.addEventListener('click', function () {
+        qaqGoBackTo(wordbankPage, document.getElementById('qaq-mine-zoo-page'));
+        qaqSwitchWordbankTab('mine');
+    });
+}
 
 document.getElementById('qaq-mine-stats-back').addEventListener('click', function () {
     qaqGoBackTo(wordbankPage, document.getElementById('qaq-mine-stats-page'));
@@ -3854,81 +3860,98 @@ function qaqCreateSpriteInScene(sceneEl, spriteHtml, defaultX, defaultY, name, i
     container.appendChild(nameTag);
     sceneEl.appendChild(container);
 
-    qaqRenderVisualToDOM(innerId, itemId, type, 1.0, qaqGetXiaoyuanModeByType(type));
+    qaqRenderVisualToDOM(innerId, itemId, type, 1.0, qaqGetXiaoyuanModeByType(type), true);
 
-    // 🌟 2. 绑定神级触控与拖拽联动 (防干扰)
+    // 🌟 2. 拖拽交互：改成 Pointer Events，避免每次渲染都往 document 叠加监听导致死机
     var isDragging = false;
     var hasMoved = false;
-    var startX, startY, initLeft, initBottom;
-    var sceneRect;
+    var startX = 0;
+    var startY = 0;
+    var initLeft = 0;
+    var initBottom = 0;
+    var sceneRect = null;
+    var activePointerId = null;
 
-    function onDragStart(e) {
-        var clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        var clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        startX = clientX;
-        startY = clientY;
+    function onPointerDown(e) {
+        // 鼠标只响应左键；触屏/笔正常响应
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+        activePointerId = e.pointerId;
+        startX = e.clientX;
+        startY = e.clientY;
         initLeft = parseFloat(container.style.left) || 0;
         initBottom = parseFloat(container.style.bottom) || 0;
         sceneRect = sceneEl.getBoundingClientRect();
-        
+
         isDragging = true;
         hasMoved = false;
+
         container.style.zIndex = '999';
-        container.style.transition = 'none'; // 拖动时关掉动画防止飘
+        container.style.transition = 'none';
+
+        try {
+            container.setPointerCapture(activePointerId);
+        } catch (err) {}
     }
 
-    function onDragMove(e) {
+    function onPointerMove(e) {
         if (!isDragging) return;
-        var clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        var clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        var dx = clientX - startX;
-        var dy = clientY - startY;
+        if (activePointerId != null && e.pointerId !== activePointerId) return;
 
-        // 滑动超过 5px 才算拖拽 (防止手指抖动误触)
+        var dx = e.clientX - startX;
+        var dy = e.clientY - startY;
+
         if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
             hasMoved = true;
-            if(e.cancelable) e.preventDefault(); // 防止拖动模型时带着网页滚动
+            if (e.cancelable) e.preventDefault();
         }
 
-        if (hasMoved) {
-            var newLeft = initLeft + dx;
-            // 注意：Y轴向下是增加，而 bottom 是向上增加，所以要减去 dy！
-            var newBottom = initBottom - dy; 
+        if (!hasMoved || !sceneRect) return;
 
-            // 限制不要拖出院子墙外
-            newLeft = Math.max(-20, Math.min(newLeft, sceneRect.width - 40));
-            newBottom = Math.max(0, Math.min(newBottom, sceneRect.height - 50));
+        var newLeft = initLeft + dx;
+        var newBottom = initBottom - dy;
 
-            container.style.left = newLeft + 'px';
-            container.style.bottom = newBottom + 'px';
-        }
+        newLeft = Math.max(-20, Math.min(newLeft, sceneRect.width - 40));
+        newBottom = Math.max(0, Math.min(newBottom, sceneRect.height - 50));
+
+        container.style.left = newLeft + 'px';
+        container.style.bottom = newBottom + 'px';
     }
 
-    function onDragEnd() {
+    function onPointerUp(e) {
         if (!isDragging) return;
+        if (activePointerId != null && e.pointerId !== activePointerId) return;
+
         isDragging = false;
         container.style.zIndex = '3';
         container.style.transition = '';
 
+        try {
+            container.releasePointerCapture(activePointerId);
+        } catch (err) {}
+
+        activePointerId = null;
+
         if (!hasMoved) {
-            // 没有移动，说明是精准“点击” (触发浇水或逗弄)
-            if (type === 'plant') qaqWaterPlant(container, itemId);
-            else qaqPetAnimal(container, itemId);
+            if (type === 'plant') {
+                qaqWaterPlant(container, itemId);
+            } else {
+                qaqPetAnimal(container, itemId);
+            }
         } else {
-            // 发生了移动，保存新坐标！
             state.posX = parseFloat(container.style.left);
             state.posY = parseFloat(container.style.bottom);
             qaqSaveSpriteState(itemId, state);
-            qaqToast('位置已保存');
+
+            // 不建议每次拖完都 Toast，频繁拖拽会很烦，也会增加 UI 压力
+            // qaqToast('位置已保存');
         }
     }
 
-    container.addEventListener('mousedown', onDragStart);
-    document.addEventListener('mousemove', onDragMove, {passive: false});
-    document.addEventListener('mouseup', onDragEnd);
-    container.addEventListener('touchstart', onDragStart, {passive: true});
-    document.addEventListener('touchmove', onDragMove, {passive: false});
-    document.addEventListener('touchend', onDragEnd);
+    container.addEventListener('pointerdown', onPointerDown);
+    container.addEventListener('pointermove', onPointerMove);
+    container.addEventListener('pointerup', onPointerUp);
+    container.addEventListener('pointercancel', onPointerUp);
 
     return container;
 }
@@ -4168,37 +4191,43 @@ async function qaqShowLive2DInScene(canvasId, sceneEl, modelUrl, modelName) {
 
 
 // ---- 全部浇水 / 全部喂食 ----
-document.getElementById('qaq-garden-water-all-btn').addEventListener('click', function() {
-    var owned = qaqGetOwnedItems().filter(function(x) { return x.type === 'seed'; });
-    if (!owned.length) return qaqToast('没有可浇水的植物');
+var gardenWaterAllBtn = document.getElementById('qaq-garden-water-all-btn');
+if (gardenWaterAllBtn) {
+    gardenWaterAllBtn.addEventListener('click', function() {
+        var owned = qaqGetOwnedItems().filter(function(x) { return x.type === 'seed'; });
+        if (!owned.length) return qaqToast('没有可浇水的植物');
 
-    owned.forEach(function(item) {
-        var state = qaqGetSpriteState(item.id);
-        state.growth = Math.min(100, (state.growth || 0) + 10);
-        state.lastWater = Date.now();
-        qaqSaveSpriteState(item.id, state);
+        owned.forEach(function(item) {
+            var state = qaqGetSpriteState(item.id);
+            state.growth = Math.min(100, (state.growth || 0) + 10);
+            state.lastWater = Date.now();
+            qaqSaveSpriteState(item.id, state);
+        });
+
+        qaqAddPoints(owned.length);
+        qaqRenderGardenPage();
+        qaqToast('全部浇水完成 +' + owned.length + ' 积分');
     });
+}
 
-    qaqAddPoints(owned.length);
-    qaqRenderGardenPage();
-    qaqToast('全部浇水完成 +' + owned.length + ' 积分');
-});
+var zooFeedAllBtn = document.getElementById('qaq-zoo-feed-all-btn');
+if (zooFeedAllBtn) {
+    zooFeedAllBtn.addEventListener('click', function() {
+        var owned = qaqGetOwnedItems().filter(function(x) { return x.type === 'animal'; });
+        if (!owned.length) return qaqToast('没有可喂食的动物');
 
-document.getElementById('qaq-zoo-feed-all-btn').addEventListener('click', function() {
-    var owned = qaqGetOwnedItems().filter(function(x) { return x.type === 'animal'; });
-    if (!owned.length) return qaqToast('没有可喂食的动物');
+        owned.forEach(function(item) {
+            var state = qaqGetSpriteState(item.id);
+            state.mood = Math.min(100, (state.mood || 50) + 10);
+            state.lastFeed = Date.now();
+            qaqSaveSpriteState(item.id, state);
+        });
 
-    owned.forEach(function(item) {
-        var state = qaqGetSpriteState(item.id);
-        state.mood = Math.min(100, (state.mood || 50) + 10);
-        state.lastFeed = Date.now();
-        qaqSaveSpriteState(item.id, state);
+        qaqAddPoints(owned.length);
+        qaqRenderZooPage();
+        qaqToast('全部喂食完成 +' + owned.length + ' 积分');
     });
-
-    qaqAddPoints(owned.length);
-    qaqRenderZooPage();
-    qaqToast('全部喂食完成 +' + owned.length + ' 积分');
-});
+}
 
 /* ===== 完整升级版：全方位分模块数据导出导入清除 ===== */
 function qaqGetDataModules() {
@@ -4490,11 +4519,11 @@ function qaqOpenImportModal() {
     // 2. 尝试进入全屏模式（需要用户手势触发）
     function tryFullscreen() {
     const el = document.documentElement;
-    const rfs = el.requestFullscreen
-        || el.webkitRequestFullscreen
-        || el.mozRequestFullScreen
-        || el.msRequestFullscreen;
-
+const rfs = el.requestFullscreen ||
+    el.webkitRequestFullscreen ||
+    el.mozRequestFullScreen ||
+    el.msRequestFullscreen;
+    
     if (rfs) {
         try {
             var ret = rfs.call(el);
@@ -4591,7 +4620,7 @@ function qaqRenderPetFloatTo(floatId, avatarId) {
     }
 
     // 🌟 召唤万能渲染器接管一切
-    qaqRenderVisualToDOM(avatarId, pet.id, 'animal', 0.9, qaqGetDisplayMode());
+    qaqRenderVisualToDOM(avatarId, pet.id, 'animal', 0.9, qaqGetDisplayMode(), true);
 }
 
 function qaqRenderWordbankPetFloat() {
@@ -4609,7 +4638,8 @@ function qaqGetPetModelUrl(itemId) {
 }
 
 /* ===== 万能渲染引擎 (自动降级: 3D -> Lottie -> Static) ===== */
-function qaqRenderVisualToDOM(containerId,itemId,type,scale,preferredMode) {
+function qaqRenderVisualToDOM(containerId,itemId,type,scale,preferredMode,silent) {
+    silent = !!silent;
     var container=document.getElementById(containerId);
     if(!container) return;
 
@@ -4619,8 +4649,14 @@ function qaqRenderVisualToDOM(containerId,itemId,type,scale,preferredMode) {
     var hasLottie=!!(window.qaqLotties&&window.qaqLotties[itemId]);
 
     var mode=preferredMode||'static';
-    if(mode==='3d'&&!has3D) mode=hasLottie?'lottie':'static';
-    if(mode==='lottie'&&!hasLottie) mode='static';
+if(mode==='3d'&&!has3D) mode=hasLottie?'lottie':'static';
+if(mode==='lottie'&&!hasLottie) mode='static';
+
+// 小院/桌宠这种小尺寸场景不要弹全屏进度层，也不要默认跑多个 3D
+// 3D 在小院里很容易多 canvas 多动画导致卡顿，静默场景优先降级到 Lottie 或静态
+if (silent && mode === '3d') {
+    mode = hasLottie ? 'lottie' : 'static';
+}
 
     function openModeSwitch(){
         qaqOpenXiaoyuanRenderModeQuickSwitch(type);
@@ -4653,24 +4689,59 @@ function qaqRenderVisualToDOM(containerId,itemId,type,scale,preferredMode) {
     }
 
     if(mode==='lottie'){
-        qaqOpenXiaoyuanLoadProgress('加载动态资源','正在准备Lottie引擎...',function(){
-            container.innerHTML='';
-            qaqToast('已取消动态资源加载');
-        },function(){
-            openModeSwitch();
-        });
-        qaqUpdateXiaoyuanLoadProgress(10,'正在加载动画引擎...');
+    // 静默模式：小院/桌宠用，不弹全屏加载层
+    if (silent) {
+        container.innerHTML =
+            '<lottie-player src="' + window.qaqLotties[itemId] + '" ' +
+            'background="transparent" speed="1" ' +
+            'style="width:100%;height:100%;pointer-events:none;" loop autoplay>' +
+            '</lottie-player>';
+
         qaqEnsureLottie(function(){
-            qaqUpdateXiaoyuanLoadProgress(75,'正在装配动画...');
-            container.innerHTML='<lottie-player src="' + window.qaqLotties[itemId] + '" background="transparent" speed="1" style="width:100%;height:100%;pointer-events:none;" loop autoplay></lottie-player>';
+            // 引擎加载完后再保险刷新一次
+            if (!document.body.contains(container)) return;
+            container.innerHTML =
+                '<lottie-player src="' + window.qaqLotties[itemId] + '" ' +
+                'background="transparent" speed="1" ' +
+                'style="width:100%;height:100%;pointer-events:none;" loop autoplay>' +
+                '</lottie-player>';
+
             if(container.parentElement&&container.parentElement.classList){
                 container.parentElement.classList.remove('qaq-walking');
             }
-            qaqUpdateXiaoyuanLoadProgress(100,'动态资源加载完成');
-            setTimeout(qaqCloseXiaoyuanLoadProgress,180);
         });
+
         return;
     }
+
+    // 非静默模式：商店详情等大预览才显示进度层
+    qaqOpenXiaoyuanLoadProgress('加载动态资源','正在准备Lottie引擎...',function(){
+        container.innerHTML='';
+        qaqToast('已取消动态资源加载');
+    },function(){
+        openModeSwitch();
+    });
+
+    qaqUpdateXiaoyuanLoadProgress(10,'正在加载动画引擎...');
+
+    qaqEnsureLottie(function(){
+        qaqUpdateXiaoyuanLoadProgress(75,'正在装配动画...');
+        container.innerHTML =
+            '<lottie-player src="' + window.qaqLotties[itemId] + '" ' +
+            'background="transparent" speed="1" ' +
+            'style="width:100%;height:100%;pointer-events:none;" loop autoplay>' +
+            '</lottie-player>';
+
+        if(container.parentElement&&container.parentElement.classList){
+            container.parentElement.classList.remove('qaq-walking');
+        }
+
+        qaqUpdateXiaoyuanLoadProgress(100,'动态资源加载完成');
+        setTimeout(qaqCloseXiaoyuanLoadProgress,180);
+    });
+
+    return;
+}
 
     var svgHtml='';
 

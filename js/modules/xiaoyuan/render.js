@@ -127,9 +127,34 @@
             return qaqResolveOwnedType(x) === 'animal';
         });
 
-        var items = ownedAll.filter(function (x) {
-            return qaqResolveOwnedType(x) === 'item';
+        var inv = (typeof window.qaqGetItemInventory === 'function' ? window.qaqGetItemInventory() : {}) || {};
+var items = [];
+
+Object.keys(inv).forEach(function (key) {
+    if (key === 'item-bed') {
+        if (Array.isArray(inv[key]) && inv[key].length > 0) {
+            var metaBed = (window.qaqShopCatalog && window.qaqShopCatalog.items || []).find(function (it) {
+                return it.id === key;
+            });
+            items.push({
+                id: key,
+                name: metaBed ? metaBed.name : '小窝',
+                type: 'item',
+                count: inv[key].length
+            });
+        }
+    } else if ((inv[key] || 0) > 0) {
+        var meta = (window.qaqShopCatalog && window.qaqShopCatalog.items || []).find(function (it) {
+            return it.id === key;
         });
+        items.push({
+            id: key,
+            name: meta ? meta.name : key,
+            type: 'item',
+            count: inv[key]
+        });
+    }
+});
         if (window.qaqDebugLog) {
     window.qaqDebugLog('[QAQ-XY] plants=' + plants.length + ', animals=' + animals.length + ', items=' + items.length);
 }
@@ -221,40 +246,48 @@
                 qaqToast('浇水完成');
             };
         } else if (currentTab === 'animals') {
-            interactBtn.style.display = '';
-            interactBtn.textContent = '一键喂食（全部动物）';
-            interactBtn.onclick = function () {
-    if (!animals.length) return qaqToast('没有动物可供喂食');
+    interactBtn.style.display = '';
+    interactBtn.textContent = '一键喂食（全部动物）';
+    interactBtn.onclick = function () {
+        if (!animals.length) return qaqToast('没有动物可供喂食');
 
-    var inv = window.qaqGetItemInventory ? window.qaqGetItemInventory() : {};
-    var foodCount = inv['item-food-basic'] || 0;
+        var inv = window.qaqGetItemInventory ? window.qaqGetItemInventory() : {};
+        var foodCount = inv['item-food-basic'] || 0;
 
-    if (foodCount < animals.length) {
-        return qaqToast('粮食不足，需要 ' + animals.length + ' 份，当前只有 ' + foodCount + ' 份');
-    }
-
-    animals.forEach(function (a) {
-        if (window.qaqConsumeInventory) {
-            window.qaqConsumeInventory('item-food-basic', 1);
+        if (foodCount < animals.length) {
+            return qaqToast('粮食不足，需要 ' + animals.length + ' 份，当前只有 ' + foodCount + ' 份');
         }
 
-        var s = window.qaqGetSpriteState(a.id);
-        s.mood = Math.min(100, (s.mood || 50) + 10);
-        s.energy = Math.min(100, (s.energy || 0) + 8);
-        s.expEnergy = (s.expEnergy || 0) + 8;
-        window.qaqSavePushSpriteLog) {
-            window.qaqPushSpriteLog(a.id, '一键喂食：心情 +10，精力 +8，粮食1        if (window.qaqMaybeLevelUp) {
-            window.qaqMaybeLevelUp(a.id);
+        animals.forEach(function (a) {
+            if (window.qaqConsumeInventory) {
+                window.qaqConsumeInventory('item-food-basic', 1);
+            }
+
+            var s = window.qaqGetSpriteState ? window.qaqGetSpriteState(a.id) : {};
+            s.mood = Math.min(100, (s.mood || 50) + 10);
+            s.energy = Math.min(100, (s.energy || 0) + 8);
+            s.expEnergy = (s.expEnergy || 0) + 8;
+
+            if (window.qaqSaveSpriteState) {
+                window.qaqSaveSpriteState(a.id, s);
+            }
+
+            if (window.qaqPushSpriteLog) {
+                window.qaqPushSpriteLog(a.id, '一键喂食：心情 +10，精力 +8，粮食 -1');
+            }
+
+            if (window.qaqMaybeLevelUp) {
+                window.qaqMaybeLevelUp(a.id);
+            }
+        });
+
+        if (window.qaqAddPoints) {
+            window.qaqAddPoints(animals.length);
         }
-    });
 
-    if (window.qaqAddPoints) {
-        window.qaqAddPoints(animals.length);
-    }
-
-    qaqScheduleXiaoyuanRender();
-    qaqToast('喂食完成，消耗 ' + animals.length + ' 份粮食');
-};
+        qaqScheduleXiaoyuanRender();
+        qaqToast('喂食完成，消耗 ' + animals.length + ' 份粮食');
+    };
         } else {
             interactBtn.style.display = 'none';
             interactBtn.onclick = null;
@@ -274,17 +307,20 @@
             var state = qaqGetSpriteState(item.id);
 
             var statusColor = '#999';
-            var statusText = '摆件';
+var statusText = '摆件';
 
             if (isPlant) {
-                statusColor = (state.growth || 0) >= 100 ? '#e05565' : '#7bab6e';
-                statusText = (state.growth || 0) >= 100
-                    ? '已盛开'
-                    : '成长进度 ' + (state.growth || 0) + '%';
-            } else if (isAnimal) {
-                statusColor = (state.mood || 50) >= 80 ? '#e8c34f' : '#e88d4f';
-                statusText = '当前心情 ' + (state.mood || 50) + '%';
-            }
+    statusColor = (state.growth || 0) >= 100 ? '#e05565' : '#7bab6e';
+    statusText = (state.growth || 0) >= 100
+        ? '已盛开'
+        : '成长进度 ' + (state.growth || 0) + '%';
+} else if (isAnimal) {
+    statusColor = (state.mood || 50) >= 80 ? '#e8c34f' : '#e88d4f';
+    statusText = '当前心情 ' + (state.mood || 50) + '%';
+} else if (realType === 'item') {
+    statusColor = '#5b9bd5';
+    statusText = '库存 ' + (item.count || 0);
+}
 
             var card = document.createElement('div');
             card.className = 'qaq-garden-card';

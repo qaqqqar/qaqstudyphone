@@ -1,11 +1,11 @@
 /**
  * js/modules/chat.js
- * QAQ - AI学习辅助独立聊天引擎 (通俗化、强化系统提示词版)
+ * QAQ - AI学习辅助独立聊天引擎 (完美界面渲染级 / 提示词铁腕限定)
  */
 (function () {
     'use strict';
 
-    var CHAT_STORE_KEY = 'qaq-chat-store-v3';
+    var CHAT_STORE_KEY = 'qaq-chat-store-v4';
     var activeContactId = null;
 
     /* ===== 数据存取与通用工具 ===== */
@@ -18,11 +18,11 @@
         else if (window.qaqCacheSet) window.qaqCacheSet(key, val);
     }
     
-    // 强制使用系统统一 Toast，禁止使用 alert
+    // 我们在此不调用浏览器原生丑弹窗，只用美化 Toast
     function safeToast(msg) {
         if (typeof qaqToast !== 'undefined') qaqToast(msg);
         else if (window.qaqToast) window.qaqToast(msg);
-        else console.log("Toast: " + msg); // 降级为 log，不阻断
+        else console.log(msg);
     }
     
     function safeSwitchTo(el) {
@@ -45,7 +45,7 @@
             contacts: {},
             messages: {},
             globalSettings: {},
-            myProfile: { nickname: 'Learner', trueName: '', persona: '热爱外语学习的学生', avatar: '' }
+            myProfile: { nickname: '学生', trueName: '', persona: '正在全力攻克外语考试的学习者', avatar: '' }
         });
     }
 
@@ -58,74 +58,74 @@
         return h + ':' + m;
     }
 
-    /* ===== 核心提示词构建逻辑 (发给 AI 时使用) ===== */
-    // 将此处暴露给全局或在调用 API 时获取
+
+    /* ========================================================
+       极其关键：送给核心调用层的聊天 System Prompt 生成 🛠️
+       (当请求 AI API 时，将其作为 System 的角色前置背景下发)
+       ======================================================== */
     window.qaqBuildChatSystemPrompt = function(contactId) {
         var cd = qaqGetChatData();
         var c = cd.contacts[contactId] || {};
         var s = Object.assign({}, cd.globalSettings || {}, c.configs || {});
         var p = cd.myProfile;
         
-        var basePrompt = s.op_persona || "你是我的外语对话导师。";
+        // ① 基底人设组合
+        var basePrompt = s.op_persona || "你是我的高级外教陪练导师。";
         
-        // 强制格式约束提示词
+        // ② 格式和铁血纪律（防止AI不按格式发文）
         var formatConstraint = `
-=========================
-【核心规则设定】
-你现在正在一个外语学习APP内与我交流。请严格遵守以下规则：
-
-1. 角色认知：你的身份是「${escapeHTML(c.remark || c.nickname || 'AI导师')}」。我的名字是「${escapeHTML(p.trueName || p.nickname || '学生')}」。
-2. 我的人设设定为：「${escapeHTML(p.persona || '普通学生')}」，在交流中请结合此人设。
-3. 语言规范：如果是外语交流，必须符合该外语的地道表达和语法规范，禁止使用中式外语，语句尽量口语化、自然。
+[严重指令优先级最高] 这是一个专业的外语陪伴学习端。
+* 你的当前角色代称是「${escapeHTML(c.remark || c.nickname || 'AI导师')}」。
+* 而我是「${escapeHTML(p.trueName || p.nickname || '学生')}」，我是一个：${escapeHTML(p.persona || '普通的语言学习者')}。 
+(切勿搞混对方名字)
+* 语言纯正：如果对话是外语（如英语等），请严格运用母语者口吻语境地道发声，绝不允许说散装洋泾浜！不要带有机器的僵硬感。
 `;
 
-        // 根据双语设置添加翻译指令
+        // ③ 翻译切割判定
         var transMode = s.op_trans_pos || 'in_bottom';
         if (transMode !== 'hide') {
             formatConstraint += `
-4. 双语输出强制要求：
-   无论我说什么语言，你的回复必须采用【特定格式】同时包含【原文(通常是外语)】和【精准的中文翻译】。
-   请严禁偏离此格式，请确保不漏掉翻译。
-   请采用以下 JSON 格式输出回复（不要输出 markdown 的代码块结构，直接输出合法的 JSON 即可）：
-   {
-      "original_text": "你的原始回复文本（比如英语）",
-      "translation": "对应的中文翻译文本"
-   }
+* 双向结构返回规章（双语全自动补全翻译）：
+无论我说什么语言，你的响应「永远只能」是一个绝对规整纯净的 JSON 解析体（不要携带任何额外的 Markdown\`\`\` 修饰前后缀）。结构如下：
+{
+  "original_text": "【此处存放你要对我说的原文内容(外文为主)】",
+  "translation": "【此处存放你对上一句原文精心推敲过后的信达雅中文译文】"
+}
+记住：如果你无法翻译，就在 translation 内置空字符串，但此格式不可打破！
 `;
         } else {
-             formatConstraint += `
-4. 语言输出：只用目标外语回复，不需要翻译。
-`;
+             formatConstraint += `\n* 响应指示：本模式不允许中文释义渗入，请完全用我的目标进修语种和我沟通，请不要返回JSON，当做平常聊天返回纯文本。\n`;
         }
 
         return basePrompt + "\n" + formatConstraint;
     };
 
 
-    /* ===== 核心初始化 / 接管器 ===== */
+    /* ===== 核心页面唤起流 ===== */
     window.qaqOpenChatPage = function () {
         try {
             var cd = qaqGetChatData();
             if (Object.keys(cd.contacts).length === 0) {
+                // 如果空，就送一个陪伴样例
                 cd.contacts['ai_tutor'] = {
-                    id: 'ai_tutor', nickname: 'Alice', remark: '口语私教', avatar: '',
+                    id: 'ai_tutor', nickname: 'Alice', remark: '外语陪练员 Alice', avatar: '',
                     isTop: true, updateTime: Date.now(),
                     configs: { 
-                        op_persona: '你是一名专业且温柔的英语外教。', 
-                        ui_bubble_radius: 12, ui_avatar_radius: 6, 
+                        op_persona: '你是一名极其开朗且平易近人的金牌英语外教。', 
+                        ui_bubble_radius: 12, ui_avatar_radius: 8, 
                         op_trans_pos: 'in_bottom',
-                        ui_my_bubble: '#fed2e0',    /* 默认我方粉色 */
-                        ui_other_bubble: '#ffffff'  /* 默认对方白色 */
+                        ui_my_bubble: '#b8dfbf',    // 原生青绿
+                        ui_other_bubble: '#ffffff'  // 常规白色
                     }
                 };
                 cd.messages['ai_tutor'] = [
-                    { id: 1, text: "Welcome! Ready for today's practice?", isMe: false, time: Date.now() - 36000, translated: "欢迎！准备好今天的练习了吗？" },
+                    { id: 1, text: "I'm always by your side! What are we going to practice today?", isMe: false, time: Date.now() - 36000, translated: "我会一直陪在你身旁的！今天咱们想怎么练习呢？" },
                 ];
                 qaqSaveChatData(cd);
             }
             renderContactList();
             safeSwitchTo(document.getElementById('qaq-chat-main-page'));
-        } catch(e) { console.error("聊天模块拉起失败:", e); }
+        } catch(e) { console.error(e); }
     };
 
     function bindPageEvents() {
@@ -146,7 +146,7 @@
             renderDynamicSettings(); safeSwitchTo(settingsPage); 
         });
 
-        // Add Contact Popover - 替换为原生自定义弹窗 (qaqOpenModal)
+        // Add Contact：调用我们自己规范设计的自定义纯净页面 Modal
         var topAddBtn = document.getElementById('qaq-chat-top-add-btn');
         if (topAddBtn) {
             topAddBtn.addEventListener('click', function() {
@@ -155,42 +155,44 @@
                     var mBody = document.getElementById('qaq-modal-body');
                     var mBtns = document.getElementById('qaq-modal-btns');
                     
-                    if(mTitle) mTitle.textContent = '添加新联系人 (AI)';
+                    if(mTitle) mTitle.textContent = '捕捉新的陪练对象 (AI)';
                     if(mBody) {
                         mBody.innerHTML = `
-                            <div class="qaq-inline-input-row">
-                                <input type="text" id="qaq-new-contact-name" placeholder="输入角色昵称">
-                                <input type="text" id="qaq-new-contact-persona" placeholder="输入一句话设定(如：严厉的法语老师)">
+                            <div class="qaq-inline-input-row" style="margin-top:4px;">
+                                <div style="font-size:12px;color:#888;margin-bottom:2px;">你要为他定下什么假名？</div>
+                                <input type="text" id="qaq-new-contact-name" placeholder="名称，例：雅思真题终结者">
+                                <div style="font-size:12px;color:#888;margin-top:10px;margin-bottom:2px;">在背景设定里，他是个怎样的人？</div>
+                                <input type="text" id="qaq-new-contact-persona" placeholder="例如：一个极具英伦风的老派考官。">
                             </div>
                         `;
                     }
                     if(mBtns) {
                         mBtns.innerHTML = `
-                            <button class="qaq-inline-cancel" id="qaq-modal-cancel">取消</button>
-                            <button class="qaq-inline-ok" id="qaq-modal-confirm-add">添加</button>
+                            <button class="qaq-inline-cancel" id="qaq-modal-cancel">打消念头</button>
+                            <button class="qaq-inline-ok" id="qaq-modal-confirm-add" style="color:#7bab6e;background:rgba(123,171,110,0.15)">赋予灵魂并创造</button>
                         `;
                     }
                     window.qaqOpenModal();
                     
                     document.getElementById('qaq-modal-cancel').onclick = window.qaqCloseModal;
                     document.getElementById('qaq-modal-confirm-add').onclick = function() {
-                        var cName = document.getElementById('qaq-new-contact-name').value.trim() || '未知角色';
-                        var cPersona = document.getElementById('qaq-new-contact-persona').value.trim() || '一名普通的交谈对象';
+                        var cName = document.getElementById('qaq-new-contact-name').value.trim() || '无面者';
+                        var cPersona = document.getElementById('qaq-new-contact-persona').value.trim() || '我是一名智能交流助理。';
                         
                         var cd = qaqGetChatData();
                         var newId = 'ai_' + Date.now();
                         cd.contacts[newId] = {
                             id: newId, nickname: cName, remark: cName, avatar: '',
                             isTop: false, updateTime: Date.now(),
-                            configs: { op_persona: `扮演：${cPersona}` }
+                            configs: { op_persona: `从此刻起你饰演这个人设基底：\n${cPersona}` }
                         };
                         qaqSaveChatData(cd);
                         renderContactList();
-                        safeToast(`已成功添加角色「${cName}」`);
+                        safeToast(`界限已绑定：新的联络者「${cName}」接入网络。`);
                         window.qaqCloseModal();
                     };
                 } else {
-                    safeToast('弹窗组件未就绪');
+                    safeToast('由于系统环境缺失，界面模块调集失败。');
                 }
             });
         }
@@ -213,15 +215,15 @@
         renderExtMenu();
     }
 
-    /* ===== 菜单栏扩展功能 ===== */
+    /* ===== 左侧抽屉菜单伪展开区 ===== */
     function renderExtMenu() {
         var mnu = document.getElementById('qaq-chat-ext-menu');
         if (!mnu) return;
         var feats = [
-            { n: '表情', i: '<circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>' },
-            { n: '语音', i: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/>' },
             { n: '照片', i: '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>' },
-            { n: '位置', i: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>' },
+            { n: '听译', i: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/>' },
+            { n: '文章纠错', i: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>' },
+            { n: '情境剧场', i: '<polygon points="5 3 19 12 5 21 5 3"/>' }
         ];
         mnu.innerHTML = feats.map(function(f) {
             return '<div class="qaq-ext-item qaq-ext-action" data-ft="'+f.n+'">' +
@@ -230,11 +232,12 @@
                    '</div>';
         }).join('');
         mnu.querySelectorAll('.qaq-ext-action').forEach(function(el){
-            el.onclick = function(){ safeToast(this.dataset.ft + '功能开发中'); };
+            el.onclick = function(){ safeToast(this.dataset.ft + ' 即将落地。敬请期待！'); };
         });
     }
 
-    /* ===== 联系人列表 ===== */
+
+    /* ===== 外联总表 ===== */
     function renderContactList() {
         var cd = qaqGetChatData();
         var listEl = document.getElementById('qaq-chat-contact-list');
@@ -247,7 +250,7 @@
         });
 
         if (!arr.length) {
-            listEl.innerHTML = '<div style="text-align:center;color:#aaa;padding:60px;">没有消息记录，点击右上角加号发起新聊天</div>';
+            listEl.innerHTML = '<div style="text-align:center;color:#aaa;padding:60px;">频道空旷，点击右上方按键呼叫一个伴读来此吧</div>';
             return;
         }
 
@@ -258,7 +261,7 @@
             var msgs = cd.messages[c.id] || [];
             var lst = msgs.length ? msgs[msgs.length - 1] : null;
             var tStr = lst ? qaqChatFormatTime(lst.time) : '';
-            var rRadius = s.ui_avatar_radius !== undefined ? s.ui_avatar_radius : 8; 
+            var rRadius = s.ui_avatar_radius !== undefined ? s.ui_avatar_radius : 10; 
             
             var div = document.createElement('div');
             div.className = 'qaq-chat-list-item' + (c.isTop ? ' qaq-top' : '');
@@ -269,14 +272,14 @@
                         '<div class="qaq-chat-list-name">' + escapeHTML(c.remark || c.nickname || c.id) + '</div>' +
                         '<div class="qaq-chat-list-time">' + tStr + '</div>' +
                     '</div>' +
-                    '<div class="qaq-chat-list-preview">' + escapeHTML(lst ? (lst.text||'[内容]') : '还没发过消息哦') + '</div>' +
+                    '<div class="qaq-chat-list-preview">' + escapeHTML(lst ? (lst.text||'[图片/系统片段]') : '静静地等候着您的问候') + '</div>' +
                 '</div>';
             div.onclick = function() { openChatWindow(c.id); };
             listEl.appendChild(div);
         });
     }
 
-    /* ===== 对话界面流 ===== */
+    /* ===== 对话界面流机制 ===== */
     function openChatWindow(cid) {
         activeContactId = cid;
         var cd = qaqGetChatData();
@@ -286,11 +289,11 @@
         var tEl = document.getElementById('qaq-chat-win-title');
         if (tEl) tEl.textContent = c.remark || c.nickname;
         
-        // 动态将主题颜色注入 css 变量
-        var rMyBub = s.ui_my_bubble || '#fce8e2'; // 我方粉色
-        var rOthBub = s.ui_other_bubble || '#ffffff'; // 对方白色
-        document.documentElement.style.setProperty('--chat-my-bubble', rMyBub);
-        document.documentElement.style.setProperty('--chat-other-bubble', rOthBub);
+        // 关键视觉联动 (主题约束化 CSS Variables 注入全局)
+        var myC = s.ui_my_bubble || '#fce8e2';
+        var otC = s.ui_other_bubble || '#ffffff';
+        document.documentElement.style.setProperty('--chat-my-bub', myC);
+        document.documentElement.style.setProperty('--chat-oth-bub', otC);
 
         var rBtn = document.getElementById('qaq-chat-recv-ai-btn');
         var mBtn = document.getElementById('qaq-chat-toggle-menu');
@@ -312,7 +315,7 @@
         if (!listEl) return;
         
         var dAva = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23e8e8ec'/%3E%3C/svg%3E";
-        var rRadius = s.ui_avatar_radius !== undefined ? s.ui_avatar_radius : 8; 
+        var rRadius = s.ui_avatar_radius !== undefined ? s.ui_avatar_radius : 10; 
         var bubR = s.ui_bubble_radius !== undefined ? s.ui_bubble_radius : 14; 
         var fSz = s.ui_font_size || '14px';
 
@@ -320,11 +323,15 @@
         msgs.forEach(function(m, idx) {
             var isMe = m.isMe;
             var avaUrl = isMe ? (cd.myProfile.avatar || dAva) : (c.avatar || dAva);
-            var avaHtml = '<img class="qaq-chat-bubble-avatar" src="' + escapeHTML(avaUrl) + '" style="border-radius:'+rRadius+'px;">';
             
-            if (s.ui_avatar_show === 'hide_all') avaHtml = '';
-            else if (s.ui_avatar_show === 'first' && idx !== 0) avaHtml = '<div class="qaq-chat-bubble-avatar-gap" style="width:38px;margin:'+(isMe?'0 0 0 10px':'0 10px 0 0')+'"></div>';
-            else if (s.ui_avatar_show === 'last' && idx !== msgs.length - 1) avaHtml = '<div class="qaq-chat-bubble-avatar-gap" style="width:38px;margin:'+(isMe?'0 0 0 10px':'0 10px 0 0')+'"></div>';
+            var avaHtml = '<img class="qaq-chat-bubble-avatar" src="' + escapeHTML(avaUrl) + '" style="border-radius:'+rRadius+'px;">';
+            if (s.ui_avatar_show === 'hide_all') {
+                avaHtml = '';
+            } else if (s.ui_avatar_show === 'first' && idx !== 0) {
+                avaHtml = '<div class="qaq-chat-bubble-avatar-gap" style="width:38px;margin:'+(isMe?'0 0 0 10px':'0 10px 0 0')+'"></div>';
+            } else if (s.ui_avatar_show === 'last' && idx !== msgs.length - 1) {
+                avaHtml = '<div class="qaq-chat-bubble-avatar-gap" style="width:38px;margin:'+(isMe?'0 0 0 10px':'0 10px 0 0')+'"></div>';
+            }
             
             var bubRadiusStyle = isMe ? `border-radius:${bubR}px 2px ${bubR}px ${bubR}px` 
                                       : `border-radius:2px ${bubR}px ${bubR}px ${bubR}px`;
@@ -376,7 +383,8 @@
         renderMessages();
     }
 
-    /* ===== 设置与配置大集束引擎 (文案均已通俗化) ===== */
+
+    /* ===== 【深度通俗化设置表单映射核心体系】 ===== */
     function renderDynamicSettings() {
         var cd = qaqGetChatData();
         var cid = activeContactId;
@@ -389,38 +397,34 @@
 
         var groups = [
             {
-                t: '对方设置', // 1
+                t: '对方设置 (TA的身份逻辑)', 
                 f: [
-                    { k: 'remark', l: '备注名', v: c.remark||'', ph: '输入备注名称', ty: 'text' },
-                    { k: 'avatar', l: '对方头像链接 (URL)', v: c.avatar||'', ty: 'text' },
-                    { k: 'c_persona', l: 'TA的人设或身份提示词 (System)', v: s.op_persona||'', ty: 'area', h: 80 },
-                    { k: 'c_world', l: '绑定本地世界书 (填名称)', v: s.op_bind_world||'', ty: 'text' },
-                    { k: 'c_trans_mode', l: '翻译文本显示位置', v: s.op_trans_pos||'in_bottom', ty: 'sel', opts:[{l:'气泡内底部',v:'in_bottom'},{l:'气泡内顶部',v:'in_top'},{l:'气泡外部底部',v:'out_bottom'},{l:'关闭双语翻译',v:'hide'}] },
-                    { k: 'c_mem_cnt', l: '记忆历史消息条数', v: s.mem_max||20, ty: 'num' },
-                    { k: 'c_mem_auto', l: '历史记录过多时自动生成大纲', v: s.mem_summary, ty: 'switch' }
+                    { k: 'remark', l: '好友备注名称', v: c.remark||'', ph: '填写入眼称呼', ty: 'text' },
+                    { k: 'avatar', l: '专属头像相片链接网址(若有)', v: c.avatar||'', ty: 'text' },
+                    { k: 'c_persona', l: '给此角色的系统设定的底座 (例如: 你是一只法斗...)', v: s.op_persona||'', ty: 'area', h: 80 },
+                    { k: 'c_trans_mode', l: '自动双语同译格式呈现位置', v: s.op_trans_pos||'in_bottom', ty: 'sel', opts:[{l:'在气泡内原话文字底部接档',v:'in_bottom'},{l:'抽出来漂浮在气泡外底栏',v:'out_bottom'},{l:'太打脸了强制禁用中文',v:'hide'}] },
+                    { k: 'c_mem_cnt', l: '追述长时记忆力 (记录几条上下文)', v: s.mem_max||20, ty: 'num' }
                 ]
             },
             {
-                t: '我的设置', // 2
+                t: '我的设置 (我的马甲假面)', 
                 f: [
-                    { k: 'm_nick', l: '我当前的网名', v: p.nickname||'', ty: 'text' },
-                    { k: 'm_true', l: '我的真实姓名 (告诉AI)', v: p.trueName||'', ty: 'text' },
-                    { k: 'm_persona', l: '我的人设 / 背景', v: p.persona||'', ty: 'area', h:60 },
-                    { k: 'm_avatar', l: '我的头像链接 (URL)', v: p.avatar||'', ty: 'text' }
+                    { k: 'm_nick', l: '对外展露的网名', v: p.nickname||'', ty: 'text' },
+                    { k: 'm_true', l: '现实真名叫啥 (强行纠正用)', v: p.trueName||'', ty: 'text' },
+                    { k: 'm_persona', l: '我的人设 / TA潜意识里觉得我怎样', v: p.persona||'', ty: 'area', h:60 },
+                    { k: 'm_avatar', l: '自己的头像装配 (URL指向)', v: p.avatar||'', ty: 'text' }
                 ]
             },
             {
-                t: '界面美化', // 3
+                t: '界面美化 (气泡排版涂层)', 
                 f: [
-                    { k: 'u_my_bub', l: '我发出的气泡颜色', v: s.ui_my_bubble||'#fce8e2', ty: 'sel', opts:[{l:'默认粉白',v:'#fce8e2'},{l:'原生青绿',v:'#b8dfbf'},{l:'冷光蓝',v:'#cce0d4'},{l:'经典白',v:'#ffffff'}] },
-                    { k: 'u_oth_bub', l: 'TA发出的气泡颜色', v: s.ui_other_bubble||'#ffffff', ty: 'sel', opts:[{l:'经典白',v:'#ffffff'},{l:'淡雾灰',v:'#f4f5f7'},{l:'柔和黄',v:'#fdfaec'}] },
-                    { k: 'u_bub_r', l: '气泡圆角弯度 (数字)', v: s.ui_bubble_radius||14, ty: 'num' },
-                    { k: 'u_ava_r', l: '头像圆角弯度 (数字)', v: s.ui_avatar_radius||8, ty: 'num' },
-                    { k: 'u_ava_m', l: '头像显示偏好', v: s.ui_avatar_show||'all', ty: 'sel', opts:[{l:'全部显示',v:'all'},{l:'仅显示气泡首段',v:'first'},{l:'仅显示气泡末尾段',v:'last'},{l:'隐藏头像',v:'hide_all'}] },
-                    { k: 'u_time_s', l: '聊天界面显示时间', v: s.ui_show_time||'true', ty: 'switch' },
-                    { k: 'u_hide_r', l: '隐藏底部[AI回]按钮', v: !!s.ui_hide_rbtn, ty: 'switch' },
-                    { k: 'u_hide_m', l: '隐藏底部侧边[+]按钮', v: !!s.ui_hide_mbtn, ty: 'switch' },
-                    { k: 'u_font_s', l: '气泡文本大小', v: s.ui_font_size||'14px', ty: 'sel', opts:[{l:'小 (13px)',v:'13px'},{l:'标准 (14px)',v:'14px'},{l:'大 (16px)',v:'16px'}] }
+                    { k: 'u_my_bub', l: '我发射气泡的色彩(背景涂敷)', v: s.ui_my_bubble||'#fce8e2', ty: 'sel', opts:[{l:'蜜桃猛男粉 (经典推荐)',v:'#fce8e2'},{l:'QAQ原生青绿色板',v:'#b8dfbf'},{l:'平滑沉寂的冷光银',v:'#dce4f0'},{l:'平铺纯白色',v:'#ffffff'},{l:'重口纯黑色 (夜视慎选)',v:'#111111'}] },
+                    { k: 'u_oth_bub', l: '对方面孔抛出的气泡基础色块', v: s.ui_other_bubble||'#ffffff', ty: 'sel', opts:[{l:'自然降噪白 (默认推荐)',v:'#ffffff'},{l:'清淡脱俗霜白灰',v:'#f4f5f7'},{l:'护眼淡茶黄',v:'#fdfaec'}] },
+                    { k: 'u_bub_r', l: '信息气泡包裹边界拉伸弯角弧度 (输入整数)', v: s.ui_bubble_radius||14, ty: 'num' },
+                    { k: 'u_ava_r', l: '显示化身的头颅面具裁切圆角尺寸', v: s.ui_avatar_radius||10, ty: 'num' },
+                    { k: 'u_ava_m', l: '双方信息留存下相貌显示的吝啬度', v: s.ui_avatar_show||'all', ty: 'sel', opts:[{l:'句句话不离身带头像(标配)',v:'all'},{l:'同一组落幕之语悬挂头像',v:'last'},{l:'极端隐藏拉长排版文本空间',v:'hide_all'}] },
+                    { k: 'u_time_s', l: '头顶顶置时光显示痕迹板印', v: s.ui_show_time||'true', ty: 'switch' },
+                    { k: 'u_hide_r', l: '隐藏最底层的快捷「AI发话」迫击键', v: !!s.ui_hide_rbtn, ty: 'switch' }
                 ]
             }
         ];
@@ -446,10 +450,10 @@
             ht += '</div></div>';
         });
         
-        ht += '<button class="qaq-chat-set-save" id="qaq-chs-sv">保存设置 (返回聊天界面生效)</button>';
+        ht += '<button class="qaq-chat-set-save" id="qaq-chs-sv" style="margin-top:14px; margin-bottom:50px;">封印设定存回实境</button>';
         scr.innerHTML = ht;
 
-        // 保存逻辑
+        // 数据保存捕抓反哺回血环
         document.getElementById('qaq-chs-sv').addEventListener('click', function(){
             function vx(id, isT){ 
                 var x = document.getElementById('chs_'+id); 
@@ -470,7 +474,6 @@
             var cav = vx('avatar'); if(cav!==undefined) c.avatar = cav;
 
             s.op_persona = vx('c_persona');
-            s.op_bind_world = vx('c_world');
             s.op_trans_pos = vx('c_trans_mode');
             s.mem_max = vx('c_mem_cnt');
             s.mem_summary = vx('c_mem_auto', true);
@@ -483,14 +486,12 @@
             s.ui_show_time = vx('u_time_s', true)?'true':'false';
             s.ui_hide_rbtn = vx('u_hide_r', true);
             s.ui_hide_mbtn = vx('u_hide_m', true);
-            s.ui_font_size = vx('u_font_s');
 
             c.configs = s;
             qaqSaveChatData(cd);
-            safeToast('聊天设定已保存。');
+            safeToast('配置锁死大成功！界已随参数改。');
             
-            // 返回页面重新渲染
-            document.getElementById('qaq-chat-set-back').click();
+            document.getElementById('qaq-chat-set-back').click(); // 自动闭合窗口
         });
     }
 

@@ -217,7 +217,7 @@ function escapeHTML(str) {
             return;
         }
 
-        var defaultAva = 'data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 24 24\\'%3E%3Ccircle cx=\\'12\\' cy=\\'12\\' r=\\'12\\' fill=\\'%23e8e8ec\\'/%3E%3C/svg%3E';
+        var defaultAva = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12' fill='%23e8e8ec'/%3E%3C/svg%3E";
 
         arr.forEach(function(c) {
             var msgs = cd.messages[c.id] || [];
@@ -275,7 +275,7 @@ function escapeHTML(str) {
         var listEl = document.getElementById('qaq-chat-msg-list');
         if (!listEl) return;
         listEl.innerHTML = '';
-        var defaultAva = 'data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 24 24\\'%3E%3Ccircle cx=\\'12\\' cy=\\'12\\' r=\\'12\\' fill=\\'%23e8e8ec\\'/%3E%3C/svg%3E';
+        var defaultAva = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12' fill='%23e8e8ec'/%3E%3C/svg%3E";
         var html = '';
 
         msgs.forEach(function(m) {

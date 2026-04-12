@@ -1570,19 +1570,17 @@
 </div>
 <!-- ===== 聊天主页 (消息列表) ===== -->
 <div class="qaq-chat-main-page" id="qaq-chat-main-page">
-    <div class="qaq-settings-header qaq-chat-header">
+    <div class="qaq-chat-header">
         <div class="qaq-back-btn" id="qaq-chat-main-back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><polyline points="15,18 9,12 15,6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <div class="qaq-settings-title">消息</div>
         <div class="qaq-chat-add-btn" id="qaq-chat-top-add-btn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke-linecap="round"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke-linecap="round"/></svg>
         </div>
     </div>
     
-    <div class="qaq-chat-contact-list" id="qaq-chat-contact-list">
-        <!-- JS 渲染聊天列表 -->
-    </div>
+    <div class="qaq-chat-contact-list" id="qaq-chat-contact-list"></div>
 
     <div class="qaq-chat-bottom-nav">
         <div class="qaq-chat-nav-item qaq-chat-nav-active"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" stroke-linejoin="round"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="13" y2="13"/></svg><span>消息</span></div>
@@ -1594,21 +1592,19 @@
 
 <!-- ===== 聊天窗口页 ===== -->
 <div class="qaq-chat-window-page" id="qaq-chat-window-page">
-    <div class="qaq-settings-header qaq-chat-header">
+    <div class="qaq-chat-header">
         <div class="qaq-back-btn" id="qaq-chat-win-back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><polyline points="15,18 9,12 15,6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <div class="qaq-settings-title" id="qaq-chat-win-title">聊天中</div>
         <div class="qaq-chat-add-btn" id="qaq-chat-win-set-btn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+            <!-- 改为三横菜单图标 -->
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
         </div>
     </div>
     
-    <div class="qaq-chat-msg-list" id="qaq-chat-msg-list">
-        <!-- 气泡展示区 -->
-    </div>
+    <div class="qaq-chat-msg-list" id="qaq-chat-msg-list"></div>
 
-    <!-- 输入底区 -->
     <div class="qaq-chat-input-area" id="qaq-chat-input-area">
         <div class="qaq-chat-ext-menu" id="qaq-chat-ext-menu" style="display:none;"></div>
         <div class="qaq-chat-input-row">
@@ -1616,7 +1612,7 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
             </button>
             <textarea class="qaq-chat-input-box" id="qaq-chat-input-box" rows="1"></textarea>
-            <button class="qaq-chat-recv-ai-btn" id="qaq-chat-recv-ai-btn">AI 回</button>
+            <button class="qaq-chat-recv-ai-btn" id="qaq-chat-recv-ai-btn">接收</button>
             <button class="qaq-chat-send-btn" id="qaq-chat-send-btn">发送</button>
         </div>
     </div>
@@ -1624,16 +1620,14 @@
 
 <!-- ===== 聊天深度设置页 ===== -->
 <div class="qaq-chat-settings-page" id="qaq-chat-settings-page">
-    <div class="qaq-settings-header qaq-chat-header">
+    <div class="qaq-chat-header">
         <div class="qaq-back-btn" id="qaq-chat-set-back">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><polyline points="15,18 9,12 15,6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <div class="qaq-settings-title" id="qaq-chat-set-title">聊天设置</div>
-        <div style="width:32px;"></div>
+        <div class="qaq-settings-title" id="qaq-chat-set-title">界面设计</div>
+        <div class="qaq-chat-add-btn"></div> <!-- 隐形占位保证中间标题绝对对齐 -->
     </div>
-    <div class="qaq-chat-settings-scroll" id="qaq-chat-settings-scroll">
-        <!-- JS 会一次性生成所有的表单内容 -->
-    </div>
+    <div class="qaq-chat-settings-scroll" id="qaq-chat-settings-scroll"></div>
 </div>
     </div><!-- qaq-phone-frame 闭合 -->
 

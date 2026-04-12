@@ -8207,3 +8207,42 @@ body {
 .qaq-theme-cool .qaq-chat-row.qaq-row-me .qaq-chat-bubble { background: #cce0d4; color: #3e6850; }
 .qaq-theme-cool .qaq-chat-send-btn { background: linear-gradient(135deg, #d0d8e8, #bfc9dd); color: #3a4a60; }
 .qaq-theme-cool .qaq-chat-recv-ai-btn { color: #3a4a60; border-color: #bfc9dd; }
+
+/* ========================================================
+   QAQ Chat 重构极简化附加渲染约束
+   ======================================================== */
+
+.qaq-chat-bubble-avatar { width:38px; height:38px; object-fit:cover; background:#e8e8e8; }
+.qaq-chat-bubble-wrap.qaq-has-outer-tr .qaq-chat-trans {
+    margin-top:4px; padding:6px 10px; background:rgba(255,255,255,0.7);
+    border-radius:6px; color:#777; border:none; box-shadow:0 1px 3px rgba(0,0,0,0.03);
+}
+
+.qaq-chat-trans { font-size:12px; color:#888; margin-top:5px; border-top:1px dashed rgba(0,0,0,0.08); padding-top:5px; }
+
+/* 设置区极简折叠 */
+.qaq-chat-set-card {
+    background: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.7);
+    border-radius: 14px; margin-bottom: 12px; overflow: hidden;
+}
+.qaq-chat-set-hd {
+    padding: 14px; font-size: 13px; font-weight: 600; color: #444; 
+    display:flex; justify-content:space-between; align-items:center; cursor: pointer;
+}
+.qaq-chat-set-hd span::before {
+    content:'▍'; margin-right:4px; color:#c47068;
+}
+.qaq-chat-set-bd { max-height:0; opacity:0; transition:all 0.3s ease; padding:0 14px; overflow:hidden;}
+.qaq-chat-set-card.qaq-open .qaq-chat-set-bd { max-height:1800px; opacity:1; padding-bottom:14px;}
+
+.qaq-chat-set-lbl { font-size: 11px; color:#999; margin-bottom:-2px; margin-top:8px;}
+.qaq-chat-set-inp { width:100%; border:1px solid rgba(0,0,0,0.06); height:34px; border-radius:8px; padding:0 10px; font-size:12px; background:#fff;}
+.qaq-chat-set-txt { width:100%; border:1px solid rgba(0,0,0,0.06); border-radius:8px; padding:10px; font-size:12px; resize:none; background:#fff; font-family:inherit;}
+.qaq-chat-set-row-tog { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid rgba(0,0,0,0.04); cursor:pointer;}
+.qaq-chat-set-act-btn { width:100%; border:none; height:36px; border-radius:8px; margin-top:8px; font-size:12px; font-weight:600; cursor:pointer;}
+.qaq-chat-set-save { width:100%; background:linear-gradient(135deg, #f6e9c9, #fed2e0); border:none; color:#8a6050; font-size:14px; font-weight:700; height:44px; border-radius:12px; margin-bottom:30px; letter-spacing:1px; box-shadow:0 4px 10px rgba(0,0,0,0.05);}
+
+/* 夜幕补偿 */
+.qaq-theme-dark .qaq-chat-set-card { background:rgba(40,40,40,0.7); border-color:transparent;}
+.qaq-theme-dark .qaq-chat-set-hd { color:#ddd; }
+.qaq-theme-dark .qaq-chat-set-inp, .qaq-theme-dark .qaq-chat-set-txt { background:#333; border-color:#444; color:#ccc;}

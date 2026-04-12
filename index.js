@@ -357,13 +357,15 @@ document.querySelectorAll('.qaq-app-item').forEach(function (item) {
 
         var name = this.querySelector('.qaq-app-name').textContent;
 
-        if (name === '今日计划') {
-            qaqOpenPlanPage();
-        } else if (name === '词库') {
-            qaqOpenWordbankPage();
-        } else {
-            qaqToast(name);
-        }
+if (name === '今日计划') {
+    qaqOpenPlanPage();
+} else if (name === '词库') {
+    qaqOpenWordbankPage();
+} else if (name === '聊天') {
+    if (window.qaqOpenChatPage) window.qaqOpenChatPage(); // ← ★ 这里直接跳转！
+} else {
+    qaqToast(name);
+}
 
         setTimeout(function () {
             qaqAppTapLock = false;

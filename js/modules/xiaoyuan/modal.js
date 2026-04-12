@@ -186,10 +186,10 @@
     ss.scale = scale;
     qaqSaveSpriteState(itemId, ss);
 
-    // 只刷新图景里的动植物，不动详情预览
+    // 只刷新图景，不刷新详情预览
     if (typeof window.qaqRefreshXiaoyuanView === 'function') {
-        window.qaqRefreshXiaoyuanView();
-    }
+    window.qaqRefreshXiaoyuanView();
+}
 });
 
         document.getElementById('qaq-sprite-toggle-scene-btn').onclick = function () {

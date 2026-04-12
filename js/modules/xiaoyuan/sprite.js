@@ -90,22 +90,26 @@
         }
 
         function calcPosition(clientX, clientY) {
-            var scaleInfo = getSceneScaleInfo();
-            var dx = (clientX - startX) / scaleInfo.scaleX;
-            var dy = (clientY - startY) / scaleInfo.scaleY;
+    var scaleInfo = getSceneScaleInfo();
+    var dx = (clientX - startX) / scaleInfo.scaleX;
+    var dy = (clientY - startY) / scaleInfo.scaleY;
 
-            var newLeft = initLeft + dx;
-            var newBottom = initBottom - dy;
+    var newLeft = initLeft + dx;
+    var newBottom = initBottom - dy;
 
-            // 边界
-            newLeft = Math.max(-20, Math.min(newLeft, scaleInfo.logicalW - 40));
-            newBottom = Math.max(0, Math.min(newBottom, scaleInfo.logicalH - 50));
+    // 允许部分超出场景边缘，交给 overflow:hidden 裁剪
+    var overflowX = 35;
+    var overflowBottom = 30;
+    var overflowTop = 10;
 
-            return {
-                left: newLeft,
-                bottom: newBottom
-            };
-        }
+    newLeft = Math.max(-overflowX, Math.min(newLeft, scaleInfo.logicalW - 10));
+    newBottom = Math.max(-overflowBottom, Math.min(newBottom, scaleInfo.logicalH - overflowTop));
+
+    return {
+        left: newLeft,
+        bottom: newBottom
+    };
+}
 
         function onPointerDown(e) {
             if (e.pointerType === 'mouse' && e.button !== 0) return;

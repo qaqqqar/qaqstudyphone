@@ -32,11 +32,47 @@
         }
     }
 
+    /**
+     * 统一解析已拥有物品类型
+     * 兼容旧版本数据：
+     * - type: 'pet' / 'zoo' / 'animals'
+     * - 没有 type，但 id 前缀可识别
+     */
+    function qaqResolveOwnedType(x) {
+        if (!x) return '';
+
+        if (x.type === 'seed') return 'seed';
+        if (x.type === 'animal') return 'animal';
+        if (x.type === 'item') return 'item';
+
+        // 兼容旧版本
+        if (x.type === 'pet' || x.type === 'zoo' || x.type === 'animals') return 'animal';
+
+        // 根据 id 兜底判断
+        if (x.id) {
+            var id = String(x.id);
+            if (id.indexOf('seed-') === 0) return 'seed';
+            if (id.indexOf('animal-') === 0) return 'animal';
+            if (id.indexOf('item-') === 0) return 'item';
+        }
+
+        return '';
+    }
+
     function qaqRenderXiaoyuanMain() {
         var ownedAll = qaqGetOwnedItems() || [];
-        var plants = ownedAll.filter(function (x) { return x.type === 'seed'; });
-        var animals = ownedAll.filter(function (x) { return x.type === 'animal'; });
-        var items = ownedAll.filter(function (x) { return x.type === 'item'; });
+
+        var plants = ownedAll.filter(function (x) {
+            return qaqResolveOwnedType(x) === 'seed';
+        });
+
+        var animals = ownedAll.filter(function (x) {
+            return qaqResolveOwnedType(x) === 'animal';
+        });
+
+        var items = ownedAll.filter(function (x) {
+            return qaqResolveOwnedType(x) === 'item';
+        });
 
         var currentMap = {
             plants: plants,
@@ -78,14 +114,16 @@
             var spacing = (sceneEl.clientWidth || 300) / (sceneItems.length + 1);
 
             sceneItems.forEach(function (item, i) {
+                var realType = qaqResolveOwnedType(item);
+
                 qaqCreateSpriteInScene(
                     mount,
                     '',
                     spacing * (i + 1) - 20,
-                    item.type === 'seed' ? 10 : 24,
+                    realType === 'seed' ? 10 : 24,
                     item.name,
                     item.id,
-                    item.type === 'seed' ? 'plant' : 'animal'
+                    realType === 'seed' ? 'plant' : 'animal'
                 );
             });
         }
@@ -136,8 +174,9 @@
         emptyEl.style.display = 'none';
 
         currentList.forEach(function (item) {
-            var isPlant = item.type === 'seed';
-            var isAnimal = item.type === 'animal';
+            var realType = qaqResolveOwnedType(item);
+            var isPlant = realType === 'seed';
+            var isAnimal = realType === 'animal';
             var state = qaqGetSpriteState(item.id);
 
             var statusColor = '#999';

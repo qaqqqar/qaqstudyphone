@@ -1,6 +1,6 @@
 /**
  * js/modules/chat.js
- * QAQ - 聊天模块 (深度解耦，标准挂载版)
+ * QAQ - 聊天模块 (深度解耦，标准挂载版，修复防崩溃容错)
  */
 (function () {
     'use strict';
@@ -9,8 +9,45 @@
     var activeContactId = null;
 
     /* ===== 数据存取 ===== */
+    function getCache(key, def) {
+        return (typeof qaqCacheGet !== 'undefined') ? qaqCacheGet(key, def) : 
+               (window.qaqCacheGet ? window.qaqCacheGet(key, def) : def);
+    }
+    
+    function setCache(key, val) {
+        if (typeof qaqCacheSet !== 'undefined') qaqCacheSet(key, val);
+        else if (window.qaqCacheSet) window.qaqCacheSet(key, val);
+    }
+
+    function safeToast(msg) {
+        if (typeof qaqToast !== 'undefined') qaqToast(msg);
+        else if (window.qaqToast) window.qaqToast(msg);
+        else console.log('[Chat Toast]', msg);
+    }
+
+    function safeSwitchTo(el) {
+        if (typeof qaqSwitchTo !== 'undefined') qaqSwitchTo(el);
+        else if (window.qaqSwitchTo) window.qaqSwitchTo(el);
+    }
+
+    function safeGoBackTo(parent, child) {
+        if (typeof qaqGoBackTo !== 'undefined') qaqGoBackTo(parent, child);
+        else if (window.qaqGoBackTo) window.qaqGoBackTo(parent, child);
+    }
+
+    function safeClosePage(el) {
+        if (typeof qaqClosePage !== 'undefined') qaqClosePage(el);
+        else if (window.qaqClosePage) window.qaqClosePage(el);
+    }
+
+    function escapeHTML(str) {
+        if (typeof qaqEscapeHtml !== 'undefined') return qaqEscapeHtml(str);
+        if (window.qaqEscapeHtml) return window.qaqEscapeHtml(str);
+        return String(str || '').replace(/</g, "&lt;");
+    }
+
     function qaqGetChatData() {
-        return window.qaqCacheGet(CHAT_STORE_KEY, {
+        return getCache(CHAT_STORE_KEY, {
             contacts: {},
             messages: {},
             globalSettings: {},
@@ -19,7 +56,7 @@
     }
 
     function qaqSaveChatData(data) {
-        window.qaqCacheSet(CHAT_STORE_KEY, data);
+        setCache(CHAT_STORE_KEY, data);
     }
 
     function qaqChatFormatTime(ts) {
@@ -35,26 +72,30 @@
 
     /* ===== 入口函数（供 index.js 直接调用） ===== */
     window.qaqOpenChatPage = function () {
-        var cd = qaqGetChatData();
-        // 自动注入一条系统预置的聊天数据
-        if (Object.keys(cd.contacts).length === 0) {
-            cd.contacts['ai_alice'] = {
-                id: 'ai_alice',
-                nickname: 'Alice',
-                remark: '英语私教',
-                avatar: '',
-                isTop: true,
-                updateTime: Date.now(),
-                configs: { op_persona: '你是一名严肃但温柔的英语口语私教。', op_trans_pos: '气泡内下方', ui_bubble_radius: 14 }
-            };
-            cd.messages['ai_alice'] = [
-                { id: 1, text: "Let's start your English training for today.", isMe: false, time: Date.now() - 3600000, translated: "让我们开始今天的英语训练吧。" },
-                { id: 2, text: "No problem! I'm ready.", isMe: true, time: Date.now() - 1000 }
-            ];
-            qaqSaveChatData(cd);
+        try {
+            var cd = qaqGetChatData();
+            // 自动注入一条系统预置的聊天数据
+            if (Object.keys(cd.contacts).length === 0) {
+                cd.contacts['ai_alice'] = {
+                    id: 'ai_alice',
+                    nickname: 'Alice',
+                    remark: '英语私教',
+                    avatar: '',
+                    isTop: true,
+                    updateTime: Date.now(),
+                    configs: { op_persona: '你是一名严肃但温柔的英语口语私教。', op_trans_pos: '气泡内下方', ui_bubble_radius: 14 }
+                };
+                cd.messages['ai_alice'] = [
+                    { id: 1, text: "Let's start your English training for today.", isMe: false, time: Date.now() - 3600000, translated: "让我们开始今天的英语训练吧。" },
+                    { id: 2, text: "No problem! I'm ready.", isMe: true, time: Date.now() - 1000 }
+                ];
+                qaqSaveChatData(cd);
+            }
+            renderContactList();
+            safeSwitchTo(document.getElementById('qaq-chat-main-page'));
+        } catch(e) {
+            console.error("无法拉起聊天模块:", e);
         }
-        renderContactList();
-        window.qaqSwitchTo(document.getElementById('qaq-chat-main-page'));
     };
 
     /* ===== 页面与按钮绑定 ===== */
@@ -65,17 +106,17 @@
 
         // 返回栈
         var mainBack = document.getElementById('qaq-chat-main-back');
-        if (mainBack) mainBack.addEventListener('click', function () { window.qaqClosePage(mainPage); });
+        if (mainBack) mainBack.addEventListener('click', function () { safeClosePage(mainPage); });
 
         var winBack = document.getElementById('qaq-chat-win-back');
-        if (winBack) winBack.addEventListener('click', function () { renderContactList(); window.qaqGoBackTo(mainPage, windowPage); });
+        if (winBack) winBack.addEventListener('click', function () { renderContactList(); safeGoBackTo(mainPage, windowPage); });
 
         var setBack = document.getElementById('qaq-chat-set-back');
-        if (setBack) setBack.addEventListener('click', function () { renderMessages(); window.qaqGoBackTo(windowPage, settingsPage); });
+        if (setBack) setBack.addEventListener('click', function () { renderMessages(); safeGoBackTo(windowPage, settingsPage); });
 
         // 打开设置页
         var winSetBtn = document.getElementById('qaq-chat-win-set-btn');
-        if (winSetBtn) winSetBtn.addEventListener('click', function () { renderDynamicSettings(); window.qaqSwitchTo(settingsPage); });
+        if (winSetBtn) winSetBtn.addEventListener('click', function () { renderDynamicSettings(); safeSwitchTo(settingsPage); });
 
         // 发送消息与下拉底栏
         var sendBtn = document.getElementById('qaq-chat-send-btn');
@@ -116,11 +157,15 @@
         
         if (extMenu) {
             extMenu.innerHTML = extFeatures.map(function(item) {
-                return '<div class="qaq-ext-item" onclick="window.qaqToast(\'' + item.name + ' 组件挂载触发点\')">' +
+                return '<div class="qaq-ext-item qaq-feat-menu-toast" data-feat="' + item.name + '">' +
                          '<div class="qaq-ext-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">' + item.icon + '</svg></div>' +
                          '<div class="qaq-ext-label">' + item.name + '</div>' +
                        '</div>';
             }).join('');
+            
+            extMenu.querySelectorAll('.qaq-feat-menu-toast').forEach(function(el) {
+                el.onclick = function() { safeToast(this.dataset.feat + ' 组件挂载触发点'); };
+            });
         }
     }
 
@@ -149,7 +194,7 @@
             var lastMsg = msgs.length ? msgs[msgs.length - 1] : null;
             var timeStr = lastMsg ? qaqChatFormatTime(lastMsg.time) : '';
             var preview = lastMsg ? (lastMsg.text || '[其他消息]') : '暂无记录';
-            var dpName = window.qaqEscapeHtml(c.remark || c.nickname || c.id);
+            var dpName = escapeHTML(c.remark || c.nickname || c.id);
 
             var item = document.createElement('div');
             item.className = 'qaq-chat-list-item' + (c.isTop ? ' qaq-top' : '');
@@ -160,7 +205,7 @@
                         '<div class="qaq-chat-list-name">' + dpName + '</div>' +
                         '<div class="qaq-chat-list-time">' + timeStr + '</div>' +
                     '</div>' +
-                    '<div class="qaq-chat-list-preview">' + window.qaqEscapeHtml(preview) + '</div>' +
+                    '<div class="qaq-chat-list-preview">' + escapeHTML(preview) + '</div>' +
                 '</div>';
 
             item.addEventListener('click', function() { openChatWindow(c.id); });
@@ -183,9 +228,10 @@
         if (recvBtn) recvBtn.style.display = s.ui_hide_ai_btn ? 'none' : 'block';
         if (extBtn) extBtn.style.display = s.ui_hide_menu_btn ? 'none' : 'flex';
         
-        document.getElementById('qaq-chat-ext-menu').style.display = 'none';
+        var mnu = document.getElementById('qaq-chat-ext-menu');
+        if(mnu) mnu.style.display = 'none';
 
-        window.qaqSwitchTo(document.getElementById('qaq-chat-window-page'));
+        safeSwitchTo(document.getElementById('qaq-chat-window-page'));
         renderMessages();
     }
 
@@ -217,11 +263,11 @@
             var transHtml = '', bubTransClass = '';
 
             if (m.translated && transLocation !== '不显示') {
-                transHtml = '<div class="qaq-chat-translation">' + window.qaqEscapeHtml(m.translated) + '</div>';
+                transHtml = '<div class="qaq-chat-translation">' + escapeHTML(m.translated) + '</div>';
                 if (transLocation === '气泡外下方') bubTransClass = 'qaq-trans-out';
             }
 
-            var bubbleInner = window.qaqEscapeHtml(m.text) + (transLocation === '气泡内下方' ? transHtml : '');
+            var bubbleInner = escapeHTML(m.text) + (transLocation === '气泡内下方' ? transHtml : '');
             var bubbleOuter = transLocation === '气泡外下方' ? transHtml : '';
 
             var colorClass = s.ui_theme_color === '粉色主题' ? 'style="background:#fce8e2"' : 
@@ -260,7 +306,7 @@
         renderMessages();
     }
 
-    /* ===== 【巨型折叠五大类配置菜单】按您所需的全功能布局 ===== */
+    /* ===== 动态重构：展开折叠菜单区 ====== */
     function renderDynamicSettings() {
         var cd = qaqGetChatData();
         var c = cd.contacts[activeContactId] || {};
@@ -348,7 +394,7 @@
                         '</div>';
                 } else if (f.t === 'btn') {
                     var isDanger = f.l.indexOf('【') > -1;
-                    buf += '<button class="qaq-import-ghost-btn" style="margin-top:10px;width:100%;height:38px;padding:0;' + (isDanger ? 'color:#d9534f;border-color:rgba(217,83,79,0.3);' : '') + '" onclick="window.qaqToast(\'点击捕获(待外接功能模块)\')">' + f.l + '</button>';
+                    buf += '<button class="qaq-import-ghost-btn qaq-chat-feat-btn" data-feat="' + f.l + '" style="margin-top:10px;width:100%;height:38px;padding:0;' + (isDanger ? 'color:#d9534f;border-color:rgba(217,83,79,0.3);' : '') + '">' + f.l + '</button>';
                 }
             });
             buf += '</div></div>';
@@ -357,7 +403,12 @@
         
         scrollEl.innerHTML = buf;
 
-        // 保存按扭监听机制
+        // 为自动生成的按钮绑定 toast
+        scrollEl.querySelectorAll('.qaq-chat-feat-btn').forEach(function(el){
+            el.onclick = function(){ safeToast('功能【' + this.dataset.feat + '】待开发'); };
+        });
+
+        // 保存机制
         document.getElementById('qaq-chat-save-master').addEventListener('click', function() {
             var curr = qaqGetChatData();
             function ex(key, isToggle) {
@@ -399,7 +450,7 @@
             conf.mem_summary = ex('mem_summary', true);
 
             qaqSaveChatData(curr);
-            window.qaqToast('人设参数、底层视觉覆写完毕！');
+            safeToast('人设参数、底层视觉覆写完毕！');
         });
     }
 

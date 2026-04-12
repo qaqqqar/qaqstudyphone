@@ -8102,20 +8102,52 @@ body {
    QAQ 聊天模块专用 CSS
    ======================================================== */
 
-.qaq-chat-main-page, .qaq-chat-window-page, .qaq-chat-settings-page {
-    position: absolute; inset: 0; z-index: 80;
-    background: linear-gradient(160deg, #f6e9c9 0%, #faebd7 25%, #fce8e2 50%, #fed2e0 75%, #f6e9c9 100%);
-    display: flex; flex-direction: column; transform: translate3d(100%, 0, 0); visibility: hidden; pointer-events: none;
-    transition: transform var(--qaq-page-duration) var(--qaq-page-ease), visibility 0s linear var(--qaq-page-duration);
-    contain: layout style paint; padding-top: calc(var(--qaq-safe-top) + 3vw);
-}
 .qaq-page-show.qaq-chat-main-page, .qaq-page-show.qaq-chat-window-page, .qaq-page-show.qaq-chat-settings-page {
     transform: translate3d(0, 0, 0); visibility: visible; pointer-events: auto; transition: transform var(--qaq-page-duration) var(--qaq-page-ease), visibility 0s;
 }
 
-/* 顶栏定制 */
-.qaq-chat-header { border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 10px; background: rgba(255,255,255,0.4); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
-.qaq-chat-add-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 8px; }
+/* 在 index.css 中找到或添加以下样式 */
+
+.qaq-chat-main-page, .qaq-chat-window-page, .qaq-chat-settings-page {
+    /* 移除 paddingTop，让 Header 自行处理顶部安全区 */
+    padding-top: 0;
+}
+
+.qaq-chat-header {
+    /* 使用 safe-area-inset-top 处理刘海屏 */
+    padding-top: calc(max(env(safe-area-inset-top, 0px), 20px) + 10px); 
+    padding-bottom: 10px;
+    padding-left: 16px;
+    padding-right: 16px;
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* 按钮靠两边，标题居中 */
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.qaq-chat-header .qaq-settings-title {
+    flex: 1;
+    text-align: center;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.qaq-chat-add-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 8px;
+    background: transparent;
+}
 .qaq-chat-add-btn:active { background: rgba(0,0,0,0.06); }
 
 /* 主页：聊天列表与底栏 */
@@ -8186,27 +8218,35 @@ body {
 .qaq-chat-setting-body { max-height:0; opacity:0; overflow:hidden; transition:max-height 0.35s ease, opacity 0.3s; padding:0 16px; display:flex; flex-direction:column; gap:12px; }
 .qaq-chat-setting-card.qaq-expand .qaq-chat-setting-body { max-height:2000px; opacity:1; padding-bottom:16px; padding-top:4px;}
 
-/* 夜幕 & 冷雾主题适配 */
-.qaq-theme-dark .qaq-chat-main-page, .qaq-theme-dark .qaq-chat-window-page, .qaq-theme-dark .qaq-chat-settings-page { background: linear-gradient(160deg, #121212 0%, #1a1a1a 25%, #161616 50%, #1c1c1c 75%, #121212 100%); }
-.qaq-theme-dark .qaq-chat-header, .qaq-theme-dark .qaq-chat-bottom-nav, .qaq-theme-dark .qaq-chat-input-area { background: rgba(30,30,30,0.85); border-color: rgba(255,255,255,0.06); }
-.qaq-theme-dark .qaq-chat-header .qaq-settings-title, .qaq-theme-dark .qaq-chat-list-name, .qaq-theme-dark .qaq-chat-setting-head { color: #e0e0e0; }
-.qaq-theme-dark .qaq-chat-nav-item.qaq-chat-nav-active { color: #d0b8a8; }
-.qaq-theme-dark .qaq-chat-list-item { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.03); }
-.qaq-theme-dark .qaq-chat-list-item.qaq-top { background: rgba(255,255,255,0.06); }
-.qaq-theme-dark .qaq-chat-row.qaq-row-other .qaq-chat-bubble { background: #333; color: #ddd; border-color:transparent;}
-.qaq-theme-dark .qaq-chat-row.qaq-row-me .qaq-chat-bubble { background: #2a3e2e; color: #a0d0a8; border-color:transparent;}
-.qaq-theme-dark .qaq-chat-input-box { background: #444; border-color: #555; color: #ddd; }
-.qaq-theme-dark .qaq-chat-send-btn { background: linear-gradient(135deg, #4a3a2a, #5a3a4a); color: #d0b8a8; }
-.qaq-theme-dark .qaq-chat-recv-ai-btn { background: #333; color: #d0b8a8; border-color:#5a3a4a; }
-.qaq-theme-dark .qaq-chat-ext-menu { border-color: rgba(255,255,255,0.06); }
-.qaq-theme-dark .qaq-ext-icon { background: #333; border-color: transparent; color: #aaa; }
-.qaq-theme-dark .qaq-chat-setting-card { background: rgba(40,40,40,0.6); border-color: rgba(60,60,60,0.5); }
+/* 主题适配 - 夜幕 */
+.qaq-theme-dark .qaq-chat-header {
+    background: rgba(30, 30, 30, 0.85);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+.qaq-theme-dark .qaq-chat-header .qaq-settings-title { color: #e0e0e0; }
+.qaq-theme-dark .qaq-chat-add-btn svg, .qaq-theme-dark .qaq-back-btn svg { stroke: #e0e0e0; }
 
-.qaq-theme-cool .qaq-chat-main-page, .qaq-theme-cool .qaq-chat-window-page, .qaq-theme-cool .qaq-chat-settings-page { background: linear-gradient(160deg, #ebeef3 0%, #f0f2f5 25%, #f3f4f7 50%, #eef0f4 75%, #ebeef3 100%); }
-.qaq-theme-cool .qaq-chat-nav-item.qaq-chat-nav-active { color: #3a4a60; }
-.qaq-theme-cool .qaq-chat-row.qaq-row-me .qaq-chat-bubble { background: #cce0d4; color: #3e6850; }
-.qaq-theme-cool .qaq-chat-send-btn { background: linear-gradient(135deg, #d0d8e8, #bfc9dd); color: #3a4a60; }
-.qaq-theme-cool .qaq-chat-recv-ai-btn { color: #3a4a60; border-color: #bfc9dd; }
+/* 主题适配 - 冷雾 */
+.qaq-theme-cool .qaq-chat-header {
+    background: rgba(240, 242, 245, 0.85);
+    border-bottom-color: rgba(0, 0, 0, 0.05);
+}
+.qaq-theme-cool .qaq-chat-header .qaq-settings-title { color: #2f4159; }
+.qaq-theme-cool .qaq-chat-add-btn svg, .qaq-theme-cool .qaq-back-btn svg { stroke: #2f4159; }
+
+/* 动态设置我方和对方气泡颜色的 CSS 变量 (将在 js 中动态设置) */
+:root {
+    --chat-my-bubble: #b8dfbf;
+    --chat-other-bubble: #ffffff;
+}
+
+.qaq-chat-row.qaq-row-me .qaq-chat-bubble {
+    background: var(--chat-my-bubble);
+}
+
+.qaq-chat-row.qaq-row-other .qaq-chat-bubble {
+    background: var(--chat-other-bubble);
+}
 
 /* ========================================================
    QAQ Chat 重构极简化附加渲染约束

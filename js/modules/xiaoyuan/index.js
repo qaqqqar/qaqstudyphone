@@ -27,7 +27,11 @@
         qaqApplyXiaoyuanThemeClass();
         qaqApplyXiaoyuanSceneSkin(false);
         qaqSwitchTo(page);
-        requestAnimationFrame(qaqRenderXiaoyuanMain);
+        requestAnimationFrame(function () {
+            if (typeof qaqRenderXiaoyuanMain === 'function') {
+                qaqRenderXiaoyuanMain();
+            }
+        });
     }
 
     function bindXiaoyuanEvents() {
@@ -85,7 +89,7 @@
                     return { value: item.id, label: item.name };
                 });
 
-                qaqOpenXiaoyuanSelectModal('选择小院皮肤', list, scene.yardSkin || 'yard1', function (val) {
+                qaqOpenXiaoyuanSelectModal('选择小院皮肤', list, scene.yardSkin || 'default', function (val) {
                     qaqSaveXiaoyuanSceneSettings({ yardSkin: val });
                     qaqRefreshXiaoyuanSettingTexts();
                     qaqApplyXiaoyuanSceneSkin(true);
@@ -196,7 +200,9 @@
                 qaqApplyXiaoyuanSceneSkin(false);
                 qaqToast('小院设置已保存');
                 qaqGoBackTo(page, sub);
-                setTimeout(qaqRenderXiaoyuanMain, 120);
+                setTimeout(function () {
+                    qaqRenderXiaoyuanMain();
+                }, 120);
             });
         }
 
@@ -208,20 +214,27 @@
         }
 
         document.querySelectorAll('[data-xy-tab]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-        document.querySelectorAll('[data-xy-tab]').forEach(function (b) {
-            b.classList.remove('qaq-wordbank-tab-active');
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('[data-xy-tab]').forEach(function (b) {
+                    b.classList.remove('qaq-wordbank-tab-active');
+                });
+                this.classList.add('qaq-wordbank-tab-active');
+
+                if (typeof qaqSetXiaoyuanCurrentTab === 'function') {
+                    qaqSetXiaoyuanCurrentTab(this.dataset.xyTab);
+                }
+
+                if (window.qaqDebugLog) {
+                    window.qaqDebugLog('[QAQ-XY] 当前切换到 tab = ' + this.dataset.xyTab);
+                } else {
+                    console.log('[QAQ-XY] 当前切换到 tab =', this.dataset.xyTab);
+                }
+
+                qaqRenderXiaoyuanMain();
+            });
         });
-        this.classList.add('qaq-wordbank-tab-active');
-
-        qaqSetXiaoyuanCurrentTab(this.dataset.xyTab);
-        console.log('[QAQ-XY] 当前切换到 tab =', this.dataset.xyTab);
-
-        qaqRenderXiaoyuanMain();
-    });
-});
     }
-    
+
     function initXiaoyuan() {
         bindXiaoyuanEvents();
         setTimeout(function () {

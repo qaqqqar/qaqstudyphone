@@ -8097,3 +8097,113 @@ body {
     height: 100% !important;
     transform: none !important;
 }
+
+/* ========================================================
+   QAQ 聊天模块专用 CSS
+   ======================================================== */
+
+.qaq-chat-main-page, .qaq-chat-window-page, .qaq-chat-settings-page {
+    position: absolute; inset: 0; z-index: 80;
+    background: linear-gradient(160deg, #f6e9c9 0%, #faebd7 25%, #fce8e2 50%, #fed2e0 75%, #f6e9c9 100%);
+    display: flex; flex-direction: column; transform: translate3d(100%, 0, 0); visibility: hidden; pointer-events: none;
+    transition: transform var(--qaq-page-duration) var(--qaq-page-ease), visibility 0s linear var(--qaq-page-duration);
+    contain: layout style paint; padding-top: calc(var(--qaq-safe-top) + 3vw);
+}
+.qaq-page-show.qaq-chat-main-page, .qaq-page-show.qaq-chat-window-page, .qaq-page-show.qaq-chat-settings-page {
+    transform: translate3d(0, 0, 0); visibility: visible; pointer-events: auto; transition: transform var(--qaq-page-duration) var(--qaq-page-ease), visibility 0s;
+}
+
+/* 顶栏定制 */
+.qaq-chat-header { border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 10px; background: rgba(255,255,255,0.4); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+.qaq-chat-add-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 8px; }
+.qaq-chat-add-btn:active { background: rgba(0,0,0,0.06); }
+
+/* 主页：聊天列表与底栏 */
+.qaq-chat-contact-list { flex: 1; overflow-y: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.qaq-chat-contact-list::-webkit-scrollbar { display: none; }
+
+.qaq-chat-bottom-nav { display: flex; background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid rgba(0,0,0,0.08); flex-shrink: 0; }
+.qaq-chat-nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 0; color: #aaa; font-size: 10px; gap:4px; cursor: pointer; }
+.qaq-chat-nav-item.qaq-chat-nav-active { color: #8a6050; }
+.qaq-chat-nav-item svg { width: 22px; height: 22px; stroke: currentColor; }
+
+.qaq-chat-list-item { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid rgba(0,0,0,0.04); cursor: pointer; transition: background 0.15s; background: rgba(255,255,255,0.2); }
+.qaq-chat-list-item.qaq-top { background: rgba(255,255,255,0.55); }
+.qaq-chat-list-item:active { background: rgba(0,0,0,0.04); }
+.qaq-chat-list-avatar { width: 48px; height: 48px; border-radius: 12px; background: #e8e8e8; object-fit: cover; flex-shrink: 0; margin-right: 12px; border:1px solid rgba(0,0,0,0.04); }
+.qaq-chat-list-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.qaq-chat-list-top-row { display: flex; justify-content: space-between; align-items: center; }
+.qaq-chat-list-name { font-size: 16px; font-weight: 600; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qaq-chat-list-time { font-size: 11px; color: #bbb; flex-shrink: 0; }
+.qaq-chat-list-preview { font-size: 13px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 聊天窗口：气泡 */
+.qaq-chat-msg-list { flex: 1; overflow-y: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding: 12px 0; display: flex; flex-direction: column; background: rgba(255,255,255,0.1); }
+.qaq-chat-msg-list::-webkit-scrollbar { display: none; }
+
+.qaq-chat-row { display: flex; margin: 8px 16px; align-items: flex-start; }
+.qaq-chat-row.qaq-row-me { flex-direction: row-reverse; }
+.qaq-chat-bubble-avatar { width: 38px; height: 38px; border-radius: 10px; background: #ddd; flex-shrink: 0; object-fit: cover; }
+.qaq-chat-row.qaq-row-other .qaq-chat-bubble-avatar { margin-right: 10px; }
+.qaq-chat-row.qaq-row-me .qaq-chat-bubble-avatar { margin-left: 10px; }
+
+.qaq-chat-bubble-wrap { display: flex; flex-direction: column; max-width: 70%; }
+.qaq-chat-bubble { padding: 10px 14px; font-size: 14.5px; line-height: 1.5; color: #333; word-wrap: break-word; position: relative; }
+
+/* 圆润带小尾巴的气泡！(通过不同的四角 border-radius 实现最清爽的原生尾巴) */
+.qaq-chat-row.qaq-row-other .qaq-chat-bubble { background: #fff; border-radius: 4px 16px 16px 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02);}
+.qaq-chat-row.qaq-row-me .qaq-chat-bubble { background: #b8dfbf; border-radius: 16px 4px 16px 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02);}
+
+.qaq-chat-msg-time { font-size: 10px; color: #ccc; text-align: center; margin: 12px 0 6px; }
+.qaq-chat-translation { margin-top: 6px; font-size: 12px; color: #888; border-top: 1px dashed rgba(0,0,0,0.1); padding-top: 6px; }
+.qaq-chat-bubble-wrap.qaq-trans-out .qaq-chat-translation { background: rgba(255,255,255,0.6); padding: 6px 10px; border-radius: 8px; margin-top: 4px; border:none; box-shadow: 0 1px 2px rgba(0,0,0,0.02);}
+
+/* 输入底栏 */
+.qaq-chat-input-area { background: #f6f6f6; border-top: 1px solid rgba(0,0,0,0.06); padding-bottom: env(safe-area-inset-bottom); flex-shrink: 0; display:flex; flex-direction:column; }
+.qaq-chat-input-row { display: flex; align-items: flex-end; padding: 8px 12px; gap: 8px; }
+.qaq-chat-circle-btn { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; background: none; color: #555; cursor: pointer; flex-shrink: 0; margin-bottom:2px;}
+.qaq-chat-input-box { flex: 1; border-radius: 18px; border: 1px solid #ddd; padding: 10px 14px; font-size: 14px; background: #fff; max-height: 120px; outline: none; resize: none; font-family: inherit; line-height: 1.4; color: #333; transition: border-color 0.2s;}
+.qaq-chat-input-box:focus { border-color: #deb3be; }
+.qaq-chat-recv-ai-btn { background: #fff; color: #8a6050; border: 1px solid #dcb5a3; border-radius: 18px; padding: 0 12px; height: 38px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0;}
+.qaq-chat-send-btn { background: linear-gradient(135deg, #f6e9c9, #fed2e0); color: #8a6050; border: none; border-radius: 18px; padding: 0 16px; height: 38px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: transform 0.15s; flex-shrink: 0;}
+.qaq-chat-send-btn:active, .qaq-chat-recv-ai-btn:active { transform: scale(0.92); }
+
+/* 展开菜单 */
+.qaq-chat-ext-menu { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 0; padding: 20px 0; border-bottom: 1px solid #eaeaea;}
+.qaq-ext-item { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
+.qaq-ext-icon { width: 50px; height: 50px; border-radius: 14px; background: #fff; display: flex; align-items: center; justify-content: center; color: #555; box-shadow: 0 2px 6px rgba(0,0,0,0.02); transition: background 0.15s;}
+.qaq-ext-item:active .qaq-ext-icon { background: #eee; }
+.qaq-ext-icon svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width:1.5;}
+.qaq-ext-label { font-size: 11px; color: #888; }
+
+/* 设置页：折叠栏结构 */
+.qaq-chat-settings-scroll { flex:1; overflow-y:auto; padding:0 16px 40px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+.qaq-chat-settings-scroll::-webkit-scrollbar { display:none;}
+.qaq-chat-setting-card { background: rgba(255,255,255,0.65); border-radius: 14px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.6); overflow:hidden;}
+.qaq-chat-setting-head { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; cursor:pointer; font-size:14px; font-weight:600; color:#333; user-select:none;}
+.qaq-chat-setting-head svg { width:18px; height:18px; stroke:#999; transition:transform 0.25s ease; }
+.qaq-chat-setting-card.qaq-expand .qaq-chat-setting-head svg { transform:rotate(90deg); }
+.qaq-chat-setting-body { max-height:0; opacity:0; overflow:hidden; transition:max-height 0.35s ease, opacity 0.3s; padding:0 16px; display:flex; flex-direction:column; gap:12px; }
+.qaq-chat-setting-card.qaq-expand .qaq-chat-setting-body { max-height:2000px; opacity:1; padding-bottom:16px; padding-top:4px;}
+
+/* 夜幕 & 冷雾主题适配 */
+.qaq-theme-dark .qaq-chat-main-page, .qaq-theme-dark .qaq-chat-window-page, .qaq-theme-dark .qaq-chat-settings-page { background: linear-gradient(160deg, #121212 0%, #1a1a1a 25%, #161616 50%, #1c1c1c 75%, #121212 100%); }
+.qaq-theme-dark .qaq-chat-header, .qaq-theme-dark .qaq-chat-bottom-nav, .qaq-theme-dark .qaq-chat-input-area { background: rgba(30,30,30,0.85); border-color: rgba(255,255,255,0.06); }
+.qaq-theme-dark .qaq-chat-header .qaq-settings-title, .qaq-theme-dark .qaq-chat-list-name, .qaq-theme-dark .qaq-chat-setting-head { color: #e0e0e0; }
+.qaq-theme-dark .qaq-chat-nav-item.qaq-chat-nav-active { color: #d0b8a8; }
+.qaq-theme-dark .qaq-chat-list-item { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.03); }
+.qaq-theme-dark .qaq-chat-list-item.qaq-top { background: rgba(255,255,255,0.06); }
+.qaq-theme-dark .qaq-chat-row.qaq-row-other .qaq-chat-bubble { background: #333; color: #ddd; border-color:transparent;}
+.qaq-theme-dark .qaq-chat-row.qaq-row-me .qaq-chat-bubble { background: #2a3e2e; color: #a0d0a8; border-color:transparent;}
+.qaq-theme-dark .qaq-chat-input-box { background: #444; border-color: #555; color: #ddd; }
+.qaq-theme-dark .qaq-chat-send-btn { background: linear-gradient(135deg, #4a3a2a, #5a3a4a); color: #d0b8a8; }
+.qaq-theme-dark .qaq-chat-recv-ai-btn { background: #333; color: #d0b8a8; border-color:#5a3a4a; }
+.qaq-theme-dark .qaq-chat-ext-menu { border-color: rgba(255,255,255,0.06); }
+.qaq-theme-dark .qaq-ext-icon { background: #333; border-color: transparent; color: #aaa; }
+.qaq-theme-dark .qaq-chat-setting-card { background: rgba(40,40,40,0.6); border-color: rgba(60,60,60,0.5); }
+
+.qaq-theme-cool .qaq-chat-main-page, .qaq-theme-cool .qaq-chat-window-page, .qaq-theme-cool .qaq-chat-settings-page { background: linear-gradient(160deg, #ebeef3 0%, #f0f2f5 25%, #f3f4f7 50%, #eef0f4 75%, #ebeef3 100%); }
+.qaq-theme-cool .qaq-chat-nav-item.qaq-chat-nav-active { color: #3a4a60; }
+.qaq-theme-cool .qaq-chat-row.qaq-row-me .qaq-chat-bubble { background: #cce0d4; color: #3e6850; }
+.qaq-theme-cool .qaq-chat-send-btn { background: linear-gradient(135deg, #d0d8e8, #bfc9dd); color: #3a4a60; }
+.qaq-theme-cool .qaq-chat-recv-ai-btn { color: #3a4a60; border-color: #bfc9dd; }

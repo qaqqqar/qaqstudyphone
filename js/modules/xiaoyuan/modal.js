@@ -186,19 +186,7 @@
     ss.scale = scale;
     qaqSaveSpriteState(itemId, ss);
 
-    // 1. 立即刷新详情预览
-    if (window.qaqRenderVisualToDOM) {
-        window.qaqRenderVisualToDOM(
-            'qaq-sprite-detail-preview',
-            itemId,
-            kind,
-            1.2 * scale,
-            'static',
-            true
-        );
-    }
-
-    // 2. 立即刷新小院场景
+    // 只刷新图景里的动植物，不动详情预览
     if (typeof window.qaqRefreshXiaoyuanView === 'function') {
         window.qaqRefreshXiaoyuanView();
     }

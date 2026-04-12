@@ -5,167 +5,206 @@
 (function () {
     'use strict';
 
-    function qaqCreateSpriteInScene(sceneEl, spriteHtml, defaultX, defaultY, name, itemId, type) {
-        var container = document.createElement('div');
-        container.className = 'qaq-sprite-container';
+function qaqCreateSpriteInScene(sceneEl, spriteHtml, defaultX, defaultY, name, itemId, type) {
+    var container = document.createElement('div');
+    container.className = 'qaq-sprite-container';
 
-        // 读取存档坐标
-        var state = window.qaqGetSpriteState ? window.qaqGetSpriteState(itemId) : {};
-        var savedX = state.posX != null ? state.posX : defaultX;
-        var savedY = state.posY != null ? state.posY : defaultY;
+    var state = window.qaqGetSpriteState ? window.qaqGetSpriteState(itemId) : {};
+    var savedX = state.posX != null ? state.posX : defaultX;
+    var savedY = state.posY != null ? state.posY : defaultY;
 
-        container.style.left = savedX + 'px';
-        container.style.bottom = savedY + 'px';
-        container.dataset.itemId = itemId;
+    container.style.left = savedX + 'px';
+    container.style.bottom = savedY + 'px';
+    container.dataset.itemId = itemId;
 
-        var spriteWrap = document.createElement('div');
-        spriteWrap.className = type === 'plant' ? 'qaq-plant-sprite' : 'qaq-animal-sprite';
+    var spriteWrap = document.createElement('div');
+    spriteWrap.className = type === 'plant' ? 'qaq-plant-sprite' : 'qaq-animal-sprite';
 
-        if (type === 'animal' && window.qaqGetXiaoyuanModeByType && window.qaqGetXiaoyuanModeByType('animal') !== 'lottie') {
-            spriteWrap.classList.add('qaq-walking');
-        }
-
-        var innerId = 'scene-obj-' + itemId + '-' + Date.now();
-        spriteWrap.id = innerId;
-        spriteWrap.style.width = '75px';
-        spriteWrap.style.height = '75px';
-
-        container.appendChild(spriteWrap);
-        sceneEl.appendChild(container);
-
-        // 渲染视觉
-        try {
-            var sceneSettings = window.qaqGetXiaoyuanSceneSettings ? window.qaqGetXiaoyuanSceneSettings() : {};
-            var latestState = window.qaqGetSpriteState ? window.qaqGetSpriteState(itemId) : {};
-            var globalScale = type === 'plant'
-                ? (sceneSettings.globalPlantScale || 1)
-                : (sceneSettings.globalAnimalScale || 1);
-
-            var finalScale = (latestState.scale || 1) * globalScale;
-
-            if (window.qaqRenderVisualToDOM) {
-                window.qaqRenderVisualToDOM(
-                    innerId,
-                    itemId,
-                    type,
-                    finalScale,
-                    window.qaqGetXiaoyuanModeByType ? window.qaqGetXiaoyuanModeByType(type) : 'static',
-                    true
-                );
-            } else {
-                console.error('[QAQ-XY] window.qaqRenderVisualToDOM 未挂载');
-            }
-        } catch (err) {
-            console.error('[QAQ-XY] 精灵渲染失败:', err);
-        }
-
-        // ===== 拖拽交互 =====
-        var isDragging = false;
-        var hasMoved = false;
-        var startX = 0;
-        var startY = 0;
-        var initLeft = 0;
-        var initBottom = 0;
-        var sceneRect = null;
-        var activePointerId = null;
-        var rafId = 0;
-        var pendingDX = 0;
-        var pendingDY = 0;
-
-        function applyDragFrame() {
-            rafId = 0;
-            if (!isDragging || !sceneRect) return;
-
-            var newLeft = initLeft + pendingDX;
-            var newBottom = initBottom - pendingDY;
-
-            newLeft = Math.max(-20, Math.min(newLeft, sceneRect.width - 40));
-            newBottom = Math.max(0, Math.min(newBottom, sceneRect.height - 50));
-
-            container.style.transform =
-                'translate3d(' + (newLeft - initLeft) + 'px,' + (-(newBottom - initBottom)) + 'px,0)';
-        }
-
-        function onPointerDown(e) {
-            if (e.pointerType === 'mouse' && e.button !== 0) return;
-
-            activePointerId = e.pointerId;
-            startX = e.clientX;
-            startY = e.clientY;
-            initLeft = parseFloat(container.style.left) || 0;
-            initBottom = parseFloat(container.style.bottom) || 0;
-            sceneRect = sceneEl.getBoundingClientRect();
-
-            isDragging = true;
-            hasMoved = false;
-            pendingDX = 0;
-            pendingDY = 0;
-
-            container.style.zIndex = '999';
-            container.style.transition = 'none';
-
-            try { container.setPointerCapture(activePointerId); } catch (err) {}
-        }
-
-        function onPointerMove(e) {
-            if (!isDragging) return;
-            if (activePointerId != null && e.pointerId !== activePointerId) return;
-
-            pendingDX = e.clientX - startX;
-            pendingDY = e.clientY - startY;
-
-            if (Math.abs(pendingDX) > 4 || Math.abs(pendingDY) > 4) {
-                hasMoved = true;
-                if (e.cancelable) e.preventDefault();
-            }
-
-            if (!hasMoved) return;
-            if (!rafId) rafId = requestAnimationFrame(applyDragFrame);
-        }
-
-        function onPointerUp(e) {
-            if (!isDragging) return;
-            if (activePointerId != null && e.pointerId !== activePointerId) return;
-
-            isDragging = false;
-            container.style.zIndex = '3';
-            container.style.transition = '';
-            container.style.transform = '';
-
-            try { container.releasePointerCapture(activePointerId); } catch (err) {}
-            activePointerId = null;
-
-            if (!hasMoved) {
-                if (type === 'plant' && window.qaqOpenSpriteDetailModal) {
-                    window.qaqOpenSpriteDetailModal(itemId, 'plant');
-                } else if (type === 'animal' && window.qaqOpenSpriteDetailModal) {
-                    window.qaqOpenSpriteDetailModal(itemId, 'animal');
-                }
-                return;
-            }
-
-            var newLeft = initLeft + pendingDX;
-            var newBottom = initBottom - pendingDY;
-
-            newLeft = Math.max(-20, Math.min(newLeft, sceneRect.width - 40));
-            newBottom = Math.max(0, Math.min(newBottom, sceneRect.height - 50));
-
-            var latest = window.qaqGetSpriteState ? window.qaqGetSpriteState(itemId) : {};
-            latest.posX = newLeft;
-            latest.posY = newBottom;
-
-            if (window.qaqSaveSpriteState) {
-                window.qaqSaveSpriteState(itemId, latest);
-            }
-        }
-
-        container.addEventListener('pointerdown', onPointerDown);
-        container.addEventListener('pointermove', onPointerMove);
-        container.addEventListener('pointerup', onPointerUp);
-        container.addEventListener('pointercancel', onPointerUp);
-
-        return container;
+    if (type === 'animal' && window.qaqGetXiaoyuanModeByType && window.qaqGetXiaoyuanModeByType('animal') !== 'lottie') {
+        spriteWrap.classList.add('qaq-walking');
     }
+
+    var innerId = 'scene-obj-' + itemId + '-' + Date.now();
+    spriteWrap.id = innerId;
+    spriteWrap.style.width = '75px';
+    spriteWrap.style.height = '75px';
+
+    container.appendChild(spriteWrap);
+    sceneEl.appendChild(container);
+
+    // 渲染视觉
+    try {
+        var sceneSettings = window.qaqGetXiaoyuanSceneSettings ? window.qaqGetXiaoyuanSceneSettings() : {};
+        var latestState = window.qaqGetSpriteState ? window.qaqGetSpriteState(itemId) : {};
+        var globalScale = type === 'plant'
+            ? (sceneSettings.globalPlantScale || 1)
+            : (sceneSettings.globalAnimalScale || 1);
+
+        var finalScale = (latestState.scale || 1) * globalScale;
+
+        if (window.qaqRenderVisualToDOM) {
+            window.qaqRenderVisualToDOM(
+                innerId,
+                itemId,
+                type,
+                finalScale,
+                window.qaqGetXiaoyuanModeByType ? window.qaqGetXiaoyuanModeByType(type) : 'static',
+                true
+            );
+        } else {
+            console.error('[QAQ-XY] window.qaqRenderVisualToDOM 未挂载');
+        }
+    } catch (err) {
+        console.error('[QAQ-XY] 精灵渲染失败:', err);
+    }
+
+    // ===== 拖拽交互 =====
+    var isDragging = false;
+    var hasMoved = false;
+    var startX = 0;
+    var startY = 0;
+    var initLeft = 0;
+    var initBottom = 0;
+    var sceneRect = null;
+    var activePointerId = null;
+    var rafId = 0;
+    var pendingDX = 0;
+    var pendingDY = 0;
+
+    function getSceneScaleInfo() {
+        // sceneEl 可能挂在缩放容器里，需要把屏幕位移换算成逻辑坐标
+        var rect = sceneEl.getBoundingClientRect();
+        var logicalW = sceneEl.offsetWidth || sceneEl.clientWidth || rect.width || 1;
+        var logicalH = sceneEl.offsetHeight || sceneEl.clientHeight || rect.height || 1;
+
+        var scaleX = rect.width / logicalW;
+        var scaleY = rect.height / logicalH;
+
+        if (!isFinite(scaleX) || scaleX <= 0) scaleX = 1;
+        if (!isFinite(scaleY) || scaleY <= 0) scaleY = 1;
+
+        return {
+            rect: rect,
+            scaleX: scaleX,
+            scaleY: scaleY,
+            logicalW: logicalW,
+            logicalH: logicalH
+        };
+    }
+
+    function applyDragFrame() {
+        rafId = 0;
+        if (!isDragging || !sceneRect) return;
+
+        var scaleInfo = getSceneScaleInfo();
+        var logicalDX = pendingDX / scaleInfo.scaleX;
+        var logicalDY = pendingDY / scaleInfo.scaleY;
+
+        var newLeft = initLeft + logicalDX;
+        var newBottom = initBottom - logicalDY;
+
+        newLeft = Math.max(-20, Math.min(newLeft, scaleInfo.logicalW - 40));
+        newBottom = Math.max(0, Math.min(newBottom, scaleInfo.logicalH - 50));
+
+        container.style.transform =
+            'translate3d(' + (newLeft - initLeft) + 'px,' + (-(newBottom - initBottom)) + 'px,0)';
+    }
+
+    function onPointerDown(e) {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+        activePointerId = e.pointerId;
+        startX = e.clientX;
+        startY = e.clientY;
+        initLeft = parseFloat(container.style.left) || 0;
+        initBottom = parseFloat(container.style.bottom) || 0;
+        sceneRect = sceneEl.getBoundingClientRect();
+
+        isDragging = true;
+        hasMoved = false;
+        pendingDX = 0;
+        pendingDY = 0;
+
+        container.style.zIndex = '999';
+        container.style.transition = 'none';
+
+        try { container.setPointerCapture(activePointerId); } catch (err) {}
+    }
+
+    function onPointerMove(e) {
+        if (!isDragging) return;
+        if (activePointerId != null && e.pointerId !== activePointerId) return;
+
+        pendingDX = e.clientX - startX;
+        pendingDY = e.clientY - startY;
+
+        if (Math.abs(pendingDX) > 4 || Math.abs(pendingDY) > 4) {
+            hasMoved = true;
+            if (e.cancelable) e.preventDefault();
+        }
+
+        if (!hasMoved) return;
+        if (!rafId) rafId = requestAnimationFrame(applyDragFrame);
+    }
+
+    function saveDraggedPosition() {
+        var scaleInfo = getSceneScaleInfo();
+        var logicalDX = pendingDX / scaleInfo.scaleX;
+        var logicalDY = pendingDY / scaleInfo.scaleY;
+
+        var newLeft = initLeft + logicalDX;
+        var newBottom = initBottom - logicalDY;
+
+        newLeft = Math.max(-20, Math.min(newLeft, scaleInfo.logicalW - 40));
+        newBottom = Math.max(0, Math.min(newBottom, scaleInfo.logicalH - 50));
+
+        var latest = window.qaqGetSpriteState ? window.qaqGetSpriteState(itemId) : {};
+        latest.posX = newLeft;
+        latest.posY = newBottom;
+
+        if (window.qaqSaveSpriteState) {
+            window.qaqSaveSpriteState(itemId, latest);
+        }
+
+        if (window.qaqDebugLog) {
+            window.qaqDebugLog('[QAQ-XY] 已保存位置', itemId, 'x=' + newLeft, 'y=' + newBottom);
+        } else {
+            console.log('[QAQ-XY] 已保存位置', itemId, newLeft, newBottom);
+        }
+    }
+
+    function finishPointer(e) {
+        if (!isDragging) return;
+        if (activePointerId != null && e && e.pointerId != null && e.pointerId !== activePointerId) return;
+
+        isDragging = false;
+        container.style.zIndex = '3';
+        container.style.transition = '';
+        container.style.transform = '';
+
+        try { container.releasePointerCapture(activePointerId); } catch (err) {}
+        activePointerId = null;
+
+        if (!hasMoved) {
+            if (type === 'plant' && window.qaqOpenSpriteDetailModal) {
+                window.qaqOpenSpriteDetailModal(itemId, 'plant');
+            } else if (type === 'animal' && window.qaqOpenSpriteDetailModal) {
+                window.qaqOpenSpriteDetailModal(itemId, 'animal');
+            }
+            return;
+        }
+
+        saveDraggedPosition();
+    }
+
+    container.addEventListener('pointerdown', onPointerDown);
+    container.addEventListener('pointermove', onPointerMove);
+    container.addEventListener('pointerup', finishPointer);
+    container.addEventListener('pointercancel', finishPointer);
+    container.addEventListener('lostpointercapture', finishPointer);
+
+    return container;
+}
 
     function qaqWaterPlant(containerEl, itemId) {
         var sprite = containerEl.querySelector('.qaq-plant-sprite');

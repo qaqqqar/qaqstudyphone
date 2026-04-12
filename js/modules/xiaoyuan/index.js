@@ -208,16 +208,18 @@
         }
 
         document.querySelectorAll('[data-xy-tab]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                document.querySelectorAll('[data-xy-tab]').forEach(function (b) {
-                    b.classList.remove('qaq-wordbank-tab-active');
-                });
-                this.classList.add('qaq-wordbank-tab-active');
-                qaqSetXiaoyuanCurrentTab(this.dataset.xyTab);
-                qaqRenderXiaoyuanMain();
-            });
+    btn.addEventListener('click', function () {
+        document.querySelectorAll('[data-xy-tab]').forEach(function (b) {
+            b.classList.remove('qaq-wordbank-tab-active');
         });
-    }
+        this.classList.add('qaq-wordbank-tab-active');
+
+        qaqSetXiaoyuanCurrentTab(this.dataset.xyTab);
+        console.log('[QAQ-XY] 当前切换到 tab =', this.dataset.xyTab);
+
+        qaqRenderXiaoyuanMain();
+    });
+});
 
     function initXiaoyuan() {
         bindXiaoyuanEvents();

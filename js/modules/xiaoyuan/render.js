@@ -14,7 +14,12 @@
     }
 
     function qaqGetXiaoyuanCurrentTab() {
-        return qaqXyCurrentTab;
+        // 优先从 DOM 当前激活按钮读取，避免模块变量不同步
+        var activeBtn = document.querySelector('[data-xy-tab].qaq-wordbank-tab-active');
+        if (activeBtn && activeBtn.dataset && activeBtn.dataset.xyTab) {
+            return activeBtn.dataset.xyTab;
+        }
+        return qaqXyCurrentTab || 'plants';
     }
 
     function qaqScheduleXiaoyuanRender() {
@@ -32,12 +37,6 @@
         }
     }
 
-    /**
-     * 统一解析已拥有物品类型
-     * 兼容旧版本数据：
-     * - type: 'pet' / 'zoo' / 'animals'
-     * - 没有 type，但 id 前缀可识别
-     */
     function qaqResolveOwnedType(x) {
         if (!x) return '';
 
@@ -60,6 +59,9 @@
     }
 
     function qaqRenderXiaoyuanMain() {
+        var currentTab = qaqGetXiaoyuanCurrentTab();
+        qaqXyCurrentTab = currentTab;
+
         var ownedAll = qaqGetOwnedItems() || [];
 
         var plants = ownedAll.filter(function (x) {
@@ -80,7 +82,7 @@
             items: items
         };
 
-        var currentList = currentMap[qaqXyCurrentTab] || [];
+        var currentList = currentMap[currentTab] || [];
 
         var gridEl = document.getElementById('qaq-xy-main-grid');
         var emptyEl = document.getElementById('qaq-xy-main-empty');
@@ -129,7 +131,7 @@
         }
 
         // 一键按钮
-        if (qaqXyCurrentTab === 'plants') {
+        if (currentTab === 'plants') {
             interactBtn.style.display = '';
             interactBtn.textContent = '一键浇水（全部植物）';
             interactBtn.onclick = function () {
@@ -145,7 +147,7 @@
                 qaqScheduleXiaoyuanRender();
                 qaqToast('浇水完成');
             };
-        } else if (qaqXyCurrentTab === 'animals') {
+        } else if (currentTab === 'animals') {
             interactBtn.style.display = '';
             interactBtn.textContent = '一键喂食（全部动物）';
             interactBtn.onclick = function () {

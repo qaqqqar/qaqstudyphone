@@ -8083,3 +8083,17 @@ body {
     height: 100% !important;
     display: block;
 }
+#qaq-sprite-detail-preview {
+    width: 88px !important;
+    height: 88px !important;
+    flex: 0 0 88px !important;
+}
+
+#qaq-sprite-detail-preview svg,
+#qaq-sprite-detail-preview canvas,
+#qaq-sprite-detail-preview img,
+#qaq-sprite-detail-preview lottie-player {
+    width: 100% !important;
+    height: 100% !important;
+    transform: none !important;
+}

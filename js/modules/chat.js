@@ -405,7 +405,6 @@
     }
 
 
-    /* ===== 【深度通俗化设置表单映射核心体系】 ===== */
     /* ===== 【深度通俗化设置表单映射核心体系 - 完全重构版】 ===== */
 function renderDynamicSettings() {
     var cd = qaqGetChatData();
@@ -417,13 +416,14 @@ function renderDynamicSettings() {
     var scr = document.getElementById('qaq-chat-settings-scroll');
     if (!scr) return;
 
-    // 图标SVG库（精简版）
+    // 图标SVG库
     var icons = {
         user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
         settings: '<circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6M5.6 5.6l4.2 4.2m4.2 4.2l4.2 4.2M1 12h6m6 0h6M5.6 18.4l4.2-4.2m4.2-4.2l4.2-4.2"/>',
         palette: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="1" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="23"/>',
         message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
-        more: '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>'
+        more: '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+        download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'
     };
 
     function ico(name) {
@@ -438,7 +438,7 @@ function renderDynamicSettings() {
                 { k: 'o_avatar', l: '头像URL', v: c.avatar||'', ty: 'text' },
                 { k: 'o_nickname', l: '昵称', v: c.nickname||'', ty: 'text' },
                 { k: 'o_remark', l: '备注真实名字', v: c.remark||'', ty: 'text' },
-                { k: 'o_persona', l: '具体人设', v: s.op_persona||'', ty: 'area', h: 80 },
+                { k: 'o_persona', l: '具体人设', v: s.op_persona||'', ty: 'area', h: 60 },
                 { k: 'o_worldbook', l: '绑定的世界书ID', v: s.o_worldbook||'', ty: 'text' },
                 { k: 'o_emoji', l: '主动发表情包', v: !!s.o_emoji, ty: 'switch' },
                 { k: 'o_trans_enable', l: '双语翻译功能', v: s.o_trans_enable!==false, ty: 'switch' },
@@ -462,18 +462,18 @@ function renderDynamicSettings() {
                 { k: 'o_allow_diary', l: '允许主动生成日记', v: !!s.o_allow_diary, ty: 'switch' },
                 { k: 'o_api_url', l: '专属API URL', v: s.o_api_url||'', ty: 'text', ph: '留空使用全局' },
                 { k: 'o_api_key', l: '专属API Key', v: s.o_api_key||'', ty: 'pwd' },
-                { k: 'o_api_model', l: '专属模型', v: s.o_api_model||'', ty: 'text' },
+                { k: 'o_api_model', l: '专属模型', v: s.o_api_model||'', ty: 'text', hasBtn: 'fetch_model' },
                 { k: 'o_voice_url', l: '语音API URL', v: s.o_voice_url||'', ty: 'text' },
                 { k: 'o_voice_key', l: '语音API Key', v: s.o_voice_key||'', ty: 'pwd' },
                 { k: 'o_voice_model', l: '语音模型', v: s.o_voice_model||'speech-02-hd', ty: 'sel', opts:[
                     {l:'speech-02-hd',v:'speech-02-hd'},{l:'speech-02-turbo',v:'speech-02-turbo'},
                     {l:'speech-2.8-hd',v:'speech-2.8-hd'},{l:'speech-01-turbo',v:'speech-01-turbo'}
                 ]},
-                { k: 'o_voice_speed', l: '语速(0.6-1.2)', v: s.o_voice_speed||0.9, ty: 'num', step: 0.1 },
+                { k: 'o_voice_speed', l: '语速(0.6-1.2)', v: s.o_voice_speed||0.9, ty: 'num', step: 0.1, min: 0.6, max: 1.2 },
                 { k: 'o_img_url', l: '生图API URL', v: s.o_img_url||'', ty: 'text' },
                 { k: 'o_img_key', l: '生图API Key', v: s.o_img_key||'', ty: 'pwd' },
                 { k: 'o_img_model', l: '生图模型', v: s.o_img_model||'', ty: 'text' },
-                { k: 'o_img_prompt', l: '生图提示词', v: s.o_img_prompt||'', ty: 'area', h: 60 }
+                { k: 'o_img_prompt', l: '生图提示词', v: s.o_img_prompt||'', ty: 'area', h: 50 }
             ]
         },
         {
@@ -482,7 +482,7 @@ function renderDynamicSettings() {
                 { k: 'm_avatar', l: '我的头像URL', v: p.avatar||'', ty: 'text' },
                 { k: 'm_nickname', l: '我的昵称', v: p.nickname||'', ty: 'text' },
                 { k: 'm_truename', l: '我的真名', v: p.trueName||'', ty: 'text' },
-                { k: 'm_persona', l: '我的人设', v: p.persona||'', ty: 'area', h: 80 },
+                { k: 'm_persona', l: '我的人设', v: p.persona||'', ty: 'area', h: 60 },
                 { k: 'm_preset', l: '人设预设', v: s.m_preset||'default', ty: 'sel', opts:[
                     {l:'默认学习者',v:'default'},{l:'考研党',v:'postgrad'},{l:'雅思备考',v:'ielts'},
                     {l:'托福备考',v:'toefl'},{l:'四六级',v:'cet'},{l:'自定义',v:'custom'}
@@ -522,8 +522,8 @@ function renderDynamicSettings() {
                 { k: 'u_font_url', l: '字体URL', v: s.u_font_url||'', ty: 'text' },
                 { k: 'u_font_size', l: '字体大小', v: s.ui_font_size||'14px', ty: 'text' },
                 { k: 'u_font_color', l: '字体颜色', v: s.u_font_color||'#333', ty: 'text' },
-                { k: 'u_global_css', l: '全局CSS', v: s.u_global_css||'', ty: 'area', h: 80 },
-                { k: 'u_bubble_css', l: '气泡CSS', v: s.u_bubble_css||'', ty: 'area', h: 80 }
+                { k: 'u_global_css', l: '全局CSS', v: s.u_global_css||'', ty: 'area', h: 60 },
+                { k: 'u_bubble_css', l: '气泡CSS', v: s.u_bubble_css||'', ty: 'area', h: 60 }
             ]
         },
         {
@@ -543,14 +543,14 @@ function renderDynamicSettings() {
 
     var html = '';
     sections.forEach(function(sec) {
-        html += '<div class="qaq-chat-set-card qaq-collapsible" data-sec="'+sec.id+'">';
+        // 默认折叠
+        html += '<div class="qaq-chat-set-card qaq-collapsible qaq-collapsed" data-sec="'+sec.id+'">';
         html += '<div class="qaq-chat-set-hd qaq-collapse-trigger">'+ico(sec.icon)+'<span>'+sec.title+'</span><svg class="qaq-collapse-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>';
         html += '<div class="qaq-chat-set-bd qaq-collapse-body">';
         
-        // 特殊处理聊天记录区
         if (sec.id === 'history') {
-            html += '<button class="qaq-chat-action-btn" id="qaq-chat-import-history">'+ico('message')+' 导入聊天记录</button>';
-            html += '<button class="qaq-chat-action-btn" id="qaq-chat-export-history">'+ico('message')+' 导出聊天记录</button>';
+            html += '<button class="qaq-chat-action-btn" id="qaq-chat-import-history">'+ico('download')+' 导入聊天记录</button>';
+            html += '<button class="qaq-chat-action-btn" id="qaq-chat-export-history">'+ico('download')+' 导出聊天记录</button>';
             html += '<button class="qaq-chat-action-btn qaq-danger" id="qaq-chat-clear-history">'+ico('message')+' 清除聊天记录</button>';
         } else {
             sec.fields.forEach(function(f) {
@@ -558,11 +558,19 @@ function renderDynamicSettings() {
                 if (f.ty === 'text' || f.ty === 'pwd' || f.ty === 'num') {
                     var tg = f.ty==='pwd'?'password':(f.ty==='num'?'number':'text');
                     var step = f.step ? ' step="'+f.step+'"' : '';
-                    html += lab + '<input type="'+tg+'" class="qaq-chat-set-inp" id="chs_'+f.k+'" value="'+escapeHTML(String(f.v))+'" placeholder="'+(f.ph||'')+'"'+step+'>';
+                    var minmax = '';
+                    if (f.min !== undefined) minmax += ' min="'+f.min+'"';
+                    if (f.max !== undefined) minmax += ' max="'+f.max+'"';
+                    
+                    if (f.hasBtn === 'fetch_model') {
+                        html += lab + '<div class="qaq-input-with-btn"><input type="'+tg+'" class="qaq-chat-set-inp" id="chs_'+f.k+'" value="'+escapeHTML(String(f.v))+'" placeholder="'+(f.ph||'')+'"'+step+minmax+'><button class="qaq-fetch-model-btn" data-target="chs_'+f.k+'">'+ico('download')+'</button></div>';
+                    } else {
+                        html += lab + '<input type="'+tg+'" class="qaq-chat-set-inp" id="chs_'+f.k+'" value="'+escapeHTML(String(f.v))+'" placeholder="'+(f.ph||'')+'"'+step+minmax+'>';
+                    }
                 } else if (f.ty === 'area') {
                     html += lab + '<textarea class="qaq-chat-set-txt" id="chs_'+f.k+'" style="height:'+(f.h||60)+'px">'+escapeHTML(String(f.v))+'</textarea>';
                 } else if (f.ty === 'switch') {
-                    html += '<div class="qaq-chat-set-row-tog" data-toggle="chs_'+f.k+'"><span>'+f.l+'</span><div class="qaq-toggle '+(f.v?'qaq-toggle-on':'')+'" id="chs_'+f.k+'"><div class="qaq-toggle-knob"></div></div></div>';
+                    html += '<div class="qaq-chat-set-row-tog"><span>'+f.l+'</span><div class="qaq-toggle '+(f.v?'qaq-toggle-on':'')+'" id="chs_'+f.k+'" data-field="'+f.k+'"><div class="qaq-toggle-knob"></div></div></div>';
                 } else if (f.ty === 'sel') {
                     var ops = f.opts.map(function(o){ return '<option value="'+o.v+'" '+(o.v===f.v?'selected':'')+'>'+o.l+'</option>'; }).join('');
                     html += lab + '<select class="qaq-chat-set-inp" id="chs_'+f.k+'">'+ops+'</select>';
@@ -578,17 +586,82 @@ function renderDynamicSettings() {
 
     // 绑定折叠事件
     scr.querySelectorAll('.qaq-collapse-trigger').forEach(function(trigger) {
-        trigger.addEventListener('click', function() {
+        trigger.addEventListener('click', function(e) {
+            e.stopPropagation();
             this.parentElement.classList.toggle('qaq-collapsed');
         });
     });
 
     // 绑定开关事件
-    scr.querySelectorAll('.qaq-chat-set-row-tog').forEach(function(row) {
-        row.addEventListener('click', function() {
-            var tid = this.dataset.toggle;
-            var tog = document.getElementById(tid);
-            if (tog) tog.classList.toggle('qaq-toggle-on');
+    scr.querySelectorAll('.qaq-toggle').forEach(function(tog) {
+        tog.addEventListener('click', function(e) {
+            e.stopPropagation();
+            this.classList.toggle('qaq-toggle-on');
+        });
+    });
+
+    // 绑定拉取模型按钮
+    scr.querySelectorAll('.qaq-fetch-model-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            var targetId = this.dataset.target;
+            var inp = document.getElementById(targetId);
+            if (!inp) return;
+            
+            var apiUrl = document.getElementById('chs_o_api_url').value || cd.globalSettings.apiUrl;
+            var apiKey = document.getElementById('chs_o_api_key').value || cd.globalSettings.apiKey;
+            
+            if (!apiUrl || !apiKey) {
+                if (typeof qaqToast === 'function') {
+                    qaqToast('请先配置API URL和Key');
+                } else {
+                    safeToast('请先配置API URL和Key');
+                }
+                return;
+            }
+            
+            this.disabled = true;
+            this.innerHTML = ico('download') + ' 拉取中...';
+            
+            fetch(apiUrl + '/v1/models', {
+                headers: { 'Authorization': 'Bearer ' + apiKey }
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.data && data.data.length > 0) {
+                    var models = data.data.map(function(m) { return m.id; });
+                    var selectHtml = '<select class="qaq-model-select-popup">' + 
+                        models.map(function(m) { return '<option value="'+m+'">'+m+'</option>'; }).join('') +
+                        '</select>';
+                    
+                    if (typeof qaqConfirm === 'function') {
+                        qaqConfirm('选择模型', selectHtml, function() {
+                            var sel = document.querySelector('.qaq-model-select-popup');
+                            if (sel) inp.value = sel.value;
+                        });
+                    } else {
+                        var chosen = prompt('可用模型:\n' + models.join('\n') + '\n\n请输入模型名称:');
+                        if (chosen) inp.value = chosen;
+                    }
+                } else {
+                    if (typeof qaqToast === 'function') {
+                        qaqToast('未获取到模型列表');
+                    } else {
+                        safeToast('未获取到模型列表');
+                    }
+                }
+            })
+            .catch(function() {
+                if (typeof qaqToast === 'function') {
+                    qaqToast('拉取失败');
+                } else {
+                    safeToast('拉取失败');
+                }
+            })
+            .finally(function() {
+                btn.disabled = false;
+                btn.innerHTML = ico('download');
+            });
         });
     });
 
@@ -609,12 +682,24 @@ function renderDynamicSettings() {
                             cd.messages[cid] = data.messages;
                             qaqSaveChatData(cd);
                             renderMessages();
-                            safeToast('聊天记录导入成功');
+                            if (typeof qaqToast === 'function') {
+                                qaqToast('聊天记录导入成功');
+                            } else {
+                                safeToast('聊天记录导入成功');
+                            }
                         } else {
-                            safeToast('文件格式错误');
+                            if (typeof qaqToast === 'function') {
+                                qaqToast('文件格式错误');
+                            } else {
+                                safeToast('文件格式错误');
+                            }
                         }
                     } catch(err) {
-                        safeToast('导入失败');
+                        if (typeof qaqToast === 'function') {
+                            qaqToast('导入失败');
+                        } else {
+                            safeToast('导入失败');
+                        }
                     }
                 };
                 reader.readAsText(this.files[0]);
@@ -634,27 +719,26 @@ function renderDynamicSettings() {
             a.download = 'chat_' + cid + '_' + Date.now() + '.json';
             a.click();
             URL.revokeObjectURL(url);
-            safeToast('聊天记录已导出');
+            if (typeof qaqToast === 'function') {
+                qaqToast('聊天记录已导出');
+            } else {
+                safeToast('聊天记录已导出');
+            }
         });
     }
 
     var clrBtn = document.getElementById('qaq-chat-clear-history');
     if (clrBtn) {
         clrBtn.addEventListener('click', function() {
-            if (typeof qaqConfirm !== 'undefined') {
+            if (typeof qaqConfirm === 'function') {
                 qaqConfirm('清除聊天记录', '确认清除与此角色的所有聊天记录？', function() {
                     cd.messages[cid] = [];
                     qaqSaveChatData(cd);
                     renderMessages();
-                    safeToast('聊天记录已清除');
+                    qaqToast('聊天记录已清除');
                 });
             } else {
-                if (confirm('确认清除所有聊天记录？')) {
-                    cd.messages[cid] = [];
-                    qaqSaveChatData(cd);
-                    renderMessages();
-                    safeToast('聊天记录已清除');
-                }
+                safeToast('请使用自定义弹窗系统');
             }
         });
     }
@@ -735,7 +819,12 @@ function renderDynamicSettings() {
 
         c.configs = s;
         qaqSaveChatData(cd);
-        safeToast('设置已保存');
+        
+        if (typeof qaqToast === 'function') {
+            qaqToast('设置已保存');
+        } else {
+            safeToast('设置已保存');
+        }
         
         // 刷新界面
         var titleEl = document.getElementById('qaq-chat-win-title');
@@ -752,7 +841,11 @@ function renderDynamicSettings() {
                 document.fonts.add(loaded);
                 document.getElementById('qaq-chat-msg-list').style.fontFamily = 'ChatCustomFont, sans-serif';
             }).catch(function() {
-                safeToast('字体加载失败');
+                if (typeof qaqToast === 'function') {
+                    qaqToast('字体加载失败');
+                } else {
+                    safeToast('字体加载失败');
+                }
             });
         }
         
@@ -776,6 +869,50 @@ function renderDynamicSettings() {
         
         renderMessages();
         document.getElementById('qaq-chat-set-back').click();
+    });
+}
+
+// 在发送语音消息的函数中，确保使用配置的语速
+function sendVoiceMessage(text) {
+    var cd = qaqGetChatData();
+    var c = cd.contacts[activeContactId] || {};
+    var s = Object.assign({}, cd.globalSettings || {}, c.configs || {});
+    
+    var voiceUrl = s.o_voice_url || cd.globalSettings.voiceUrl;
+    var voiceKey = s.o_voice_key || cd.globalSettings.voiceKey;
+    var voiceModel = s.o_voice_model || 'speech-02-hd';
+    var voiceSpeed = s.o_voice_speed || 0.9;
+    
+    // 确保语速在合理范围内
+    voiceSpeed = Math.max(0.6, Math.min(1.2, voiceSpeed));
+    
+    fetch(voiceUrl + '/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + voiceKey,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: voiceModel,
+            input: text,
+            voice: 'alloy',
+            speed: voiceSpeed,
+            response_format: 'mp3'
+        })
+    })
+    .then(function(res) { return res.blob(); })
+    .then(function(blob) {
+        var url = URL.createObjectURL(blob);
+        var audio = new Audio(url);
+        audio.play();
+    })
+    .catch(function(err) {
+        console.error('语音生成失败:', err);
+        if (typeof qaqToast === 'function') {
+            qaqToast('语音生成失败');
+        } else {
+            safeToast('语音生成失败');
+        }
     });
 }
 

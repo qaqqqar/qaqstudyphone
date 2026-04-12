@@ -38,25 +38,30 @@
     }
 
     function qaqResolveOwnedType(x) {
-        if (!x) return '';
+    if (!x) return '';
 
-        if (x.type === 'seed') return 'seed';
-        if (x.type === 'animal') return 'animal';
-        if (x.type === 'item') return 'item';
+    // 标准字段
+    if (x.type === 'seed') return 'seed';
+    if (x.type === 'animal') return 'animal';
+    if (x.type === 'item') return 'item';
 
-        // 兼容旧版本
-        if (x.type === 'pet' || x.type === 'zoo' || x.type === 'animals') return 'animal';
+    // 兼容旧版本
+    if (x.type === 'pet' || x.type === 'zoo' || x.type === 'animals') return 'animal';
+    if (x.category === 'animal') return 'animal';
+    if (x.category === 'seed') return 'seed';
+    if (x.category === 'item') return 'item';
 
-        // 根据 id 兜底判断
-        if (x.id) {
-            var id = String(x.id);
-            if (id.indexOf('seed-') === 0) return 'seed';
-            if (id.indexOf('animal-') === 0) return 'animal';
-            if (id.indexOf('item-') === 0) return 'item';
-        }
-
-        return '';
+    // 根据 id / itemId 兜底判断
+    var rawId = x.id || x.itemId || x.goodsId || '';
+    if (rawId) {
+        var id = String(rawId);
+        if (id.indexOf('seed-') === 0) return 'seed';
+        if (id.indexOf('animal-') === 0) return 'animal';
+        if (id.indexOf('item-') === 0) return 'item';
     }
+
+    return '';
+}
   function qaqMaybeAutoMoveSceneSprites(sceneItems, sceneEl) {
     if (!sceneItems || !sceneItems.length || !sceneEl) return;
 
@@ -100,10 +105,19 @@
 }
 
     function qaqRenderXiaoyuanMain() {
-        var currentTab = qaqGetXiaoyuanCurrentTab();
-        qaqXyCurrentTab = currentTab;
+    var currentTab = qaqGetXiaoyuanCurrentTab();
+    qaqXyCurrentTab = currentTab;
 
-        var ownedAll = qaqGetOwnedItems() || [];
+    var ownedAll = (typeof window.qaqGetOwnedItems === 'function' ? window.qaqGetOwnedItems() : []) || [];
+
+    if (window.qaqDebugLog) {
+        window.qaqDebugLog('[QAQ-XY] render start');
+        window.qaqDebugLog('[QAQ-XY] currentTab = ' + currentTab);
+        window.qaqDebugLog('[QAQ-XY] ownedAll.length = ' + ownedAll.length);
+        window.qaqDebugLog('[QAQ-XY] ownedAll raw = ' + JSON.stringify(ownedAll));
+    } else {
+        console.log('[QAQ-XY] render start', currentTab, ownedAll);
+    }
 
         var plants = ownedAll.filter(function (x) {
             return qaqResolveOwnedType(x) === 'seed';
@@ -116,6 +130,10 @@
         var items = ownedAll.filter(function (x) {
             return qaqResolveOwnedType(x) === 'item';
         });
+        if (window.qaqDebugLog) {
+    window.qaqDebugLog('[QAQ-XY] plants=' + plants.length + ', animals=' + animals.length + ', items=' + items.length);
+}
+
 
         var currentMap = {
             plants: plants,
@@ -124,6 +142,9 @@
         };
 
         var currentList = currentMap[currentTab] || [];
+        if (window.qaqDebugLog) {
+    window.qaqDebugLog('[QAQ-XY] currentList.length = ' + currentList.length);
+}
 
         var gridEl = document.getElementById('qaq-xy-main-grid');
         var emptyEl = document.getElementById('qaq-xy-main-empty');

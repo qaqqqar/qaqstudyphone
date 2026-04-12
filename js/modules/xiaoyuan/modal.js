@@ -145,12 +145,16 @@
                     '<span class="qaq-theme-slider-val" id="qaq-sprite-scale-val">' + Math.round((s.scale || 1) * 100) + '%</span>' +
                 '</div>' +
 
-                '<div class="qaq-plan-form-label">道具库存</div>' +
-                '<div style="font-size:12px;color:#666;line-height:1.8;">' +
-                    '粮食：' + (inv['item-food-basic'] || 0) + '<br>' +
-                    '肥料：' + (inv['item-fertilizer'] || 0) + '<br>' +
-                    qaqGetBedDurabilityText() +
-                '</div>' +
+                '<div class="qaq-plan-form-label">相关库存</div>' +
+'<div style="font-size:12px;color:#666;line-height:1.8;">' +
+    (
+        kind === 'animal'
+            ? ('粮食：' + (inv['item-food-basic'] || 0) + '<br>' + qaqGetBedDurabilityText())
+            : kind === 'plant'
+                ? ('肥料：' + (inv['item-fertilizer'] || 0))
+                : '暂无相关库存'
+    ) +
+'</div>' +
 
                 '<div class="qaq-plan-form-label">日志</div>' +
                 '<div style="max-height:140px;overflow-y:auto;background:rgba(0,0,0,0.03);border-radius:10px;padding:10px;">' +

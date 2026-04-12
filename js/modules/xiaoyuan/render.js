@@ -180,10 +180,20 @@
                 if (!plants.length) return qaqToast('没有植物可供浇水');
 
                 plants.forEach(function (p) {
-                    var s = qaqGetSpriteState(p.id);
-                    s.growth = Math.min(100, (s.growth || 0) + 10);
-                    qaqSaveSpriteState(p.id, s);
-                });
+    var s = window.qaqGetSpriteState(p.id);
+    s.growth = Math.min(100, (s.growth || 0) + 10);
+    s.energy = Math.min(100, (s.energy || 0) + 4);
+    s.expEnergy = (s.expEnergy || 0) + 4;
+    window.qaqSaveSpriteState(p.id, s);
+
+    if (window.qaqPushSpriteLog) {
+        window.qaqPushSpriteLog(p.id, '一键浇水：成长 +10%，精力 +4');
+    }
+
+    if (window.qaqMaybeLevelUp) {
+        window.qaqMaybeLevelUp(p.id);
+    }
+});
 
                 qaqAddPoints(plants.length);
                 qaqScheduleXiaoyuanRender();
@@ -193,18 +203,37 @@
             interactBtn.style.display = '';
             interactBtn.textContent = '一键喂食（全部动物）';
             interactBtn.onclick = function () {
-                if (!animals.length) return qaqToast('没有动物可供喂食');
+    if (!animals.length) return qaqToast('没有动物可供喂食');
 
-                animals.forEach(function (a) {
-                    var s = qaqGetSpriteState(a.id);
-                    s.mood = Math.min(100, (s.mood || 50) + 10);
-                    qaqSaveSpriteState(a.id, s);
-                });
+    var inv = window.qaqGetItemInventory ? window.qaqGetItemInventory() : {};
+    var foodCount = inv['item-food-basic'] || 0;
 
-                qaqAddPoints(animals.length);
-                qaqScheduleXiaoyuanRender();
-                qaqToast('喂食完成');
-            };
+    if (foodCount < animals.length) {
+        return qaqToast('粮食不足，需要 ' + animals.length + ' 份，当前只有 ' + foodCount + ' 份');
+    }
+
+    animals.forEach(function (a) {
+        if (window.qaqConsumeInventory) {
+            window.qaqConsumeInventory('item-food-basic', 1);
+        }
+
+        var s = window.qaqGetSpriteState(a.id);
+        s.mood = Math.min(100, (s.mood || 50) + 10);
+        s.energy = Math.min(100, (s.energy || 0) + 8);
+        s.expEnergy = (s.expEnergy || 0) + 8;
+        window.qaqSavePushSpriteLog) {
+            window.qaqPushSpriteLog(a.id, '一键喂食：心情 +10，精力 +8，粮食1        if (window.qaqMaybeLevelUp) {
+            window.qaqMaybeLevelUp(a.id);
+        }
+    });
+
+    if (window.qaqAddPoints) {
+        window.qaqAddPoints(animals.length);
+    }
+
+    qaqScheduleXiaoyuanRender();
+    qaqToast('喂食完成，消耗 ' + animals.length + ' 份粮食');
+};
         } else {
             interactBtn.style.display = 'none';
             interactBtn.onclick = null;

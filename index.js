@@ -3974,5 +3974,21 @@ window.qaqAddTokens = qaqAddTokens;
 window.qaqRenderReviewPetFloat = qaqRenderReviewPetFloat;
 window.qaqShowPetEncourageBubble = qaqShowPetEncourageBubble;
 window.qaqLogStudySession = qaqLogStudySession;
+
+window.qaqRenderVisualToDOM = qaqRenderVisualToDOM;
+window.qaqRenderMini3D = qaqRenderMini3D;
+window.qaqEnsureLottie = qaqEnsureLottie;
+window.qaqEnsureThreeJS = qaqEnsureThreeJS;
+window.qaqGet3DModelUrl = qaqGet3DModelUrl;
+
+window.qaqGetDisplayMode = qaqGetDisplayMode;
+window.qaqGetItemInventory = qaqGetItemInventory;
+window.qaqSaveItemInventory = qaqSaveItemInventory;
+window.qaqAddInventory = qaqAddInventory;
+window.qaqConsumeInventory = qaqConsumeInventory;
+window.qaqGetBedDurabilityText = qaqGetBedDurabilityText;
+
+window.qaqAddPoints = qaqAddPoints;
+window.qaqShopCatalog = qaqShopCatalog;
 })();
 

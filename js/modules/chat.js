@@ -1,9 +1,36 @@
 /**
  * js/modules/chat.js
- * QAQ - 聊天模块 (深度解耦，标准挂载版，修复防崩溃容错)
+ * QAQ - 聊天模块
  */
 (function () {
     'use strict';
+    
+    // ★ 强制放在文件执行的最高点第一行，绝对不会被任何报错给拦截！
+    window.qaqOpenChatPage = function () {
+        var cd = qaqGetChatData();
+        if (Object.keys(cd.contacts).length === 0) {
+            cd.contacts['ai_alice'] = {
+                id: 'ai_alice',
+                nickname: 'Alice',
+                remark: '英语私教',
+                avatar: '',
+                isTop: true,
+                updateTime: Date.now(),
+                configs: { op_persona: '你是一名严肃但温柔的英语口语私教。', op_trans_pos: '气泡内下方', ui_bubble_radius: 14 }
+            };
+            cd.messages['ai_alice'] = [
+                { id: 1, text: "Let's start your English training for today.", isMe: false, time: Date.now() - 3600000, translated: "让我们开始今天的英语训练吧。" },
+                { id: 2, text: "No problem! I'm ready.", isMe: true, time: Date.now() - 1000 }
+            ];
+            qaqSaveChatData(cd);
+        }
+        renderContactList();
+        
+        // 我们直接用前面改好的强制CSS方案让它弹出来！
+        var el = document.getElementById('qaq-chat-main-page');
+        el.classList.add('qaq-page-show');
+        el.style.zIndex = '999';
+    };
 
     var CHAT_STORE_KEY = 'qaq-chat-store-v2';
     var activeContactId = null;

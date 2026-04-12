@@ -129,91 +129,112 @@
     };
 
     function bindPageEvents() {
-        var mainPage = document.getElementById('qaq-chat-main-page');
-        var windowPage = document.getElementById('qaq-chat-window-page');
-        var settingsPage = document.getElementById('qaq-chat-settings-page');
+    var mainPage = document.getElementById('qaq-chat-main-page');
+    var windowPage = document.getElementById('qaq-chat-window-page');
+    var settingsPage = document.getElementById('qaq-chat-settings-page');
 
-        document.getElementById('qaq-chat-main-back')?.addEventListener('click', function () { 
-            if(mainPage) mainPage.classList.remove('qaq-page-show'); 
-        });
-        document.getElementById('qaq-chat-win-back')?.addEventListener('click', function () { 
-            renderContactList(); safeGoBackTo(mainPage, windowPage); 
-        });
-        document.getElementById('qaq-chat-set-back')?.addEventListener('click', function () { 
-            renderMessages(); safeGoBackTo(windowPage, settingsPage); 
-        });
-        document.getElementById('qaq-chat-win-set-btn')?.addEventListener('click', function () { 
-            renderDynamicSettings(); safeSwitchTo(settingsPage); 
-        });
+    document.getElementById('qaq-chat-main-back')?.addEventListener('click', function () { 
+        if(mainPage) mainPage.classList.remove('qaq-page-show'); 
+    });
+    document.getElementById('qaq-chat-win-back')?.addEventListener('click', function () { 
+        renderContactList(); safeGoBackTo(mainPage, windowPage); 
+    });
+    document.getElementById('qaq-chat-set-back')?.addEventListener('click', function () { 
+        renderMessages(); safeGoBackTo(windowPage, settingsPage); 
+    });
+    document.getElementById('qaq-chat-win-set-btn')?.addEventListener('click', function () { 
+        renderDynamicSettings(); safeSwitchTo(settingsPage); 
+    });
 
-        // Add Contact：调用我们自己规范设计的自定义纯净页面 Modal
-        var topAddBtn = document.getElementById('qaq-chat-top-add-btn');
-        if (topAddBtn) {
-            topAddBtn.addEventListener('click', function() {
-                if (typeof window.qaqOpenModal === 'function') {
-                    var mTitle = document.getElementById('qaq-modal-title');
-                    var mBody = document.getElementById('qaq-modal-body');
-                    var mBtns = document.getElementById('qaq-modal-btns');
-                    
-                    if(mTitle) mTitle.textContent = '捕捉新的陪练对象 (AI)';
-                    if(mBody) {
-                        mBody.innerHTML = `
-                            <div class="qaq-inline-input-row" style="margin-top:4px;">
-                                <div style="font-size:12px;color:#888;margin-bottom:2px;">你要为他定下什么假名？</div>
-                                <input type="text" id="qaq-new-contact-name" placeholder="名称，例：雅思真题终结者">
-                                <div style="font-size:12px;color:#888;margin-top:10px;margin-bottom:2px;">在背景设定里，他是个怎样的人？</div>
-                                <input type="text" id="qaq-new-contact-persona" placeholder="例如：一个极具英伦风的老派考官。">
-                            </div>
-                        `;
-                    }
-                    if(mBtns) {
-                        mBtns.innerHTML = `
-                            <button class="qaq-inline-cancel" id="qaq-modal-cancel">打消念头</button>
-                            <button class="qaq-inline-ok" id="qaq-modal-confirm-add" style="color:#7bab6e;background:rgba(123,171,110,0.15)">赋予灵魂并创造</button>
-                        `;
-                    }
-                    window.qaqOpenModal();
-                    
-                    document.getElementById('qaq-modal-cancel').onclick = window.qaqCloseModal;
-                    document.getElementById('qaq-modal-confirm-add').onclick = function() {
-                        var cName = document.getElementById('qaq-new-contact-name').value.trim() || '无面者';
-                        var cPersona = document.getElementById('qaq-new-contact-persona').value.trim() || '我是一名智能交流助理。';
-                        
-                        var cd = qaqGetChatData();
-                        var newId = 'ai_' + Date.now();
-                        cd.contacts[newId] = {
-                            id: newId, nickname: cName, remark: cName, avatar: '',
-                            isTop: false, updateTime: Date.now(),
-                            configs: { op_persona: `从此刻起你饰演这个人设基底：\n${cPersona}` }
-                        };
-                        qaqSaveChatData(cd);
-                        renderContactList();
-                        safeToast(`界限已绑定：新的联络者「${cName}」接入网络。`);
-                        window.qaqCloseModal();
-                    };
-                } else {
-                    safeToast('由于系统环境缺失，界面模块调集失败。');
-                }
-            });
-        }
-
-        document.getElementById('qaq-chat-send-btn')?.addEventListener('click', sendMyMessage);
-        var inputBox = document.getElementById('qaq-chat-input-box');
-        if (inputBox) {
-            inputBox.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMyMessage(); }
-            });
-        }
+    // ============================================
+    // 极其彻底改造右上角加号：仿微信级强悬浮气泡菜单 💬
+    // ============================================
+    var topAddBtn = document.getElementById('qaq-chat-top-add-btn');
+    if (topAddBtn && mainPage) {
         
-        var extBtn = document.getElementById('qaq-chat-toggle-menu');
-        var extMenu = document.getElementById('qaq-chat-ext-menu');
-        if (extBtn && extMenu) {
-            extBtn.addEventListener('click', function() {
-                extMenu.style.display = extMenu.style.display === 'none' ? 'grid' : 'none';
-            });
-        }
-        renderExtMenu();
+        // 1. 动态将气泡菜单插入在底层之上（摆脱任何 Modal 层级掩盖恶疾）
+        var popMenu = document.createElement('div');
+        popMenu.className = 'qaq-chat-pop-menu';
+        popMenu.innerHTML = `
+            <div class="qaq-chat-pop-item" id="qaq-chat-add-friend-act">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg> 添加陪练 AI
+            </div>
+            <div class="qaq-chat-pop-item" id="qaq-chat-add-group-act">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z"></path></svg> 发起群聊
+            </div>
+        `;
+        mainPage.appendChild(popMenu);
+
+        // 2. 为了绝对防止被盖在底下，亲自植入独立最高 Z-index 极净弹窗来处理逻辑
+        var hardMask = document.createElement('div'); hardMask.className = 'qaq-chat-hard-modal-mask'; mainPage.appendChild(hardMask);
+        var hardModal = document.createElement('div'); hardModal.className = 'qaq-chat-hard-modal';
+        hardModal.innerHTML = `
+            <div style="font-size:16px; font-weight:700; margin-bottom:18px; text-align:center;">创造并调频新伙伴</div>
+            <div class="qaq-inline-input-row" style="gap:14px; margin-bottom: 24px;">
+                <div><div style="font-size:12px;color:#888;margin-bottom:6px;">联络假名设定：</div><input type="text" id="qaq-chat-hard-name" placeholder="例：雅思雅思死啦死啦"></div>
+                <div><div style="font-size:12px;color:#888;margin-bottom:6px;">他在潜意识里的系统底色：</div><input type="text" id="qaq-chat-hard-persona" placeholder="例：毒舌且阴阳怪气的考官"></div>
+            </div>
+            <div class="qaq-inline-btns">
+                <button class="qaq-inline-cancel" id="qaq-chat-hard-ccl">罢休</button>
+                <button class="qaq-inline-ok" id="qaq-chat-hard-cfm">注入网络并激活</button>
+            </div>
+        `;
+        mainPage.appendChild(hardModal);
+
+        // 互相呼应控制开合
+        topAddBtn.addEventListener('click', function(e){ e.stopPropagation(); popMenu.classList.toggle('qaq-show'); });
+        mainPage.addEventListener('click', function(){ popMenu.classList.remove('qaq-show'); });
+
+        // 仅当没完成的功能进行 Toast
+        document.getElementById('qaq-chat-add-group-act').addEventListener('click', function(e){
+            e.stopPropagation(); popMenu.classList.remove('qaq-show'); safeToast('暂未开放多 AI 杂交群聊哦。');
+        });
+
+        // "添加好友"的核心呼入逻辑 
+        document.getElementById('qaq-chat-add-friend-act').addEventListener('click', function(e){
+            e.stopPropagation(); popMenu.classList.remove('qaq-show');
+            hardMask.classList.add('qaq-show'); hardModal.classList.add('qaq-show');
+            document.getElementById('qaq-chat-hard-name').value = ''; document.getElementById('qaq-chat-hard-persona').value = '';
+        });
+        function closeHard() { hardMask.classList.remove('qaq-show'); hardModal.classList.remove('qaq-show'); }
+        hardMask.addEventListener('click', closeHard);
+        document.getElementById('qaq-chat-hard-ccl').addEventListener('click', closeHard);
+        
+        document.getElementById('qaq-chat-hard-cfm').addEventListener('click', function(){
+            var cName = document.getElementById('qaq-chat-hard-name').value.trim() || '不具名的神秘陪读';
+            var cPersona = document.getElementById('qaq-chat-hard-persona').value.trim() || '我是一名专业的高效学习交流助理。';
+            
+            var cd = qaqGetChatData();
+            var newId = 'ai_' + Date.now();
+            cd.contacts[newId] = {
+                id: newId, nickname: cName, remark: cName, avatar: '', isTop: false, updateTime: Date.now(),
+                configs: { op_persona: `从此刻起你饰演这个人设基底：\n${cPersona}` }
+            };
+            qaqSaveChatData(cd);
+            renderContactList();
+            safeToast(`通道已建立：新信号源「${cName}」被捕获！`);
+            closeHard();
+        });
     }
+
+    // ================== 发送与发送状态栏监听机制保留不动 ==================
+    document.getElementById('qaq-chat-send-btn')?.addEventListener('click', sendMyMessage);
+    var inputBox = document.getElementById('qaq-chat-input-box');
+    if (inputBox) {
+        inputBox.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMyMessage(); }
+        });
+    }
+    
+    var extBtn = document.getElementById('qaq-chat-toggle-menu');
+    var extMenu = document.getElementById('qaq-chat-ext-menu');
+    if (extBtn && extMenu) {
+        extBtn.addEventListener('click', function() {
+            extMenu.style.display = extMenu.style.display === 'none' ? 'grid' : 'none';
+        });
+    }
+    renderExtMenu();
+}
 
     /* ===== 左侧抽屉菜单伪展开区 ===== */
     function renderExtMenu() {

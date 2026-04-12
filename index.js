@@ -1405,52 +1405,34 @@ function qaqRenderShopPage() {
             // 购买点击（点卡片非按钮区域）
             card.addEventListener('click', function (e) {
     if (e.target.closest('.qaq-shop-detail-btn')) return;
-    if (isOwned) return qaqToast('已拥有该物品');
 
-    qaqConfirm('确认兑换', '花费 ' + item.price + ' 积分兑换「' + item.name + '」？', function () {
+    qaqConfirm('确认兑换', '要花费 ' + item.price + ' 积分兑换「' + item.name + '」吗？', function () {
         try {
             var latestPoints = qaqGetPoints();
-            if (latestPoints < item.price) {
-                return qaqToast('积分不足');
-            }
-
-            var ownedList = qaqGetOwnedItems() || [];
-
-            // 防重复购买
-            if (ownedList.some(function (x) { return x.id === item.id; })) {
-                qaqToast('已拥有该物品');
-                qaqRenderShopPage();
-                return;
-            }
+            if (latestPoints < item.price) return qaqToast('积分不足。');
 
             if (item.type === 'item') {
-    qaqAddInventory(item.id, 1);
-} else {
-    if (!ownedList.some(function (x) { return x.id === item.id; })) {
-        ownedList.push({
-            id: item.id,
-            name: item.name,
-            type: item.type,
-            obtainedAt: Date.now()
-        });
-        qaqSaveOwnedItems(ownedList);
-    }
-}
+                qaqAddInventory(item.id, 1);
+            } else {
+                var ownedList = qaqGetOwnedItems() || [];
+                // 这里强制追加了能够让每个动物独立存在的 UUID，防止小院加载冲突！
+                ownedList.push({
+                    id: item.id + '-' + Date.now(),
+                    baseId: item.id,
+                    name: item.name,
+                    type: item.type,
+                    obtainedAt: Date.now()
+                });
+                qaqSaveOwnedItems(ownedList);
+            }
             qaqSavePoints(latestPoints - item.price);
 
-            // 刷新所有相关页面
             qaqRenderShopPage();
             qaqRenderMinePanel();
             if (typeof qaqRenderGardenPage === 'function') qaqRenderGardenPage();
             if (typeof qaqRenderZooPage === 'function') qaqRenderZooPage();
-            if (typeof qaqRenderXiaoyuanGarden === 'function') qaqRenderXiaoyuanGarden();
-            if (typeof qaqRenderXiaoyuanZoo === 'function') qaqRenderXiaoyuanZoo();
-
-            qaqToast('兑换成功');
-        } catch (err) {
-            console.error('购买失败：', err);
-            qaqToast('购买失败：' + (err.message || '未知错误'));
-        }
+            qaqToast('兑换成功！');
+        } catch (err) { }
     });
 });
 
@@ -1521,13 +1503,15 @@ function qaqEnsureThreeJS(onProgress, callback) {
 }
 
 function qaqGet3DModelUrl(itemId) {
+    // 剥离时间戳让模型能以原本资源被取到！
+    var baseId = String(itemId).replace(/-\d{13}$/, '');
     var map = {
         'animal-dog': 'assets/models/dog1.glb',
         'animal-cat': 'assets/models/cat1.glb',
         'animal-rabbit': 'assets/models/rabbit1.glb',
         'seed-rose': 'assets/models/rose1.glb'
     };
-    return map[itemId] || '';
+    return map[baseId] || '';
 }
 
 function qaq3DLoadGLB(item, group) {
@@ -1669,91 +1653,128 @@ function qaq3DPreviewDestroy() {
 }
 
 /* ===== 修复版：强制读取 DOM 和 window 方法，带防崩溃 ===== */
-
 function qaqOpenShopItemDetail2D(item, isOwned, typeName) {
     try {
         var mTitle = document.getElementById('qaq-modal-title');
         var mBody = document.getElementById('qaq-modal-body');
         var mBtns = document.getElementById('qaq-modal-btns');
+        
+        // 即时计算当前的持有量以取缔没用的是否拥有限制
+        var count = 0;
+        if (item.type === 'item') {
+            if (item.id === 'item-bed') count = (qaqGetItemInventory()['item-bed'] || []).length;
+            else count = qaqGetItemInventory()[item.id] || 0;
+        } else {
+            count = (window.qaqGetOwnedItems ? qaqGetOwnedItems() : (qaqGetOwnedItems()||[])).filter(function(x){ return x.id === item.id || x.baseId === item.id || String(x.id).indexOf(item.id + '-') === 0; }).length;
+        }
 
         if(mTitle) mTitle.textContent = item.name;
         if(mBody) mBody.innerHTML =
             '<div class="qaq-shop-detail-modal">' +
                 '<div class="qaq-shop-detail-stage" style="height:180px;display:flex;align-items:center;justify-content:center;">' +
                     '<div class="qaq-detail-preview">' +
-                        (qaqPlantSVGs[item.id]
-                            ? qaqPlantSVGs[item.id](1.8)
-                            : (qaqAnimalSVGs[item.id]
-                                ? qaqAnimalSVGs[item.id](1.8)
-                                : (qaqItemSVGs[item.id]
-                                    ? qaqItemSVGs[item.id](1.8)
-                                    : (item.svg || '')))) +
+                        (qaqPlantSVGs[item.id] ? qaqPlantSVGs[item.id](1.8) : (qaqAnimalSVGs[item.id] ? qaqAnimalSVGs[item.id](1.8) : (qaqItemSVGs[item.id] ? qaqItemSVGs[item.id](1.8) : (item.svg || '')))) +
                     '</div>' +
                 '</div>' +
                 '<div class="qaq-shop-detail-info">' +
                     '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">类型</span><span>' + typeName + '</span></div>' +
                     '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">价格</span><span style="color:#e8c34f;font-weight:600;">' + item.price + ' 积分</span></div>' +
-                    '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">状态</span><span style="color:' + (isOwned ? '#7bab6e' : '#999') + ';">' + (isOwned ? '已拥有' : '未拥有') + '</span></div>' +
-                    '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">展示模式</span><span>普通展示</span></div>' +
+                    '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">当前拥有</span><span style="color:#7bab6e;font-weight:600;">' + count + ' 份</span></div>' +
                 '</div>' +
             '</div>';
 
         if (mBtns) {
-            if (isOwned) {
-                mBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-modal-cancel" style="flex:1;">关闭</button>';
-            } else {
-                mBtns.innerHTML =
-                    '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>' +
-                    '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-shop-detail-buy">兑换</button>';
-            }
+            mBtns.innerHTML =
+                '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>' +
+                '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-shop-detail-buy">继续兑换</button>';
         }
-
         if(window.qaqOpenModal) window.qaqOpenModal();
-
         var mCancel = document.getElementById('qaq-modal-cancel');
         if(mCancel && window.qaqCloseModal) mCancel.onclick = window.qaqCloseModal;
 
         var buyBtn = document.getElementById('qaq-shop-detail-buy');
         if (buyBtn) {
             buyBtn.onclick = function () {
-                try {
-                    var points = window.qaqGetPoints ? window.qaqGetPoints() : qaqGetPoints();
-                    if (points < item.price) return window.qaqToast ? window.qaqToast('积分不足') : null;
+                var points = window.qaqGetPoints ? window.qaqGetPoints() : qaqGetPoints();
+                if (points < item.price) return window.qaqToast ? window.qaqToast('兑换积分不足') : null;
 
+                if (item.type === 'item') {
+                    window.qaqAddInventory ? window.qaqAddInventory(item.id, 1) : qaqAddInventory(item.id, 1);
+                } else {
                     var ownedList = window.qaqGetOwnedItems ? window.qaqGetOwnedItems() : (qaqGetOwnedItems() || []);
-                    if (ownedList.some(function (x) { return x.id === item.id; })) {
-                        if(window.qaqCloseModal) window.qaqCloseModal();
-                        return window.qaqToast ? window.qaqToast('已拥有该物品') : null;
-                    }
-
-                    ownedList.push({
-                        id: item.id,
-                        name: item.name,
-                        type: item.type,
-                        obtainedAt: Date.now()
-                    });
-
+                    ownedList.push({ id: item.id + '-' + Date.now(), baseId: item.id, name: item.name, type: item.type, obtainedAt: Date.now() });
                     if(window.qaqSaveOwnedItems) window.qaqSaveOwnedItems(ownedList);
-                    if(window.qaqSavePoints) window.qaqSavePoints(points - item.price);
-
-                    if(window.qaqCloseModal) window.qaqCloseModal();
-                    qaqRenderShopPage();
-                    qaqRenderMinePanel();
-                    if (typeof qaqRenderGardenPage === 'function') qaqRenderGardenPage();
-                    if (typeof qaqRenderZooPage === 'function') qaqRenderZooPage();
-                    if (typeof qaqRenderXiaoyuanGarden === 'function') qaqRenderXiaoyuanGarden();
-                    if (typeof qaqRenderXiaoyuanZoo === 'function') qaqRenderXiaoyuanZoo();
-
-                    if(window.qaqToast) window.qaqToast('兑换成功');
-                } catch (err) {
-                    console.error(err);
-                    if(window.qaqToast) window.qaqToast('购买失败：' + (err.message || '未知错误'));
                 }
+
+                if(window.qaqSavePoints) window.qaqSavePoints(points - item.price);
+                if(window.qaqCloseModal) window.qaqCloseModal();
+                qaqRenderShopPage();  qaqRenderMinePanel();
+                if (typeof qaqRenderGardenPage === 'function') qaqRenderGardenPage();
+                if (typeof qaqRenderZooPage === 'function') qaqRenderZooPage();
+                if(window.qaqToast) window.qaqToast('商品兑换成功，资源放入随身包裹');
             };
         }
-    } catch (e) {
-        console.error("2D弹窗报错:", e);
-        if(window.qaqToast) window.qaqToast("商店弹窗初始化失败，请查看控制台");
+    } catch (e) { console.error("2D弹窗报错:", e); }
+}
+
+function qaqOpenShopItemDetail3D(item, isOwned, typeName) {
+    var mTitle = document.getElementById('qaq-modal-title');
+    var mBody = document.getElementById('qaq-modal-body');
+    var mBtns = document.getElementById('qaq-modal-btns');
+    
+    var count = 0;
+    if (item.type === 'item') {
+        if (item.id === 'item-bed') count = (qaqGetItemInventory()['item-bed'] || []).length;
+        else count = qaqGetItemInventory()[item.id] || 0;
+    } else {
+        count = (window.qaqGetOwnedItems ? qaqGetOwnedItems() : (qaqGetOwnedItems()||[])).filter(function(x){ return x.id === item.id || x.baseId === item.id || String(x.id).indexOf(item.id + '-') === 0; }).length;
+    }
+
+    if(mTitle) mTitle.textContent = item.name;
+    if(mBody) mBody.innerHTML =
+        '<div class="qaq-shop-detail-modal">' +
+            '<div class="qaq-shop-detail-stage qaq-3d-stage" id="qaq-3d-stage"><canvas id="qaq-3d-canvas"></canvas><div class="qaq-3d-hint">拖动旋转 · 滚轮缩放 · 点击互动</div></div>' +
+            '<div class="qaq-shop-detail-info">' +
+                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">类型</span><span>' + typeName + '</span></div>' +
+                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">价格</span><span style="color:#e8c34f;font-weight:600;">' + item.price + ' 积分</span></div>' +
+                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">当前拥有</span><span style="color:#7bab6e;font-weight:600;">' + count + ' 份</span></div>' +
+            '</div>' +
+        '</div>';
+
+    if(mBtns) {
+        mBtns.innerHTML =
+            '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>' +
+            '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-shop-detail-buy">继续兑换</button>';
+    }
+    if(window.qaqOpenModal) window.qaqOpenModal();
+    setTimeout(function () { qaq3DInit(item); }, 150);
+
+    var cancelBtn = document.getElementById('qaq-modal-cancel');
+    if(cancelBtn) cancelBtn.onclick = function () {
+        qaq3DPreviewDestroy(); if(window.qaqCloseModal) window.qaqCloseModal();
+    };
+
+    var buyBtn = document.getElementById('qaq-shop-detail-buy');
+    if (buyBtn) {
+        buyBtn.onclick = function () {
+            var points = window.qaqGetPoints ? window.qaqGetPoints() : qaqGetPoints();
+            if (points < item.price) return window.qaqToast ? window.qaqToast('积分不足') : null;
+
+            if (item.type === 'item') {
+                window.qaqAddInventory ? window.qaqAddInventory(item.id, 1) : qaqAddInventory(item.id, 1);
+            } else {
+                var ownedList = window.qaqGetOwnedItems ? window.qaqGetOwnedItems() : (qaqGetOwnedItems() || []);
+                ownedList.push({ id: item.id + '-' + Date.now(), baseId: item.id, name: item.name, type: item.type, obtainedAt: Date.now() });
+                if(window.qaqSaveOwnedItems) window.qaqSaveOwnedItems(ownedList);
+            }
+
+            if(window.qaqSavePoints) window.qaqSavePoints(points - item.price);
+            qaq3DPreviewDestroy(); if(window.qaqCloseModal) window.qaqCloseModal();
+            qaqRenderShopPage(); qaqRenderMinePanel();
+            if (typeof qaqRenderGardenPage === 'function') qaqRenderGardenPage();
+            if (typeof qaqRenderZooPage === 'function') qaqRenderZooPage();
+            if(window.qaqToast) window.qaqToast('商品兑换成功，资源放入随身包裹');
+        };
     }
 }
 
@@ -3636,130 +3657,78 @@ function qaqGetPetModelUrl(itemId) {
 /* ===== 万能渲染引擎 (自动降级: 3D -> Lottie -> Static) ===== */
 function qaqRenderVisualToDOM(containerId,itemId,type,scale,preferredMode,silent) {
     silent = !!silent;
-    var container=document.getElementById(containerId);
-    if(!container) return;
+    var container = document.getElementById(containerId);
+    if (!container) return;
 
-    container.innerHTML='';
+    // 强行剥离小院系统因允许动植物无上限堆叠引发的时间后缀！
+    var baseId = String(itemId).replace(/-\d{13}$/, '');
+    container.innerHTML = '';
 
-    var has3D=!!qaqGet3DModelUrl(itemId);
-    var hasLottie=!!(window.qaqLotties&&window.qaqLotties[itemId]);
+    var has3D = !!qaqGet3DModelUrl(baseId);
+    var hasLottie = !!(window.qaqLotties && window.qaqLotties[baseId]);
 
-    var mode=preferredMode||'static';
-if(mode==='3d'&&!has3D) mode=hasLottie?'lottie':'static';
-if(mode==='lottie'&&!hasLottie) mode='static';
+    var mode = preferredMode || 'static';
+    if(mode === '3d' && !has3D) mode = hasLottie ? 'lottie' : 'static';
+    if(mode === 'lottie' && !hasLottie) mode = 'static';
 
-// 小院/桌宠这种小尺寸场景不要弹全屏进度层，也不要默认跑多个 3D
-// 3D 在小院里很容易多 canvas 多动画导致卡顿，静默场景优先降级到 Lottie 或静态
-if (silent && mode === '3d') {
-    mode = hasLottie ? 'lottie' : 'static';
-}
-
-    function openModeSwitch(){
-        qaqOpenXiaoyuanRenderModeQuickSwitch(type);
+    if (silent && mode === '3d') {
+        mode = hasLottie ? 'lottie' : 'static';
     }
 
-    if(mode==='3d'){
-        qaqOpenXiaoyuanLoadProgress('加载3D模型','正在准备3D引擎...',function(){
-            container.innerHTML='';
-            qaqToast('已取消3D加载');
-        },function(){
-            openModeSwitch();
-        });
+    function openModeSwitch(){ qaqOpenXiaoyuanRenderModeQuickSwitch(type); }
+
+    if(mode === '3d'){
+        qaqOpenXiaoyuanLoadProgress('加载3D模型','正在准备3D引擎...', function(){container.innerHTML='';qaqToast('已取消3D加载');}, openModeSwitch);
         qaqEnsureThreeJS(function(pct){
             qaqUpdateXiaoyuanLoadProgress(Math.min(90,pct||0),'正在加载3D引擎...');
         },function(){
-            var canvasId='cvs-' + itemId + '-' + Date.now();
+            var canvasId='cvs-' + baseId + '-' + Date.now();
             container.innerHTML='<canvas id="' + canvasId + '"></canvas>';
-            var w=container.clientWidth||75;
-            var h=container.clientHeight||75;
-            container.style.width=w+'px';
-            container.style.height=h+'px';
+            var w = container.clientWidth||75; var h = container.clientHeight||75;
+            container.style.width=w+'px'; container.style.height=h+'px';
             qaqUpdateXiaoyuanLoadProgress(95,'正在渲染3D模型...');
             setTimeout(function(){
-                qaqRenderMini3D(canvasId,itemId,w,h);
+                qaqRenderMini3D(canvasId, baseId, w, h);
                 qaqUpdateXiaoyuanLoadProgress(100,'3D模型加载完成');
-                setTimeout(qaqCloseXiaoyuanLoadProgress,180);
-            },120);
-        });
-        return;
+                setTimeout(qaqCloseXiaoyuanLoadProgress, 180);
+            }, 120);
+        }); return;
     }
 
-    if(mode==='lottie'){
-    // 静默模式：小院/桌宠用，不弹全屏加载层
-    if (silent) {
-        container.innerHTML =
-            '<lottie-player src="' + window.qaqLotties[itemId] + '" ' +
-            'background="transparent" speed="1" ' +
-            'style="width:100%;height:100%;pointer-events:none;" loop autoplay>' +
-            '</lottie-player>';
+    if(mode === 'lottie'){
+        if (silent) {
+            container.innerHTML = '<lottie-player src="' + window.qaqLotties[baseId] + '" background="transparent" speed="1" style="width:100%;height:100%;pointer-events:none;" loop autoplay></lottie-player>';
+            qaqEnsureLottie(function(){
+                if (!document.body.contains(container)) return;
+                container.innerHTML = '<lottie-player src="' + window.qaqLotties[baseId] + '" background="transparent" speed="1" style="width:100%;height:100%;pointer-events:none;" loop autoplay></lottie-player>';
+                if(container.parentElement && container.parentElement.classList) container.parentElement.classList.remove('qaq-walking');
+            });
+            return;
+        }
 
+        qaqOpenXiaoyuanLoadProgress('加载动态资源','正在准备Lottie引擎...', function(){container.innerHTML='';qaqToast('已取消加载');}, openModeSwitch);
+        qaqUpdateXiaoyuanLoadProgress(10,'正在加载动画引擎...');
         qaqEnsureLottie(function(){
-            // 引擎加载完后再保险刷新一次
-            if (!document.body.contains(container)) return;
-            container.innerHTML =
-                '<lottie-player src="' + window.qaqLotties[itemId] + '" ' +
-                'background="transparent" speed="1" ' +
-                'style="width:100%;height:100%;pointer-events:none;" loop autoplay>' +
-                '</lottie-player>';
-
-            if(container.parentElement&&container.parentElement.classList){
-                container.parentElement.classList.remove('qaq-walking');
-            }
-        });
-
-        return;
+            qaqUpdateXiaoyuanLoadProgress(75,'正在装配动画...');
+            container.innerHTML = '<lottie-player src="' + window.qaqLotties[baseId] + '" background="transparent" speed="1" style="width:100%;height:100%;pointer-events:none;" loop autoplay></lottie-player>';
+            if(container.parentElement && container.parentElement.classList) container.parentElement.classList.remove('qaq-walking');
+            qaqUpdateXiaoyuanLoadProgress(100,'动态资源加载完成');
+            setTimeout(qaqCloseXiaoyuanLoadProgress, 180);
+        }); return;
     }
 
-    // 非静默模式：商店详情等大预览才显示进度层
-    qaqOpenXiaoyuanLoadProgress('加载动态资源','正在准备Lottie引擎...',function(){
-        container.innerHTML='';
-        qaqToast('已取消动态资源加载');
-    },function(){
-        openModeSwitch();
-    });
-
-    qaqUpdateXiaoyuanLoadProgress(10,'正在加载动画引擎...');
-
-    qaqEnsureLottie(function(){
-        qaqUpdateXiaoyuanLoadProgress(75,'正在装配动画...');
-        container.innerHTML =
-            '<lottie-player src="' + window.qaqLotties[itemId] + '" ' +
-            'background="transparent" speed="1" ' +
-            'style="width:100%;height:100%;pointer-events:none;" loop autoplay>' +
-            '</lottie-player>';
-
-        if(container.parentElement&&container.parentElement.classList){
-            container.parentElement.classList.remove('qaq-walking');
-        }
-
-        qaqUpdateXiaoyuanLoadProgress(100,'动态资源加载完成');
-        setTimeout(qaqCloseXiaoyuanLoadProgress,180);
-    });
-
-    return;
-}
-
-    var svgHtml='';
-
-    if(type==='plant'&&qaqPlantSVGs[itemId]){
-        svgHtml=qaqPlantSVGs[itemId](scale||1);
-    }else if(type==='animal'&&qaqAnimalSVGs[itemId]){
-        svgHtml=qaqAnimalSVGs[itemId](scale||1);
-    }else if(type==='item'&&qaqItemSVGs[itemId]){
-        svgHtml=qaqItemSVGs[itemId](scale||1);
-    }else{
-        var fallbackItem=null;
-        if(type==='plant'){
-            fallbackItem=(qaqShopCatalog.seeds||[]).find(function(x){return x.id===itemId;});
-        }else if(type==='animal'){
-            fallbackItem=(qaqShopCatalog.animals||[]).find(function(x){return x.id===itemId;});
-        }else if(type==='item'){
-            fallbackItem=(qaqShopCatalog.items||[]).find(function(x){return x.id===itemId;});
-        }
-        svgHtml=fallbackItem?(fallbackItem.svg||''):'';
+    var svgHtml = '';
+    if(type === 'plant' && qaqPlantSVGs[baseId]) svgHtml = qaqPlantSVGs[baseId](scale||1);
+    else if(type === 'animal' && qaqAnimalSVGs[baseId]) svgHtml = qaqAnimalSVGs[baseId](scale||1);
+    else if(type === 'item' && qaqItemSVGs[baseId]) svgHtml = qaqItemSVGs[baseId](scale||1);
+    else {
+        var fallbackItem = null;
+        if(type === 'plant') fallbackItem = (qaqShopCatalog.seeds||[]).find(function(x){return x.id===baseId;});
+        else if(type === 'animal') fallbackItem = (qaqShopCatalog.animals||[]).find(function(x){return x.id===baseId;});
+        else if(type === 'item') fallbackItem = (qaqShopCatalog.items||[]).find(function(x){return x.id===baseId;});
+        svgHtml = fallbackItem ? (fallbackItem.svg||'') : '';
     }
-
-    container.innerHTML=svgHtml;
+    container.innerHTML = svgHtml;
 }
 
 /* --- 配合万能渲染器的专属 3D 迷你加载器 --- */

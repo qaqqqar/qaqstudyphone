@@ -109,21 +109,23 @@
     }
 
     function qaqOpenSpriteDetailModal(itemId, kind) {
-    // ⭐ 自动修正真实 id 和 kind ⭐：去除无限次购买引入的时间戳，精准拿到原商品模板
+    // 去除多重购买后缀拿到数据模板
     var baseId = String(itemId).replace(/-\d{13}$/, '');
     var allItems = window.qaqShopCatalog.seeds.concat(window.qaqShopCatalog.animals, window.qaqShopCatalog.items);
     var item = allItems.find(function (x) { return x.id === baseId; });
     if (!item) return;
 
-    // 强力修正原本会导致错乱判定为精力和心情的 kind 错误！
     if (item.type === 'item') kind = 'item';
     else if (item.type === 'seed') kind = 'plant';
     else if (item.type === 'animal') kind = 'animal';
 
     var s = qaqGetSpriteState(itemId);
     var inv = qaqGetItemInventory();
+    
+    // 🌟 读取它的专属定制名字，没有则用系统默认
+    var displayName = s.customName || item.name;
 
-    modalTitle.textContent = item.name + ' · 详情';
+    modalTitle.textContent = displayName + ' · 详情';
 
     // ===== 道具详情：完美显示库存量与普通等级模板 =====
     if (kind === 'item') {
@@ -161,20 +163,29 @@
         qaqOpenModal();
         document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
 
-        // 调用通用引擎渲染（支持Lottie、3D及降级）
         qaqRenderVisualToDOM('qaq-sprite-detail-preview', itemId, 'item', 1.2, 'static', true);
         return;
     }
 
-    // ===== 以下是 植物/动物 的模板 (维持带精力心情及按钮的常规形态) =====
+    // ===== 以下是 植物/动物 的模板 (加入点击改名功能) =====
     var logsHtml = (s.logs || []).slice(0, 8).map(function (log) {
-        return '<div style="font-size:11px;color:#888;line-height:1.7;">• ' + qaqEscapeHtml(log.text) + ' <span style="color:#bbb;">' + qaqFormatDateTime(log.time) + '</span></div>';
+        var t = new Date(log.time);
+        var timeStr = isNaN(t.getTime()) ? '' : ((t.getMonth() + 1) + '-' + t.getDate() + ' ' + (t.getHours() < 10 ? '0' : '') + t.getHours() + ':' + (t.getMinutes() < 10 ? '0' : '') + t.getMinutes());
+        var safeText = window.qaqEscapeHtml ? window.qaqEscapeHtml(log.text) : String(log.text).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        return '<div style="font-size:11px;color:#888;line-height:1.7;">• ' + safeText + ' <span style="color:#bbb;">' + timeStr + '</span></div>';
     }).join('');
+
+    var safeDisplayName = window.qaqEscapeHtml ? window.qaqEscapeHtml(displayName) : String(displayName).replace(/</g, "&lt;");
 
     modalBody.innerHTML =
         '<div class="qaq-plan-form">' +
             '<div style="display:flex;justify-content:center;margin-bottom:4px;">' +
                 '<div id="qaq-sprite-detail-preview" style="width:88px;height:88px;"></div>' +
+            '</div>' +
+            // 🌟 新增的名字修改行
+            '<div class="qaq-shop-detail-row" id="qaq-sprite-name-row" style="cursor:pointer;background:rgba(0,0,0,0.02);border-radius:8px;padding:8px 12px;margin-bottom:8px;">' +
+                '<span class="qaq-shop-detail-label">名字 <span style="font-size:10px;color:#aaa;font-weight:normal;">(点击修改)</span></span>' +
+                '<span style="color:#5b9bd5;font-weight:600;">' + safeDisplayName + ' ✎</span>' +
             '</div>' +
             '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">等级</span><span>Lv.' + (s.level || 1) + '</span></div>' +
             '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">心情</span><span>' + (s.mood || 0) + '/100</span></div>' +
@@ -189,7 +200,7 @@
             '</div>' +
             '<div class="qaq-plan-form-label">相关库存</div>' +
             '<div style="font-size:12px;color:#666;line-height:1.8;">' +
-                (kind === 'animal' ? ('粮食：' + (inv['item-food-basic'] || 0) + '<br>' + qaqGetBedDurabilityText()) : kind === 'plant' ? ('肥料：' + (inv['item-fertilizer'] || 0)) : '暂无') +
+                (kind === 'animal' ? ('粮食：' + (inv['item-food-basic'] || 0) + '<br>' + qaqGetBedDurabilityText()) : kind === 'plant' ? ('肥料：' + (inv['item-fertilizer'] || 0)) : '暂无相关库存') +
             '</div>' +
             '<div class="qaq-plan-form-label">日志</div>' +
             '<div style="max-height:140px;overflow-y:auto;background:rgba(0,0,0,0.03);border-radius:10px;padding:10px;">' +
@@ -207,22 +218,34 @@
 
     qaqRenderVisualToDOM('qaq-sprite-detail-preview', itemId, kind, 1.2, 'static', true);
 
+    // 🌟 改名绑定事件
+    document.getElementById('qaq-sprite-name-row').onclick = function () {
+        var newName = prompt('给它起个新名字叭：', displayName);
+        if (newName !== null && newName.trim() !== '') {
+            s.customName = newName.trim();
+            qaqSaveSpriteState(itemId, s);
+            qaqCloseModal();
+            if (typeof window.qaqRefreshXiaoyuanView === 'function') window.qaqRefreshXiaoyuanView();
+            if (typeof window.qaqRenderGardenPage === 'function') window.qaqRenderGardenPage();
+            if (typeof window.qaqRenderZooPage === 'function') window.qaqRenderZooPage();
+            qaqToast('起名成功：' + s.customName);
+        }
+    };
+
     document.getElementById('qaq-sprite-scale-range').addEventListener('input', function () {
         var scale = (parseInt(this.value, 10) || 100) / 100;
         document.getElementById('qaq-sprite-scale-val').textContent = this.value + '%';
-        var ss = qaqGetSpriteState(itemId);
-        ss.scale = scale;
-        qaqSaveSpriteState(itemId, ss);
+        s.scale = scale;
+        qaqSaveSpriteState(itemId, s);
         if (typeof window.qaqRefreshXiaoyuanView === 'function') window.qaqRefreshXiaoyuanView();
     });
 
     document.getElementById('qaq-sprite-toggle-scene-btn').onclick = function () {
-        var ss = qaqGetSpriteState(itemId);
-        ss.inScene = !(ss.inScene !== false);
-        qaqSaveSpriteState(itemId, ss);
+        s.inScene = !(s.inScene !== false);
+        qaqSaveSpriteState(itemId, s);
         qaqCloseModal();
         if (typeof qaqRefreshXiaoyuanView === 'function') qaqRefreshXiaoyuanView();
-        qaqToast(ss.inScene ? '已加入小院图景' : '已移出小院图景');
+        qaqToast(s.inScene ? '已加入图景' : '已移出图景');
     };
 
     document.getElementById('qaq-sprite-action-btn').onclick = function () {

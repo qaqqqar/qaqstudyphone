@@ -331,14 +331,18 @@ var statusText = '摆件';
     statusText = '库存 ' + (item.count || 0);
 }
 
-            var card = document.createElement('div');
-            card.className = 'qaq-garden-card';
-            card.innerHTML =
-                '<div class="qaq-garden-card-icon">' +
-                    '<div class="qaq-garden-card-visual" id="qaq-card-visual-' + item.id + '"></div>' +
-                '</div>' +
-                '<div class="qaq-garden-card-name">' + item.name + '</div>' +
-                '<div class="qaq-garden-card-status" style="color:' + statusColor + ';font-weight:600;">' + statusText + '</div>';
+            // 读取最新的定制名字，如果是道具则用原名
+var displayName = (realType === 'item') ? item.name : (state.customName || item.name);
+var safeName = window.qaqEscapeHtml ? window.qaqEscapeHtml(displayName) : String(displayName).replace(/</g, "&lt;");
+
+var card = document.createElement('div');
+card.className = 'qaq-garden-card';
+card.innerHTML =
+    '<div class="qaq-garden-card-icon">' +
+        '<div class="qaq-garden-card-visual" id="qaq-card-visual-' + item.id + '"></div>' +
+    '</div>' +
+    '<div class="qaq-garden-card-name">' + safeName + '</div>' +
+    '<div class="qaq-garden-card-status" style="color:' + statusColor + ';font-weight:600;">' + statusText + '</div>';
 
             card.addEventListener('click', function () {
                 qaqOpenSpriteDetailModal(

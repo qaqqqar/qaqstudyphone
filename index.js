@@ -345,6 +345,8 @@ var _qaqPendingRenders = {};
 
 
 /* ===== 事件绑定 ===== */
+/* === 打开 index.js 替换原来的 .qaq-app-item 点击监听 === */
+
 var qaqAppTapLock = false;
 
 document.querySelectorAll('.qaq-app-item').forEach(function (item) {
@@ -355,17 +357,24 @@ document.querySelectorAll('.qaq-app-item').forEach(function (item) {
         if (qaqAppTapLock) return;
         qaqAppTapLock = true;
 
+        var appId = this.dataset.app; // <--- ★ 改用 data-app 获取专属ID
         var name = this.querySelector('.qaq-app-name').textContent.trim();
 
-if (name === '今日计划') {
-    qaqOpenPlanPage();
-} else if (name === '词库') {
-    qaqOpenWordbankPage();
-} else if (name === '聊天') {
-    if (window.qaqOpenChatPage) window.qaqOpenChatPage(); // ← ★ 这里直接跳转！
-} else {
-    qaqToast(name);
-}
+        // 强制硬核匹配应用 ID
+        if (appId === 'plan') {
+            qaqOpenPlanPage();
+        } else if (appId === 'wordbank') {
+            qaqOpenWordbankPage();
+        } else if (appId === 'chat') {
+            // 这里我们去掉 if(window.xxx) 的静默保护，直接调用。如果有错会在控制台爆红供排查！
+            if (typeof window.qaqOpenChatPage === 'function') {
+                window.qaqOpenChatPage();
+            } else {
+                qaqToast('⚠️ 聊天引擎(chat.js)丢失或加载失败！');
+            }
+        } else {
+            qaqToast(name);
+        }
 
         setTimeout(function () {
             qaqAppTapLock = false;

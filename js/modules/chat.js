@@ -9,42 +9,45 @@
     var activeContactId = null;
 
     /* ===== 数据存取 ===== */
-    function getCache(key, def) {
-        return (typeof qaqCacheGet !== 'undefined') ? qaqCacheGet(key, def) : 
-               (window.qaqCacheGet ? window.qaqCacheGet(key, def) : def);
-    }
-    
-    function setCache(key, val) {
-        if (typeof qaqCacheSet !== 'undefined') qaqCacheSet(key, val);
-        else if (window.qaqCacheSet) window.qaqCacheSet(key, val);
-    }
+ /* ===== 数据存取与强制页面路由 ===== */
+function getCache(key, def) {
+    return (typeof qaqCacheGet !== 'undefined') ? qaqCacheGet(key, def) : 
+           (window.qaqCacheGet ? window.qaqCacheGet(key, def) : def);
+}
 
-    function safeToast(msg) {
-        if (typeof qaqToast !== 'undefined') qaqToast(msg);
-        else if (window.qaqToast) window.qaqToast(msg);
-        else console.log('[Chat Toast]', msg);
-    }
+function setCache(key, val) {
+    if (typeof qaqCacheSet !== 'undefined') qaqCacheSet(key, val);
+    else if (window.qaqCacheSet) window.qaqCacheSet(key, val);
+}
 
-    function safeSwitchTo(el) {
-        if (typeof qaqSwitchTo !== 'undefined') qaqSwitchTo(el);
-        else if (window.qaqSwitchTo) window.qaqSwitchTo(el);
-    }
+function safeToast(msg) {
+    if (typeof qaqToast !== 'undefined') qaqToast(msg);
+    else if (window.qaqToast) window.qaqToast(msg);
+    else alert(msg); // 强制兜底
+}
 
-    function safeGoBackTo(parent, child) {
-        if (typeof qaqGoBackTo !== 'undefined') qaqGoBackTo(parent, child);
-        else if (window.qaqGoBackTo) window.qaqGoBackTo(parent, child);
-    }
+// 暴力越过底层路由，直接控制界面开关！！
+function safeSwitchTo(el) {
+    if (!el) return;
+    el.classList.add('qaq-page-show');
+    // 将页面移到最前，防止被遮挡
+    el.style.zIndex = '999';
+}
 
-    function safeClosePage(el) {
-        if (typeof qaqClosePage !== 'undefined') qaqClosePage(el);
-        else if (window.qaqClosePage) window.qaqClosePage(el);
-    }
+function safeGoBackTo(parent, child) {
+    if (child) child.classList.remove('qaq-page-show');
+    if (parent) parent.classList.add('qaq-page-show');
+}
 
-    function escapeHTML(str) {
-        if (typeof qaqEscapeHtml !== 'undefined') return qaqEscapeHtml(str);
-        if (window.qaqEscapeHtml) return window.qaqEscapeHtml(str);
-        return String(str || '').replace(/</g, "&lt;");
-    }
+function safeClosePage(el) {
+    if (el) el.classList.remove('qaq-page-show');
+}
+
+function escapeHTML(str) {
+    if (typeof qaqEscapeHtml !== 'undefined') return qaqEscapeHtml(str);
+    if (window.qaqEscapeHtml) return window.qaqEscapeHtml(str);
+    return String(str || '').replace(/</g, "&lt;");
+}
 
     function qaqGetChatData() {
         return getCache(CHAT_STORE_KEY, {

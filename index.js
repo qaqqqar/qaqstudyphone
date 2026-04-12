@@ -355,7 +355,7 @@ document.querySelectorAll('.qaq-app-item').forEach(function (item) {
         if (qaqAppTapLock) return;
         qaqAppTapLock = true;
 
-        var name = this.querySelector('.qaq-app-name').textContent;
+        var name = this.querySelector('.qaq-app-name').textContent.trim();
 
 if (name === '今日计划') {
     qaqOpenPlanPage();

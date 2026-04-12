@@ -109,40 +109,42 @@
     }
 
     function qaqOpenSpriteDetailModal(itemId, kind) {
+    // ⭐ 自动修正真实 id 和 kind ⭐：去除无限次购买引入的时间戳，精准拿到原商品模板
+    var baseId = String(itemId).replace(/-\d{13}$/, '');
+    var allItems = window.qaqShopCatalog.seeds.concat(window.qaqShopCatalog.animals, window.qaqShopCatalog.items);
+    var item = allItems.find(function (x) { return x.id === baseId; });
+    if (!item) return;
+
+    // 强力修正原本会导致错乱判定为精力和心情的 kind 错误！
+    if (item.type === 'item') kind = 'item';
+    else if (item.type === 'seed') kind = 'plant';
+    else if (item.type === 'animal') kind = 'animal';
+
     var s = qaqGetSpriteState(itemId);
     var inv = qaqGetItemInventory();
-    var allItems = qaqShopCatalog.seeds.concat(qaqShopCatalog.animals, qaqShopCatalog.items);
-    var item = allItems.find(function (x) { return x.id === itemId; });
-    if (!item) return;
 
     modalTitle.textContent = item.name + ' · 详情';
 
-    // ===== 道具详情：独立模板 =====
+    // ===== 道具详情：完美显示库存量与普通等级模板 =====
     if (kind === 'item') {
         var stockText = '0';
         var extraRows = '';
         var levelText = '普通';
 
-        if (itemId === 'item-bed') {
+        // 判断库存并组装独特的文字提示
+        if (baseId === 'item-bed') {
             var beds = Array.isArray(inv['item-bed']) ? inv['item-bed'] : [];
             stockText = String(beds.length);
-
             var durabilityText = beds.length
-                ? beds.map(function (bed, idx) {
-                    return '床铺 ' + (idx + 1) + '：耐久 ' + (bed.durability || 0) + '/40';
-                }).join('<br>')
-                : '暂无床铺';
-
-            extraRows =
-                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">耐久详情</span><span style="text-align:right;line-height:1.7;">' + durabilityText + '</span></div>';
-        } else if (itemId === 'item-food-basic') {
+                ? beds.map(function (bed, idx) { return '床铺 ' + (idx + 1) + '：耐久 ' + (bed.durability || 0) + '/40'; }).join('<br>')
+                : '暂无床铺，在商店购买后可用';
+            extraRows = '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">耐久详情</span><span style="text-align:right;line-height:1.7;">' + durabilityText + '</span></div>';
+        } else if (baseId === 'item-food-basic') {
             stockText = String(inv['item-food-basic'] || 0);
-            extraRows =
-                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">用途</span><span>用于喂食动物</span></div>';
-        } else if (itemId === 'item-fertilizer') {
+            extraRows = '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">用途</span><span>用于在小院或弹窗喂食动物</span></div>';
+        } else if (baseId === 'item-fertilizer') {
             stockText = String(inv['item-fertilizer'] || 0);
-            extraRows =
-                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">用途</span><span>用于植物施肥</span></div>';
+            extraRows = '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">用途</span><span>用于促使植物超速成长</span></div>';
         }
 
         modalBody.innerHTML =
@@ -150,41 +152,23 @@
                 '<div style="display:flex;justify-content:center;margin-bottom:4px;">' +
                     '<div id="qaq-sprite-detail-preview" style="width:88px;height:88px;"></div>' +
                 '</div>' +
-
                 '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">等级</span><span>' + levelText + '</span></div>' +
-                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">库存</span><span>' + stockText + '</span></div>' +
-                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">价格</span><span>' + item.price + ' 积分</span></div>' +
-                extraRows +
-
-                '<div class="qaq-plan-form-label">说明</div>' +
-                '<div style="font-size:12px;color:#666;line-height:1.8;background:rgba(0,0,0,0.03);border-radius:10px;padding:10px;">' +
-                    (
-                        itemId === 'item-food-basic'
-                            ? '基础粮食，用于在小院中批量或单独喂食动物。'
-                            : itemId === 'item-fertilizer'
-                                ? '普通肥料，可用于促进植物成长并恢复部分精力。'
-                                : itemId === 'item-bed'
-                                    ? '小窝可供动物睡觉恢复精力，每次使用会消耗 1 点耐久。'
-                                    : '普通道具。'
-                    ) +
-                '</div>' +
+                '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">当前库存量</span><span style="color:#7bab6e;font-weight:600;">' + stockText + ' 份</span></div>' +
             '</div>';
 
-        modalBtns.innerHTML =
-            '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-modal-cancel">关闭</button>';
+        modalBtns.innerHTML = '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-modal-cancel">关闭</button>';
 
         qaqOpenModal();
         document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
 
+        // 调用通用引擎渲染（支持Lottie、3D及降级）
         qaqRenderVisualToDOM('qaq-sprite-detail-preview', itemId, 'item', 1.2, 'static', true);
         return;
     }
 
-    // ===== 植物 / 动物：原模板 =====
+    // ===== 以下是 植物/动物 的模板 (维持带精力心情及按钮的常规形态) =====
     var logsHtml = (s.logs || []).slice(0, 8).map(function (log) {
-        return '<div style="font-size:11px;color:#888;line-height:1.7;">• ' +
-            qaqEscapeHtml(log.text) +
-            ' <span style="color:#bbb;">' + qaqFormatDateTime(log.time) + '</span></div>';
+        return '<div style="font-size:11px;color:#888;line-height:1.7;">• ' + qaqEscapeHtml(log.text) + ' <span style="color:#bbb;">' + qaqFormatDateTime(log.time) + '</span></div>';
     }).join('');
 
     modalBody.innerHTML =
@@ -192,34 +176,21 @@
             '<div style="display:flex;justify-content:center;margin-bottom:4px;">' +
                 '<div id="qaq-sprite-detail-preview" style="width:88px;height:88px;"></div>' +
             '</div>' +
-
             '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">等级</span><span>Lv.' + (s.level || 1) + '</span></div>' +
             '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">心情</span><span>' + (s.mood || 0) + '/100</span></div>' +
             '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">精力</span><span>' + (s.energy || 0) + '/100</span></div>' +
-            (kind === 'plant'
-                ? '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">成长</span><span>' + (s.growth || 0) + '%</span></div>'
-                : ''
-            ) +
+            (kind === 'plant' ? '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">成长</span><span>' + (s.growth || 0) + '%</span></div>' : '') +
             '<div class="qaq-shop-detail-row"><span class="qaq-shop-detail-label">加入图景</span><span>' + (s.inScene !== false ? '已加入' : '未加入') + '</span></div>' +
-
             '<div class="qaq-plan-form-label">单独缩放</div>' +
             '<div class="qaq-theme-slider-row">' +
                 '<span class="qaq-theme-slider-label">缩放</span>' +
                 '<input type="range" class="qaq-theme-slider" id="qaq-sprite-scale-range" min="60" max="180" value="' + Math.round((s.scale || 1) * 100) + '">' +
                 '<span class="qaq-theme-slider-val" id="qaq-sprite-scale-val">' + Math.round((s.scale || 1) * 100) + '%</span>' +
             '</div>' +
-
             '<div class="qaq-plan-form-label">相关库存</div>' +
             '<div style="font-size:12px;color:#666;line-height:1.8;">' +
-                (
-                    kind === 'animal'
-                        ? ('粮食：' + (inv['item-food-basic'] || 0) + '<br>' + qaqGetBedDurabilityText())
-                        : kind === 'plant'
-                            ? ('肥料：' + (inv['item-fertilizer'] || 0))
-                            : '暂无相关库存'
-                ) +
+                (kind === 'animal' ? ('粮食：' + (inv['item-food-basic'] || 0) + '<br>' + qaqGetBedDurabilityText()) : kind === 'plant' ? ('肥料：' + (inv['item-fertilizer'] || 0)) : '暂无') +
             '</div>' +
-
             '<div class="qaq-plan-form-label">日志</div>' +
             '<div style="max-height:140px;overflow-y:auto;background:rgba(0,0,0,0.03);border-radius:10px;padding:10px;">' +
                 (logsHtml || '<div style="font-size:11px;color:#aaa;">暂无日志</div>') +
@@ -228,35 +199,21 @@
 
     modalBtns.innerHTML =
         '<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-modal-cancel">关闭</button>' +
-        '<button class="qaq-modal-btn" id="qaq-sprite-toggle-scene-btn" style="background:#f0f0f0;color:#666;">' +
-            (s.inScene !== false ? '移出图景' : '加入图景') +
-        '</button>' +
-        (
-            kind === 'animal'
-                ? '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-sprite-action-btn">喂食/睡觉</button>'
-                : '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-sprite-action-btn">浇水/施肥</button>'
-        );
+        '<button class="qaq-modal-btn" id="qaq-sprite-toggle-scene-btn" style="background:#f0f0f0;color:#666;">' + (s.inScene !== false ? '移出图景' : '加入图景') + '</button>' +
+        (kind === 'animal' ? '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-sprite-action-btn">喂食/睡觉</button>' : '<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-sprite-action-btn">浇水/施肥</button>');
 
     qaqOpenModal();
     document.getElementById('qaq-modal-cancel').onclick = qaqCloseModal;
 
     qaqRenderVisualToDOM('qaq-sprite-detail-preview', itemId, kind, 1.2, 'static', true);
 
-    var scaleRange = document.getElementById('qaq-sprite-scale-range');
-    var scaleVal = document.getElementById('qaq-sprite-scale-val');
-
-    scaleRange.addEventListener('input', function () {
-        var v = parseInt(this.value, 10) || 100;
-        var scale = v / 100;
-        scaleVal.textContent = v + '%';
-
+    document.getElementById('qaq-sprite-scale-range').addEventListener('input', function () {
+        var scale = (parseInt(this.value, 10) || 100) / 100;
+        document.getElementById('qaq-sprite-scale-val').textContent = this.value + '%';
         var ss = qaqGetSpriteState(itemId);
         ss.scale = scale;
         qaqSaveSpriteState(itemId, ss);
-
-        if (typeof window.qaqRefreshXiaoyuanView === 'function') {
-            window.qaqRefreshXiaoyuanView();
-        }
+        if (typeof window.qaqRefreshXiaoyuanView === 'function') window.qaqRefreshXiaoyuanView();
     });
 
     document.getElementById('qaq-sprite-toggle-scene-btn').onclick = function () {
@@ -264,20 +221,12 @@
         ss.inScene = !(ss.inScene !== false);
         qaqSaveSpriteState(itemId, ss);
         qaqCloseModal();
-
-        if (typeof qaqRefreshXiaoyuanView === 'function') {
-            qaqRefreshXiaoyuanView();
-        }
-
-        qaqToast(ss.inScene ? '已加入图景' : '已移出图景');
+        if (typeof qaqRefreshXiaoyuanView === 'function') qaqRefreshXiaoyuanView();
+        qaqToast(ss.inScene ? '已加入小院图景' : '已移出小院图景');
     };
 
     document.getElementById('qaq-sprite-action-btn').onclick = function () {
-        if (kind === 'animal') {
-            qaqOpenAnimalActionModal(itemId);
-        } else {
-            qaqOpenPlantActionModal(itemId);
-        }
+        if (kind === 'animal') qaqOpenAnimalActionModal(itemId); else qaqOpenPlantActionModal(itemId);
     };
 }
 

@@ -220,7 +220,8 @@
         qaqRenderXiaoyuanMain();
     });
 });
-
+    }
+    
     function initXiaoyuan() {
         bindXiaoyuanEvents();
         setTimeout(function () {

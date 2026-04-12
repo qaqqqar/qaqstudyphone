@@ -3015,83 +3015,49 @@ function qaqRenderGardenPage() {
     var sceneEl = document.getElementById('qaq-garden-scene');
 
     if (!gridEl || !emptyEl || !sceneEl) return;
-
     gridEl.innerHTML = '';
-
-    // 清除场景中的旧精灵
-    sceneEl.querySelectorAll('.qaq-sprite-container').forEach(function(el) {
-        el.remove();
-    });
+    sceneEl.querySelectorAll('.qaq-sprite-container').forEach(function(el) { el.remove(); });
 
     if (!owned.length) {
-        emptyEl.style.display = '';
-        sceneEl.style.display = 'none';
-        return;
+        emptyEl.style.display = ''; sceneEl.style.display = 'none'; return;
     }
-
-    emptyEl.style.display = 'none';
-    sceneEl.style.display = '';
-
+    emptyEl.style.display = 'none'; sceneEl.style.display = '';
     var sceneWidth = sceneEl.clientWidth || 300;
     var spacing = sceneWidth / (owned.length + 1);
 
     owned.forEach(function(item, idx) {
-        var catItem = qaqShopCatalog.seeds.find(function(x) { return x.id === item.id; });
+        // 关键改动：分离 baseId 以兼容重复购买多只，并读取最新命名！
+        var baseId = String(item.id).replace(/-\d{13}$/, '');
+        var catItem = qaqShopCatalog.seeds.find(function(x) { return x.id === baseId; });
         var state = qaqGetSpriteState(item.id);
+        var customName = state.customName || (catItem ? catItem.name : item.name);
+        
         var growth = state.growth || 0;
         var growthStage = growth < 30 ? 0.7 : (growth < 70 ? 0.85 : 1);
 
-        // 场景中添加精灵
-        var svgFn = qaqPlantSVGs[item.id];
+        var svgFn = qaqPlantSVGs[baseId];
         if (svgFn) {
-            var x = spacing * (idx + 1) - 20;
-            qaqCreateSpriteInScene(
-                sceneEl,
-                svgFn(growthStage),
-                x,
-                10,
-                catItem ? catItem.name : item.name,
-                item.id,
-                'plant'
-            );
+            qaqCreateSpriteInScene(sceneEl, svgFn(growthStage), spacing * (idx + 1) - 20, 10, customName, item.id, 'plant');
         }
 
-        // 卡片
         var statusColor = growth >= 100 ? '#e05565' : (growth >= 50 ? '#7bab6e' : '#999');
-        var statusText =
-            'Lv.' + (state.level || 1) +
-            ' · 心情 ' + (state.mood || 0) + '%' +
-            ' · 精力 ' + (state.energy || 0) + '%' +
-            ' · 成长 ' + growth + '%';
+        var statusText = 'Lv.' + (state.level || 1) + ' · 心情 ' + (state.mood || 0) + '%' + ' · 精力 ' + (state.energy || 0) + '%' + ' · 成长 ' + growth + '%';
 
         var card = document.createElement('div');
         card.className = 'qaq-garden-card';
         card.innerHTML =
-            '<div class="qaq-garden-card-icon">' +
-                '<div class="qaq-garden-card-visual" id="qaq-card-visual-' + item.id + '"></div>' +
-            '</div>' +
-            '<div class="qaq-garden-card-name">' + (catItem ? catItem.name : item.name) + '</div>' +
+            '<div class="qaq-garden-card-icon"><div class="qaq-garden-card-visual" id="qaq-card-visual-' + item.id + '"></div></div>' +
+            '<div class="qaq-garden-card-name">' + (window.qaqEscapeHtml ? window.qaqEscapeHtml(customName) : customName) + '</div>' +
             '<div class="qaq-garden-card-status" style="color:' + statusColor + ';">' + statusText + '</div>' +
             '<div class="qaq-garden-card-growth"><div class="qaq-garden-card-growth-fill" style="width:' + growth + '%;"></div></div>';
 
         card.addEventListener('click', function() {
-            qaqWaterPlant(
-                sceneEl.querySelector('[data-item-id="' + item.id + '"]') || card,
-                item.id
-            );
+            qaqWaterPlant(sceneEl.querySelector('[data-item-id="' + item.id + '"]') || card, item.id);
             qaqRenderGardenPage();
         });
 
         gridEl.appendChild(card);
-
-        qaqRenderVisualToDOM(
-            'qaq-card-visual-' + item.id,
-            item.id,
-            'plant',
-            0.9,
-            'static',
-            true
-        );
+        qaqRenderVisualToDOM('qaq-card-visual-' + item.id, item.id, 'plant', 0.9, 'static', true);
     });
 }
 
@@ -3103,75 +3069,47 @@ function qaqRenderZooPage() {
     var sceneEl = document.getElementById('qaq-zoo-scene');
 
     if (!gridEl || !emptyEl || !sceneEl) return;
-
     gridEl.innerHTML = '';
-    sceneEl.querySelectorAll('.qaq-sprite-container, .qaq-live2d-loading').forEach(function(el) {
-        el.remove();
-    });
+    sceneEl.querySelectorAll('.qaq-sprite-container, .qaq-live2d-loading').forEach(function(el) { el.remove(); });
 
     if (!owned.length) {
-        emptyEl.style.display = '';
-        sceneEl.style.display = 'none';
-        return;
+        emptyEl.style.display = ''; sceneEl.style.display = 'none'; return;
     }
-
-    emptyEl.style.display = 'none';
-    sceneEl.style.display = '';
-
+    emptyEl.style.display = 'none'; sceneEl.style.display = '';
     var sceneWidth = sceneEl.clientWidth || 300;
     var spacing = sceneWidth / (owned.length + 1);
 
     owned.forEach(function(item, idx) {
-        var catItem = qaqShopCatalog.animals.find(function(x) { return x.id === item.id; });
+        // 关键改动：分离 baseId，识别多只动物定制名字
+        var baseId = String(item.id).replace(/-\d{13}$/, '');
+        var catItem = qaqShopCatalog.animals.find(function(x) { return x.id === baseId; });
         var state = qaqGetSpriteState(item.id);
+        var customName = state.customName || (catItem ? catItem.name : item.name);
+        
         var mood = state.mood || 50;
 
-        var svgFn = qaqAnimalSVGs[item.id];
+        var svgFn = qaqAnimalSVGs[baseId];
         if (svgFn) {
-            qaqCreateSpriteInScene(
-                sceneEl,
-                svgFn(1),
-                spacing * (idx + 1) - 20,
-                10,
-                catItem ? catItem.name : item.name,
-                item.id,
-                'animal'
-            );
+            qaqCreateSpriteInScene(sceneEl, svgFn(1), spacing * (idx + 1) - 20, 10, customName, item.id, 'animal');
         }
 
         var statusColor = mood >= 80 ? '#e8c34f' : '#e88d4f';
-        var statusText =
-            'Lv.' + (state.level || 1) +
-            ' · 心情 ' + mood + '%' +
-            ' · 精力 ' + (state.energy || 0) + '%';
+        var statusText = 'Lv.' + (state.level || 1) + ' · 心情 ' + mood + '%' + ' · 精力 ' + (state.energy || 0) + '%';
 
         var card = document.createElement('div');
         card.className = 'qaq-garden-card';
         card.innerHTML =
-            '<div class="qaq-garden-card-icon">' +
-                '<div class="qaq-garden-card-visual" id="qaq-card-visual-' + item.id + '"></div>' +
-            '</div>' +
-            '<div class="qaq-garden-card-name">' + (catItem ? catItem.name : item.name) + '</div>' +
+            '<div class="qaq-garden-card-icon"><div class="qaq-garden-card-visual" id="qaq-card-visual-' + item.id + '"></div></div>' +
+            '<div class="qaq-garden-card-name">' + (window.qaqEscapeHtml ? window.qaqEscapeHtml(customName) : customName) + '</div>' +
             '<div class="qaq-garden-card-status" style="color:' + statusColor + ';">' + statusText + '</div>';
 
         card.addEventListener('click', function() {
-            qaqPetAnimal(
-                sceneEl.querySelector('[data-item-id="' + item.id + '"]') || card,
-                item.id
-            );
+            qaqPetAnimal(sceneEl.querySelector('[data-item-id="' + item.id + '"]') || card, item.id);
             qaqRenderZooPage();
         });
 
         gridEl.appendChild(card);
-
-        qaqRenderVisualToDOM(
-            'qaq-card-visual-' + item.id,
-            item.id,
-            'animal',
-            0.9,
-            'static',
-            true
-        );
+        qaqRenderVisualToDOM('qaq-card-visual-' + item.id, item.id, 'animal', 0.9, 'static', true);
     });
 }
 
@@ -3671,28 +3609,46 @@ function qaqRenderVisualToDOM(containerId,itemId,type,scale,preferredMode,silent
     if(mode === '3d' && !has3D) mode = hasLottie ? 'lottie' : 'static';
     if(mode === 'lottie' && !hasLottie) mode = 'static';
 
-    if (silent && mode === '3d') {
-        mode = hasLottie ? 'lottie' : 'static';
-    }
+    // ⛔ (已移除) 原本在这里强制把 3D 降级为 2D 的过度保护代码已被删除，解放 3D 全场景能力！
 
     function openModeSwitch(){ qaqOpenXiaoyuanRenderModeQuickSwitch(type); }
 
     if(mode === '3d'){
-        qaqOpenXiaoyuanLoadProgress('加载3D模型','正在准备3D引擎...', function(){container.innerHTML='';qaqToast('已取消3D加载');}, openModeSwitch);
-        qaqEnsureThreeJS(function(pct){
-            qaqUpdateXiaoyuanLoadProgress(Math.min(90,pct||0),'正在加载3D引擎...');
-        },function(){
-            var canvasId='cvs-' + baseId + '-' + Date.now();
-            container.innerHTML='<canvas id="' + canvasId + '"></canvas>';
-            var w = container.clientWidth||75; var h = container.clientHeight||75;
-            container.style.width=w+'px'; container.style.height=h+'px';
-            qaqUpdateXiaoyuanLoadProgress(95,'正在渲染3D模型...');
+        var execute3D = function() {
+            // 加入随机数防冲突，支持小院里容纳多只同类 3D 动物
+            var canvasId = 'cvs-' + baseId + '-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+            container.innerHTML = '<canvas id="' + canvasId + '"></canvas>';
+            var w = container.clientWidth || 75; 
+            var h = container.clientHeight || 75;
+            container.style.width = w + 'px'; 
+            container.style.height = h + 'px';
+            
+            if (!silent) qaqUpdateXiaoyuanLoadProgress(95, '正在渲染3D模型...');
+            
             setTimeout(function(){
                 qaqRenderMini3D(canvasId, baseId, w, h);
-                qaqUpdateXiaoyuanLoadProgress(100,'3D模型加载完成');
-                setTimeout(qaqCloseXiaoyuanLoadProgress, 180);
+                if (!silent) {
+                    qaqUpdateXiaoyuanLoadProgress(100, '3D模型加载完成');
+                    setTimeout(qaqCloseXiaoyuanLoadProgress, 180);
+                }
             }, 120);
-        }); return;
+        };
+
+        if (!silent) {
+            // 详情大页：弹窗并显示进度条
+            qaqOpenXiaoyuanLoadProgress('加载3D模型','正在准备3D引擎...', function(){
+                container.innerHTML='';
+                qaqToast('已取消3D加载');
+            }, openModeSwitch);
+            
+            qaqEnsureThreeJS(function(pct){
+                qaqUpdateXiaoyuanLoadProgress(Math.min(90, pct||0),'正在加载3D引擎...');
+            }, execute3D);
+        } else {
+            // 小院/卡片等静默页：偷偷在后台拉起 3D 渲染，绝不弹窗打扰
+            qaqEnsureThreeJS(null, execute3D);
+        }
+        return;
     }
 
     if(mode === 'lottie'){
@@ -3714,7 +3670,8 @@ function qaqRenderVisualToDOM(containerId,itemId,type,scale,preferredMode,silent
             if(container.parentElement && container.parentElement.classList) container.parentElement.classList.remove('qaq-walking');
             qaqUpdateXiaoyuanLoadProgress(100,'动态资源加载完成');
             setTimeout(qaqCloseXiaoyuanLoadProgress, 180);
-        }); return;
+        }); 
+        return;
     }
 
     var svgHtml = '';

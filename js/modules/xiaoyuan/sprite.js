@@ -148,54 +148,63 @@ function qaqCreateSpriteInScene(sceneEl, spriteHtml, defaultX, defaultY, name, i
     }
 
     function saveDraggedPosition() {
-        var scaleInfo = getSceneScaleInfo();
-        var logicalDX = pendingDX / scaleInfo.scaleX;
-        var logicalDY = pendingDY / scaleInfo.scaleY;
+    var scaleInfo = getSceneScaleInfo();
+    var logicalDX = pendingDX / scaleInfo.scaleX;
+    var logicalDY = pendingDY / scaleInfo.scaleY;
 
-        var newLeft = initLeft + logicalDX;
-        var newBottom = initBottom - logicalDY;
+    var newLeft = initLeft + logicalDX;
+    var newBottom = initBottom - logicalDY;
 
-        newLeft = Math.max(-20, Math.min(newLeft, scaleInfo.logicalW - 40));
-        newBottom = Math.max(0, Math.min(newBottom, scaleInfo.logicalH - 50));
+    newLeft = Math.max(-20, Math.min(newLeft, scaleInfo.logicalW - 40));
+    newBottom = Math.max(0, Math.min(newBottom, scaleInfo.logicalH - 50));
 
-        var latest = window.qaqGetSpriteState ? window.qaqGetSpriteState(itemId) : {};
-        latest.posX = newLeft;
-        latest.posY = newBottom;
+    // 1. 立即把 DOM 位置落地
+    container.style.left = newLeft + 'px';
+    container.style.bottom = newBottom + 'px';
 
-        if (window.qaqSaveSpriteState) {
-            window.qaqSaveSpriteState(itemId, latest);
-        }
+    // 2. 再存档
+    var latest = window.qaqGetSpriteState ? window.qaqGetSpriteState(itemId) : {};
+    latest.posX = newLeft;
+    latest.posY = newBottom;
 
-        if (window.qaqDebugLog) {
-            window.qaqDebugLog('[QAQ-XY] 已保存位置', itemId, 'x=' + newLeft, 'y=' + newBottom);
-        } else {
-            console.log('[QAQ-XY] 已保存位置', itemId, newLeft, newBottom);
-        }
+    if (window.qaqSaveSpriteState) {
+        window.qaqSaveSpriteState(itemId, latest);
     }
+
+    if (window.qaqDebugLog) {
+        window.qaqDebugLog('[QAQ-XY] 已保存位置', itemId, 'x=' + newLeft, 'y=' + newBottom);
+    } else {
+        console.log('[QAQ-XY] 已保存位置', itemId, newLeft, newBottom);
+    }
+}
 
     function finishPointer(e) {
-        if (!isDragging) return;
-        if (activePointerId != null && e && e.pointerId != null && e.pointerId !== activePointerId) return;
+    if (!isDragging) return;
+    if (activePointerId != null && e && e.pointerId != null && e.pointerId !== activePointerId) return;
 
-        isDragging = false;
-        container.style.zIndex = '3';
-        container.style.transition = '';
+    isDragging = false;
+    container.style.zIndex = '3';
+    container.style.transition = '';
+
+    try { container.releasePointerCapture(activePointerId); } catch (err) {}
+    activePointerId = null;
+
+    if (!hasMoved) {
         container.style.transform = '';
-
-        try { container.releasePointerCapture(activePointerId); } catch (err) {}
-        activePointerId = null;
-
-        if (!hasMoved) {
-            if (type === 'plant' && window.qaqOpenSpriteDetailModal) {
-                window.qaqOpenSpriteDetailModal(itemId, 'plant');
-            } else if (type === 'animal' && window.qaqOpenSpriteDetailModal) {
-                window.qaqOpenSpriteDetailModal(itemId, 'animal');
-            }
-            return;
+        if (type === 'plant' && window.qaqOpenSpriteDetailModal) {
+            window.qaqOpenSpriteDetailModal(itemId, 'plant');
+        } else if (type === 'animal' && window.qaqOpenSpriteDetailModal) {
+            window.qaqOpenSpriteDetailModal(itemId, 'animal');
         }
-
-        saveDraggedPosition();
+        return;
     }
+
+    // 先保存并落地 left/bottom
+    saveDraggedPosition();
+
+    // 再清掉 transform
+    container.style.transform = '';
+}
 
     container.addEventListener('pointerdown', onPointerDown);
     container.addEventListener('pointermove', onPointerMove);

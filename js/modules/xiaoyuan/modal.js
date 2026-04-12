@@ -178,17 +178,31 @@
         var scaleVal = document.getElementById('qaq-sprite-scale-val');
 
         scaleRange.addEventListener('input', function () {
-            var v = parseInt(this.value, 10) || 100;
-            scaleVal.textContent = v + '%';
+    var v = parseInt(this.value, 10) || 100;
+    var scale = v / 100;
+    scaleVal.textContent = v + '%';
 
-            var ss = qaqGetSpriteState(itemId);
-            ss.scale = v / 100;
-            qaqSaveSpriteState(itemId, ss);
+    var ss = qaqGetSpriteState(itemId);
+    ss.scale = scale;
+    qaqSaveSpriteState(itemId, ss);
 
-            if (typeof qaqRefreshXiaoyuanView === 'function') {
-                qaqRefreshXiaoyuanView();
-            }
-        });
+    // 1. 立即刷新详情预览
+    if (window.qaqRenderVisualToDOM) {
+        window.qaqRenderVisualToDOM(
+            'qaq-sprite-detail-preview',
+            itemId,
+            kind,
+            1.2 * scale,
+            'static',
+            true
+        );
+    }
+
+    // 2. 立即刷新小院场景
+    if (typeof window.qaqRefreshXiaoyuanView === 'function') {
+        window.qaqRefreshXiaoyuanView();
+    }
+});
 
         document.getElementById('qaq-sprite-toggle-scene-btn').onclick = function () {
             var ss = qaqGetSpriteState(itemId);

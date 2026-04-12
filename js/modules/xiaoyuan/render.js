@@ -57,6 +57,47 @@
 
         return '';
     }
+  function qaqMaybeAutoMoveSceneSprites(sceneItems, sceneEl) {
+    if (!sceneItems || !sceneItems.length || !sceneEl) return;
+
+    var now = Date.now();
+    var sceneWidth = sceneEl.clientWidth || 300;
+    var sceneHeight = sceneEl.clientHeight || 180;
+    var changed = false;
+
+    sceneItems.forEach(function (item, idx) {
+        var state = window.qaqGetSpriteState ? window.qaqGetSpriteState(item.id) : null;
+        if (!state) return;
+
+        // 没设置过下次移动时间，就初始化
+        if (!state.nextAutoMoveAt) {
+            state.nextAutoMoveAt = now + (60 + Math.floor(Math.random() * 60)) * 60 * 1000; // 1~2小时
+            if (window.qaqSaveSpriteState) window.qaqSaveSpriteState(item.id, state);
+            return;
+        }
+
+        if (now < state.nextAutoMoveAt) return;
+
+        // 随机位置
+        var newX = Math.max(-20, Math.min(Math.floor(Math.random() * (sceneWidth - 40)), sceneWidth - 40));
+        var newY = Math.max(0, Math.min(Math.floor(Math.random() * Math.max(40, sceneHeight - 60)), sceneHeight - 50));
+
+        state.posX = newX;
+        state.posY = newY;
+        state.nextAutoMoveAt = now + (60 + Math.floor(Math.random() * 60)) * 60 * 1000; // 下次 1~2小时后
+        changed = true;
+
+        if (window.qaqSaveSpriteState) {
+            window.qaqSaveSpriteState(item.id, state);
+        }
+
+        if (window.qaqDebugLog) {
+            window.qaqDebugLog('[QAQ-XY] 自动换位', item.id, 'x=' + newX, 'y=' + newY);
+        }
+    });
+
+    return changed;
+}
 
     function qaqRenderXiaoyuanMain() {
         var currentTab = qaqGetXiaoyuanCurrentTab();
@@ -111,6 +152,7 @@
             var s = qaqGetSpriteState(item.id);
             return s.inScene !== false;
         });
+        qaqMaybeAutoMoveSceneSprites(sceneItems, sceneEl);
 
         if (sceneItems.length) {
             var spacing = (sceneEl.clientWidth || 300) / (sceneItems.length + 1);

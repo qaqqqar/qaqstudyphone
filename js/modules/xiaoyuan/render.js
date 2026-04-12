@@ -288,6 +288,7 @@ Object.keys(inv).forEach(function (key) {
         qaqScheduleXiaoyuanRender();
         qaqToast('喂食完成，消耗 ' + animals.length + ' 份粮食');
     };
+}
         } else {
             interactBtn.style.display = 'none';
             interactBtn.onclick = null;

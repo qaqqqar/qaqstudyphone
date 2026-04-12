@@ -219,33 +219,40 @@ Object.keys(inv).forEach(function (key) {
         }
 
         // 一键按钮
-        if (currentTab === 'plants') {
-            interactBtn.style.display = '';
-            interactBtn.textContent = '一键浇水（全部植物）';
-            interactBtn.onclick = function () {
-                if (!plants.length) return qaqToast('没有植物可供浇水');
+if (currentTab === 'plants') {
+    interactBtn.style.display = '';
+    interactBtn.textContent = '一键浇水（全部植物）';
+    interactBtn.onclick = function () {
+        if (!plants.length) return qaqToast('没有植物可供浇水');
 
-                plants.forEach(function (p) {
-    var s = window.qaqGetSpriteState(p.id);
-    s.growth = Math.min(100, (s.growth || 0) + 10);
-    s.energy = Math.min(100, (s.energy || 0) + 4);
-    s.expEnergy = (s.expEnergy || 0) + 4;
-    window.qaqSaveSpriteState(p.id, s);
+        plants.forEach(function (p) {
+            var s = window.qaqGetSpriteState ? window.qaqGetSpriteState(p.id) : {};
+            s.growth = Math.min(100, (s.growth || 0) + 10);
+            s.energy = Math.min(100, (s.energy || 0) + 4);
+            s.expEnergy = (s.expEnergy || 0) + 4;
 
-    if (window.qaqPushSpriteLog) {
-        window.qaqPushSpriteLog(p.id, '一键浇水：成长 +10%，精力 +4');
-    }
+            if (window.qaqSaveSpriteState) {
+                window.qaqSaveSpriteState(p.id, s);
+            }
 
-    if (window.qaqMaybeLevelUp) {
-        window.qaqMaybeLevelUp(p.id);
-    }
-});
+            if (window.qaqPushSpriteLog) {
+                window.qaqPushSpriteLog(p.id, '一键浇水：成长 +10%，精力 +4');
+            }
 
-                qaqAddPoints(plants.length);
-                qaqScheduleXiaoyuanRender();
-                qaqToast('浇水完成');
-            };
-        } else if (currentTab === 'animals') {
+            if (window.qaqMaybeLevelUp) {
+                window.qaqMaybeLevelUp(p.id);
+            }
+        });
+
+        if (window.qaqAddPoints) {
+            window.qaqAddPoints(plants.length);
+        }
+
+        qaqScheduleXiaoyuanRender();
+        qaqToast('浇水完成');
+    };
+
+} else if (currentTab === 'animals') {
     interactBtn.style.display = '';
     interactBtn.textContent = '一键喂食（全部动物）';
     interactBtn.onclick = function () {
@@ -267,6 +274,7 @@ Object.keys(inv).forEach(function (key) {
             s.mood = Math.min(100, (s.mood || 50) + 10);
             s.energy = Math.min(100, (s.energy || 0) + 8);
             s.expEnergy = (s.expEnergy || 0) + 8;
+            s.lastFeed = Date.now();
 
             if (window.qaqSaveSpriteState) {
                 window.qaqSaveSpriteState(a.id, s);
@@ -288,11 +296,11 @@ Object.keys(inv).forEach(function (key) {
         qaqScheduleXiaoyuanRender();
         qaqToast('喂食完成，消耗 ' + animals.length + ' 份粮食');
     };
+
+} else {
+    interactBtn.style.display = 'none';
+    interactBtn.onclick = null;
 }
-        } else {
-            interactBtn.style.display = 'none';
-            interactBtn.onclick = null;
-        }
 
         if (!currentList.length) {
             emptyEl.style.display = '';

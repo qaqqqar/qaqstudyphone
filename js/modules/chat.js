@@ -4,14 +4,12 @@
  */
 (function(){
 'use strict';
+
+console.log('[Chat] 聊天模块开始加载...');
+
 try {
-    console.log('[Chat] 聊天模块开始加载...');
-} catch(e) {
-    console.error('[Chat] 初始化失败:', e);
-}
-try {  // ← 添加这行
-    console.log('[Chat] 聊天模块开始加载...');
-var CHAT_STORE_KEY='qaq-chat-store-v4';
+    var CHAT_STORE_KEY='qaq-chat-store-v4';
+    
 var CHAT_PRESETS_KEY='qaq-chat-presets-v1';
 var activeContactId=null;
 function getCache(k,d){return(window.qaqCacheGet||function(_,d){return d})(k,d)}
@@ -952,11 +950,14 @@ bStyle.textContent='.qaq-chat-bubble{'+(s.u_bubble_css||'')+'}';
 toast('设置已保存');
 applySettingsLive();
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindPageEvents);else bindPageEvents();
-} catch(err) {  // ← 添加这段
+    if(document.readyState==='loading')
+        document.addEventListener('DOMContentLoaded',bindPageEvents);
+    else 
+        bindPageEvents();
+
+} catch(err) {
     console.error('[Chat] 模块加载失败:', err);
     console.error('[Chat] 错误堆栈:', err.stack);
     window.qaqToast && window.qaqToast('聊天模块加载失败，请查看日志');
 }
-})();
 })();

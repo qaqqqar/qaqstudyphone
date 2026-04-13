@@ -1603,19 +1603,21 @@
         </div>
     </div>
     
-    <div class="qaq-chat-msg-list" id="qaq-chat-msg-list"></div>
+    <div id="qaq-chat-friend-request-tip-wrap"></div>
+<div class="qaq-chat-msg-list" id="qaq-chat-msg-list"></div>
 
     <div class="qaq-chat-input-area" id="qaq-chat-input-area">
-        <div class="qaq-chat-ext-menu" id="qaq-chat-ext-menu" style="display:none;"></div>
-        <div class="qaq-chat-input-row">
-            <button class="qaq-chat-circle-btn" id="qaq-chat-toggle-menu">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-            </button>
-            <textarea class="qaq-chat-input-box" id="qaq-chat-input-box" rows="1"></textarea>
-            <button class="qaq-chat-recv-ai-btn" id="qaq-chat-recv-ai-btn">接收</button>
-            <button class="qaq-chat-send-btn" id="qaq-chat-send-btn">发送</button>
-        </div>
+    <div id="qaq-chat-block-tip" style="display:none;text-align:center;font-size:11px;color:#999;padding:8px 12px;background:rgba(0,0,0,0.02);"></div>
+    <div class="qaq-chat-ext-menu" id="qaq-chat-ext-menu" style="display:none;"></div>
+    <div class="qaq-chat-input-row" id="qaq-chat-input-row">
+        <button class="qaq-chat-circle-btn" id="qaq-chat-toggle-menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        </button>
+        <textarea class="qaq-chat-input-box" id="qaq-chat-input-box" rows="1"></textarea>
+        <button class="qaq-chat-recv-ai-btn" id="qaq-chat-recv-ai-btn">接收</button>
+        <button class="qaq-chat-send-btn" id="qaq-chat-send-btn">发送</button>
     </div>
+</div>
 </div>
 
 <!-- ===== 聊天深度设置页 ===== -->
@@ -1683,6 +1685,7 @@
 <script src="js/modules/wordbank.js"></script>
 <script src="js/modules/review.js"></script>
 
+<script src="https://unpkg.com/lucide@latest"></script>
 <script src="js/modules/chat.js?v=999"></script>
 
 <script src="js/modules/xiaoyuan/assets.js"></script>

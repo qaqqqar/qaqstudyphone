@@ -366,12 +366,15 @@ document.querySelectorAll('.qaq-app-item').forEach(function (item) {
         } else if (appId === 'wordbank') {
             qaqOpenWordbankPage();
         } else if (appId === 'chat') {
-            // 这里我们去掉 if(window.xxx) 的静默保护，直接调用。如果有错会在控制台爆红供排查！
-            if (typeof window.qaqOpenChatPage === 'function') {
-                window.qaqOpenChatPage();
-            } else {
-                qaqToast('⚠️ 聊天引擎(chat.js)丢失或加载失败！');
-            }
+    console.log('[Index] 尝试打开聊天页面');  // ← 添加
+    if (typeof window.qaqOpenChatPage === 'function') {
+        console.log('[Index] 聊天函数存在，开始调用');  // ← 添加
+        window.qaqOpenChatPage();
+    } else {
+        console.error('[Index] 聊天函数不存在！');  // ← 添加
+        qaqToast('⚠️ 聊天引擎(chat.js)丢失或加载失败！');
+    }
+}
         } else {
             qaqToast(name);
         }

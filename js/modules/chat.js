@@ -4,6 +4,13 @@
  */
 (function(){
 'use strict';
+try {
+    console.log('[Chat] 聊天模块开始加载...');
+} catch(e) {
+    console.error('[Chat] 初始化失败:', e);
+}
+try {  // ← 添加这行
+    console.log('[Chat] 聊天模块开始加载...');
 var CHAT_STORE_KEY='qaq-chat-store-v4';
 var CHAT_PRESETS_KEY='qaq-chat-presets-v1';
 var activeContactId=null;
@@ -101,6 +108,7 @@ return base+fmt;
 };
 // ===== 页面事件绑定 =====
 window.qaqOpenChatPage=function(){
+try {
 var cd=getChatData();
 if(!Object.keys(cd.contacts).length){
 cd.contacts['ai_tutor']={id:'ai_tutor',nickname:'Alice',remark:'外语陪练员 Alice',avatar:'',isTop:true,updateTime:Date.now(),blocked:false,deleted:false,configs:{op_persona:'你是一名极其开朗且平易近人的金牌英语外教。',ui_bubble_radius:12,ui_avatar_radius:8,op_trans_pos:'in_bottom',ui_my_bubble:'#b8dfbf',ui_other_bubble:'#ffffff'}};
@@ -110,8 +118,14 @@ saveChatData(cd);
 renderContactList();
 var p=document.getElementById('qaq-chat-main-page');
 if(p){p.classList.add('qaq-page-show');p.style.zIndex='999'}
+else{console.error('[Chat] 找不到聊天主页面元素')}  // ← 添加
+} catch(e) {  // ← 添加
+    console.error('[Chat] 打开页面失败:', e);
+    window.qaqToast && window.qaqToast('打开聊天失败: ' + e.message);
+}
 };
 function bindPageEvents(){
+try {
 var mainP=document.getElementById('qaq-chat-main-page');
 var winP=document.getElementById('qaq-chat-window-page');
 var setP=document.getElementById('qaq-chat-settings-page');
@@ -150,6 +164,9 @@ var extBtn=document.getElementById('qaq-chat-toggle-menu');
 var extMenu=document.getElementById('qaq-chat-ext-menu');
 if(extBtn&&extMenu){extBtn.addEventListener('click',function(){extMenu.style.display=extMenu.style.display==='none'?'grid':'none'})}
 renderExtMenu();
+} catch(e) {  // ← 添加
+    console.error('[Chat] 事件绑定失败:', e);
+}
 }
 function svgI(n){
 var m={
@@ -936,4 +953,10 @@ toast('设置已保存');
 applySettingsLive();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindPageEvents);else bindPageEvents();
+} catch(err) {  // ← 添加这段
+    console.error('[Chat] 模块加载失败:', err);
+    console.error('[Chat] 错误堆栈:', err.stack);
+    window.qaqToast && window.qaqToast('聊天模块加载失败，请查看日志');
+}
+})();
 })();

@@ -374,7 +374,7 @@ document.querySelectorAll('.qaq-app-item').forEach(function (item) {
         console.error('[Index] 聊天函数不存在！');  // ← 添加
         qaqToast('⚠️ 聊天引擎(chat.js)丢失或加载失败！');
     }
-}
+
         } else {
             qaqToast(name);
         }

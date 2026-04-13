@@ -9011,3 +9011,44 @@ body {
     background: white;
     color: #333;
 }
+
+/* ===== 聊天设置折叠优化 ===== */
+.qaq-chat-set-hd{padding:8px 12px;font-size:12px;height:auto;line-height:1.4;display:flex;align-items:center}
+.qaq-collapse-body{transition:max-height 0.3s cubic-bezier(0.4,0,0.2,1),opacity 0.25s ease}
+.qaq-collapsible.qaq-collapsed .qaq-collapse-body{max-height:0!important;opacity:0}
+.qaq-chat-set-bd{padding:0 12px 10px}
+.qaq-chat-set-lbl{font-size:11px;margin-top:3px;margin-bottom:2px}
+.qaq-chat-set-inp,.qaq-chat-set-txt{padding:7px 10px;font-size:12px;height:auto}
+.qaq-chat-set-row-tog{padding:6px 0}
+.qaq-chat-slider{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;background:rgba(0,0,0,0.1);outline:none}
+.qaq-chat-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,#f6e9c9,#fed2e0);cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+.qaq-chat-slider::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,#f6e9c9,#fed2e0);cursor:pointer;border:none;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+.qaq-upload-img-btn,.qaq-upload-font-btn{width:36px;height:36px;border:1px solid rgba(0,0,0,0.08);border-radius:8px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qaq-upload-img-btn:active,.qaq-upload-font-btn:active{transform:scale(0.95)}
+.qaq-color-pick-btn{cursor:pointer;transition:transform 0.15s}
+.qaq-color-pick-btn:active{transform:scale(0.95)}
+.qaq-preset-btn{flex:1;padding:6px;border-radius:6px;border:1px solid rgba(0,0,0,0.08);background:#fff;color:#666;font-size:10px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:3px}
+.qaq-preset-btn:active{transform:scale(0.96)}
+.qaq-theme-dark .qaq-chat-slider{background:rgba(255,255,255,0.1)}
+.qaq-theme-dark .qaq-chat-slider::-webkit-slider-thumb{background:linear-gradient(135deg,#4a3a2a,#5a3a4a)}
+.qaq-theme-dark .qaq-chat-slider::-moz-range-thumb{background:linear-gradient(135deg,#4a3a2a,#5a3a4a)}
+.qaq-theme-dark .qaq-upload-img-btn,.qaq-theme-dark .qaq-upload-font-btn{background:#333;border-color:rgba(255,255,255,0.08)}
+.qaq-theme-dark .qaq-preset-btn{background:#333;border-color:rgba(255,255,255,0.08);color:#aaa}
+.qaq-theme-cool .qaq-chat-slider::-webkit-slider-thumb{background:linear-gradient(135deg,#d0d8e8,#bfc9dd)}
+.qaq-theme-cool .qaq-chat-slider::-moz-range-thumb{background:linear-gradient(135deg,#d0d8e8,#bfc9dd)}
+.qaq-theme-cool .qaq-upload-img-btn,.qaq-theme-cool .qaq-upload-font-btn{border-color:rgba(100,130,180,0.16)}
+.qaq-theme-cool .qaq-preset-btn{border-color:rgba(100,130,180,0.16);color:#4a5b72}
+/* 聊天页面主题跟随 */
+.qaq-theme-dark .qaq-chat-main-page,.qaq-theme-dark .qaq-chat-window-page,.qaq-theme-dark .qaq-chat-settings-page{background:linear-gradient(160deg,#121212 0%,#1a1a1a 25%,#161616 50%,#1c1c1c 75%,#121212 100%)}
+.qaq-theme-cool .qaq-chat-main-page,.qaq-theme-cool .qaq-chat-window-page,.qaq-theme-cool .qaq-chat-settings-page{background:linear-gradient(160deg,#ebeef3 0%,#f0f2f5 25%,#f3f4f7 50%,#eef0f4 75%,#ebeef3 100%)}
+.qaq-theme-dark .qaq-chat-list-item{border-bottom-color:rgba(255,255,255,0.05)}
+.qaq-theme-dark .qaq-chat-list-name{color:#e0e0e0}
+.qaq-theme-dark .qaq-chat-list-preview{color:#888}
+.qaq-theme-dark .qaq-chat-bottom-nav,.qaq-theme-dark .qaq-chat-input-area{background:rgba(30,30,30,0.9);border-color:rgba(255,255,255,0.05)}
+.qaq-theme-dark .qaq-chat-input-box,.qaq-theme-dark .qaq-chat-circle-btn{background:#333;color:#ddd;border-color:rgba(255,255,255,0.1)}
+.qaq-theme-dark .qaq-ext-icon{background:#333;color:#ddd}
+.qaq-theme-dark .qaq-chat-recv-ai-btn{background:#444;color:#aaa}
+.qaq-theme-cool .qaq-chat-list-name{color:#2f4159}
+.qaq-theme-cool .qaq-chat-header{background:rgba(240,243,248,0.85);border-bottom-color:rgba(0,0,0,0.05)}
+.qaq-theme-cool .qaq-chat-header .qaq-settings-title{color:#2f4159}
+.qaq-theme-cool .qaq-chat-input-box{border-color:rgba(100,130,180,0.2)}

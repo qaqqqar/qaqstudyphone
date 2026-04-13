@@ -1,963 +1,1158 @@
-/**
- * js/modules/chat.js
- * QAQ - AI聊天引擎 完全重构版
- */
 (function(){
 'use strict';
-
 console.log('[Chat] 聊天模块开始加载...');
-
-try {
-    var CHAT_STORE_KEY='qaq-chat-store-v4';
-    
-var CHAT_PRESETS_KEY='qaq-chat-presets-v1';
+try{
+var CHAT_STORE_KEY='qaq-chat-store-v5';
+var CHAT_PRESETS_KEY='qaq-chat-presets-v2';
 var activeContactId=null;
-function getCache(k,d){return(window.qaqCacheGet||function(_,d){return d})(k,d)}
+var runtimeStyles={fontUrl:'',fontName:'',globalCss:'',bubbleCss:''};
+function getCache(k,d){return(window.qaqCacheGet||function(_,dd){return dd})(k,d)}
 function setCache(k,v){(window.qaqCacheSet||function(){})(k,v)}
 function toast(m){(window.qaqToast||console.log)(m)}
-function escHTML(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-function getChatData(){return getCache(CHAT_STORE_KEY,{contacts:{},messages:{},globalSettings:{},myProfile:{nickname:'学生',trueName:'',persona:'正在全力攻克外语考试的学习者',avatar:''},friendRequests:[]})}
-function saveChatData(d){setCache(CHAT_STORE_KEY,d)}
-function getPresets(){return getCache(CHAT_PRESETS_KEY,{api:[],voice:[],img:[],persona:[],css_global:[],css_bubble:[]})}
-function savePresets(p){setCache(CHAT_PRESETS_KEY,p)}
+function escHTML(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function uid(p){return(p||'id')+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)}
+function deepClone(v){try{return JSON.parse(JSON.stringify(v))}catch(e){return v}}
+function getGlobalTheme(){
+var t=localStorage.getItem('qaq-theme')||'default';
+return['default','cool','dark'].indexOf(t)>-1?t:'default';
+}
+function getChatData(){
+var d=getCache(CHAT_STORE_KEY,null);
+if(d&&d.version===5)return d;
+d=d||{contacts:{},messages:{},globalSettings:{},myProfile:{displayName:'学生',remark:'',persona:'正在全力攻克外语考试的学习者',avatar:''},friendRequests:[],worldBooks:[]};
+d.version=5;
+if(!d.contacts)d.contacts={};
+if(!d.messages)d.messages={};
+if(!d.globalSettings)d.globalSettings={};
+if(!d.myProfile)d.myProfile={displayName:'学生',remark:'',persona:'正在全力攻克外语考试的学习者',avatar:''};
+if(!d.friendRequests)d.friendRequests=[];
+if(!d.worldBooks)d.worldBooks=[];
+saveChatData(d);
+return d;
+}
+function saveChatData(d){d.version=5;setCache(CHAT_STORE_KEY,d)}
+function getPresets(){
+var d=getCache(CHAT_PRESETS_KEY,null);
+if(d&&d.version===2)return d;
+d=d||{api:[],voice:[],img:[],persona:[],css_global:[],css_bubble:[]};
+d.version=2;
+savePresets(d);
+return d;
+}
+function savePresets(p){p.version=2;setCache(CHAT_PRESETS_KEY,p)}
 function fmtTime(ts,fmt){
-var d=new Date(ts);
+var d=new Date(ts||Date.now());
+var Y=d.getFullYear();
+var mm=String(d.getMonth()+1).padStart(2,'0');
+var dd=String(d.getDate()).padStart(2,'0');
 var H=String(d.getHours()).padStart(2,'0');
 var M=String(d.getMinutes()).padStart(2,'0');
 var S=String(d.getSeconds()).padStart(2,'0');
-var mm=String(d.getMonth()+1).padStart(2,'0');
-var dd=String(d.getDate()).padStart(2,'0');
 if(fmt==='HH:mm:ss')return H+':'+M+':'+S;
 if(fmt==='MM-DD HH:mm')return mm+'-'+dd+' '+H+':'+M;
+if(fmt==='YYYY-MM-DD HH:mm')return Y+'-'+mm+'-'+dd+' '+H+':'+M;
 return H+':'+M;
 }
-function getThemeClass(){
-var f=document.querySelector('.qaq-phone-frame');
-if(!f)return'';
-if(f.classList.contains('qaq-theme-dark'))return'dark';
-if(f.classList.contains('qaq-theme-cool'))return'cool';
-return'';
+function fmtMemoryTitle(ts){
+var d=new Date(ts||Date.now());
+return d.getFullYear()+'年'+String(d.getMonth()+1).padStart(2,'0')+'月'+String(d.getDate()).padStart(2,'0')+'日 '+String(d.getHours()).padStart(2,'0')+'时'+String(d.getMinutes()).padStart(2,'0')+'分';
 }
-function modalBg(){var t=getThemeClass();if(t==='dark')return'background:#2a2a2a;color:#e0e0e0;';if(t==='cool')return'background:#f0f2f5;color:#2f4159;';return'background:#fff;color:#333;'}
-function modalInpStyle(){var t=getThemeClass();if(t==='dark')return'background:#333;border-color:#444;color:#ddd;';if(t==='cool')return'border-color:rgba(100,130,180,0.2);';return''}
-function modalBtnStyle(){var t=getThemeClass();if(t==='dark')return'background:linear-gradient(135deg,#4a3a2a,#5a3a4a);color:#d0b8a8;';if(t==='cool')return'background:linear-gradient(135deg,#d0d8e8,#bfc9dd);color:#3a4a60;';return'background:linear-gradient(135deg,#f6e9c9,#fed2e0);color:#8a6050;'}
+function currentThemeClass(){
+var frame=document.querySelector('.qaq-phone-frame');
+if(!frame)return'';
+if(frame.classList.contains('qaq-theme-dark'))return'dark';
+if(frame.classList.contains('qaq-theme-cool'))return'cool';
+return'default';
+}
+function applyPageTheme(){
+var frame=document.querySelector('.qaq-phone-frame');
+if(!frame)return;
+['qaq-theme-dark','qaq-theme-cool'].forEach(function(c){
+document.querySelectorAll('.qaq-chat-main-page,.qaq-chat-window-page,.qaq-chat-settings-page').forEach(function(p){p.classList.remove(c)});
+});
+if(frame.classList.contains('qaq-theme-dark')){
+document.querySelectorAll('.qaq-chat-main-page,.qaq-chat-window-page,.qaq-chat-settings-page').forEach(function(p){p.classList.add('qaq-theme-dark')});
+}else if(frame.classList.contains('qaq-theme-cool')){
+document.querySelectorAll('.qaq-chat-main-page,.qaq-chat-window-page,.qaq-chat-settings-page').forEach(function(p){p.classList.add('qaq-theme-cool')});
+}
+}
+function ensureDemoData(){
+var cd=getChatData();
+if(!Object.keys(cd.contacts).length){
+cd.contacts.ai_tutor={id:'ai_tutor',displayName:'Alice',remark:'外语陪练员 Alice',avatar:'',isTop:true,updateTime:Date.now(),blocked:false,deleted:false,configs:{op_persona:'你是一名极其开朗且平易近人的金牌英语外教。',ui_bubble_radius:14,ui_avatar_radius:10,op_trans_pos:'in_bottom',ui_my_bubble:'#b8dfbf',ui_other_bubble:'#ffffff',u_theme:getGlobalTheme(),ui_avatar_show:'all',ui_show_time:'true',u_time_pos:'top',u_time_fmt:'HH:mm',u_menu_pos:'top',mem_max:20,o_mem_summary:false,o_mem_summary_cnt:50,o_img_prompt_pos:'masterpiece,best quality,ultra detailed,beautiful lighting,sharp focus,cinematic composition',o_img_prompt_neg:'low quality,blurry,distorted,deformed,ugly,watermark,text,logo,extra fingers,bad anatomy'}};
+cd.messages.ai_tutor=[{id:uid('msg'),text:"I'm always by your side! What are we going to practice today?",isMe:false,time:Date.now()-3600000,translated:'我会一直陪在你身旁！今天咱们想怎么练习呢？'}];
+saveChatData(cd);
+}
+}
 function showHtmlModal(title,bodyHtml,onConfirm,opts){
 opts=opts||{};
 var ov=document.getElementById('qaq-modal-overlay');
-var md=document.getElementById('qaq-modal');
 var mt=document.getElementById('qaq-modal-title');
 var mb=document.getElementById('qaq-modal-body');
-var mbt=document.getElementById('qaq-modal-btns');
-if(!ov||!md)return;
-mt.textContent=title;
-mb.innerHTML=bodyHtml;
-var btns='<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-chat-modal-ccl">取消</button>';
-btns+='<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-chat-modal-cfm">'+(opts.confirmText||'确定')+'</button>';
-mbt.innerHTML=btns;
-ov.style.display='flex';
-setTimeout(function(){ov.classList.add('qaq-modal-show')},10);
-function close(){ov.classList.remove('qaq-modal-show');setTimeout(function(){ov.style.display='none'},250)}
-document.getElementById('qaq-chat-modal-ccl').onclick=function(){close();if(opts.onCancel)opts.onCancel()};
-document.getElementById('qaq-chat-modal-cfm').onclick=function(){if(onConfirm)onConfirm();close()};
+var mbs=document.getElementById('qaq-modal-btns');
+if(!ov||!mt||!mb||!mbs)return;
+mt.textContent=title||'提示';
+mb.innerHTML=bodyHtml||'';
+mbs.innerHTML='<button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-chat-modal-ccl">'+(opts.cancelText||'取消')+'</button>'+(opts.hideConfirm?'':'<button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-chat-modal_cfm">'+(opts.confirmText||'确定')+'</button>');
+if(window.qaqOpenModal)window.qaqOpenModal();else{ov.style.display='flex';setTimeout(function(){ov.classList.add('qaq-modal-show')},10)}
+var ccl=document.getElementById('qaq-chat-modal-ccl');
+var cfm=document.getElementById('qaq-chat-modal_cfm');
+if(ccl)ccl.onclick=function(){if(opts.onCancel)opts.onCancel();if(window.qaqCloseModal)window.qaqCloseModal();};
+if(cfm)cfm.onclick=function(){var ret=onConfirm&&onConfirm();if(ret===false)return;if(window.qaqCloseModal)window.qaqCloseModal();};
 if(opts.afterRender)opts.afterRender();
 }
-// 生成记忆总结的system prompt
+function openSelectModal(title,list,currentValue,onPick,labelFn){
+showHtmlModal(title,'<div class="qaq-custom-select-list">'+list.map(function(it){
+var v=typeof it==='string'?it:it.value;
+var l=typeof it==='string'?(labelFn?labelFn(it):it):(it.label||it.value);
+var act=v===currentValue;
+return'<div class="qaq-custom-select-option'+(act?' qaq-custom-select-active':'')+'" data-v="'+escHTML(v)+'"><span>'+escHTML(l)+'</span>'+(act?'<span style="color:#c47068;">✓</span>':'')+'</div>';
+}).join('')+'</div>',null,{hideConfirm:true,afterRender:function(){
+document.querySelectorAll('.qaq-custom-select-option[data-v]').forEach(function(el){
+el.onclick=function(){
+var v=this.getAttribute('data-v');
+if(onPick)onPick(v);
+if(window.qaqCloseModal)window.qaqCloseModal();
+};
+});
+}});
+}
+function openColorModal(title,currentValue,onPick){
+var colors=['#fce8e2','#b8dfbf','#dce4f0','#ffffff','#f4f5f7','#fdfaec','#111111','#333333','#d0d8e8','#bfc9dd','#ffd9c9','#e9c8ff'];
+var html='<div class="qaq-custom-select-list">'+colors.map(function(c){
+return'<div class="qaq-custom-select-option" data-color="'+c+'"><span style="display:flex;align-items:center;gap:10px;"><span style="width:18px;height:18px;border-radius:50%;background:'+c+';border:1px solid rgba(0,0,0,0.08);display:inline-block;"></span>'+c+'</span>'+(c===currentValue?'<span style="color:#c47068;">✓</span>':'')+'</div>';
+}).join('')+'</div><div style="margin-top:10px;"><input class="qaq-modal-input" id="qaq-chat-color-input" value="'+escHTML(currentValue||'#333333')+'" placeholder="#RRGGBB"></div>';
+showHtmlModal(title,html,function(){
+var v=(document.getElementById('qaq-chat-color-input').value||'').trim();
+if(!v)return false;
+onPick(v);
+},{afterRender:function(){
+document.querySelectorAll('[data-color]').forEach(function(el){
+el.onclick=function(){
+var v=this.getAttribute('data-color');
+document.getElementById('qaq-chat-color-input').value=v;
+};
+});
+}});
+}
+function uploadLocalFile(accept,cb,mode){
+var inp=document.createElement('input');
+inp.type='file';
+inp.accept=accept||'*/*';
+inp.onchange=function(){
+if(!this.files||!this.files[0])return;
+var file=this.files[0];
+var reader=new FileReader();
+reader.onload=function(e){
+if(cb)cb(e.target.result,file);
+};
+if(mode==='text')reader.readAsText(file);
+else reader.readAsDataURL(file);
+};
+inp.click();
+}
+function getApiBase(s,kind){
+if(kind==='voice')return{url:s.o_voice_url||'',key:s.o_voice_key||'',model:s.o_voice_model||'speech-02-hd'};
+if(kind==='img')return{url:s.o_img_url||'',key:s.o_img_key||'',model:s.o_img_model||''};
+return{url:s.o_api_url||((JSON.parse(localStorage.getItem('qaq-api-config')||'{}')).url||''),key:s.o_api_key||((JSON.parse(localStorage.getItem('qaq-api-config')||'{}')).key||''),model:s.o_api_model||((JSON.parse(localStorage.getItem('qaq-api-config')||'{}')).model||'')};
+}
+function normalizeApiUrl(url){return String(url||'').replace(/\/$/,'')}
+function buildImageGenPrompt(positive,negative){
+return[
+'You are an image prompt combiner.',
+'Your task is to merge the positive and negative prompts into a single structured instruction for image generation.',
+'You must fully preserve both the positive prompt and the negative prompt.',
+'Positive prompt defines what should appear. Negative prompt defines what must be avoided.',
+'Return plain text only.',
+'Positive prompt: '+(positive||'masterpiece,best quality,ultra detailed,beautiful lighting,sharp focus,cinematic composition'),
+'Negative prompt: '+(negative||'low quality,blurry,distorted,deformed,ugly,watermark,text,logo,extra fingers,bad anatomy')
+].join('\n');
+}
 function buildMemorySummaryPrompt(contactName,messages,count){
 var recent=messages.slice(-count);
-var chatLog=recent.map(function(m){return(m.isMe?'用户':'角色('+contactName+')')+': '+m.text}).join('\n');
-return `你是一名记忆总结助手。请将以下聊天记录总结为结构化的世界书条目格式。
-格式要求：
-- 每条记忆以时间戳开头：YYYY年MM月DD日 HH时mm分
-- 总结内容包括：关键事件、情感变化、重要信息、约定事项
-- 语言简洁准确，每条不超过100字
-- 按时间顺序排列
-
-聊天记录：
-${chatLog}
-
-请生成总结：`;
+var chatLog=recent.map(function(m){
+return(m.isMe?'用户':'角色('+contactName+')')+'：'+m.text+(m.translated?(' / 翻译：'+m.translated):'');
+}).join('\n');
+return[
+'你是一名记忆总结助手，负责把聊天记录总结成适合挂载到世界书中的长期记忆条目。',
+'要求：',
+'1. 总结最近对话中的关键事件、人物关系变化、情感变化、约定事项、长期偏好、重要事实。',
+'2. 每条总结必须使用如下格式：',
+'xxxx年xx月xx日xx时xx分：总结内容',
+'3. 时间请结合当前时间与对话时间，使用中文时间格式。',
+'4. 每条内容简洁明确，单条尽量控制在100字以内。',
+'5. 只输出总结内容，不要解释，不要markdown，不要编号标题。',
+'6. 如果没有足够有效信息，则输出“无有效长期记忆”。',
+'以下是需要总结的聊天记录：',
+chatLog
+].join('\n');
 }
-// 生图system prompt
-function buildImageGenPrompt(positive,negative){
-return `Generate an image based on the following prompts.
-Positive prompt (what to include): ${positive||'high quality, detailed, beautiful'}
-Negative prompt (what to avoid): ${negative||'low quality, blurry, distorted, ugly, watermark'}
-Combine both prompts to create the best possible image.`;
-}
-// 聊天system prompt
 window.qaqBuildChatSystemPrompt=function(contactId){
 var cd=getChatData();
 var c=cd.contacts[contactId]||{};
 var s=Object.assign({},cd.globalSettings||{},c.configs||{});
-var p=cd.myProfile;
-var base=s.op_persona||'你是我的高级外教陪练导师。';
-var fmt=`\n[严重指令优先级最高] 这是一个专业的外语陪伴学习端。
-* 你的当前角色代称是「${escHTML(c.remark||c.nickname||'AI导师')}」。
-* 而我是「${escHTML(p.trueName||p.nickname||'学生')}」，我的人设：${escHTML(p.persona||'普通的语言学习者')}。
-* 语言纯正：如果对话是外语，请严格运用母语者口吻。\n`;
+var me=cd.myProfile||{};
+var otherName=c.remark||c.displayName||'AI角色';
+var myName=me.displayName||'学生';
+var otherPersona=s.op_persona||'你是我的高级外教陪练导师。';
+var myPersona=me.persona||'普通的语言学习者';
+var wb=(s.o_worldbook_bound_name||'')?('\n* 当前绑定世界书：'+s.o_worldbook_bound_name+'。请将其中内容视为设定记忆。'):'';
 var tr=s.op_trans_pos||'in_bottom';
+var base=[
+'你正在一个长期陪伴聊天系统中扮演固定角色。',
+'你的角色名：'+otherName,
+'你的角色人设：'+otherPersona,
+'用户名字：'+myName,
+'用户人设：'+myPersona,
+'必须同时牢记双方人设并据此稳定回复。',
+'如果是外语学习场景，请用自然母语者口吻交流，兼顾教学与陪伴。'+wb
+].join('\n');
 if(tr!=='hide'){
-fmt+=`\n* 双语返回规章：响应为纯净JSON（不带markdown修饰）：
-{"original_text":"【外文原文】","translation":"【中文译文】"}\n`;
-}else{
-fmt+='\n* 请完全用目标语种沟通，返回纯文本。\n';
+return base+'\n请严格返回JSON纯文本，不要markdown：{"original_text":"外文原文","translation":"中文翻译"}';
 }
-return base+fmt;
+return base+'\n请直接输出纯文本回复，不要markdown，不要JSON。';
 };
-// ===== 页面事件绑定 =====
-window.qaqOpenChatPage=function(){
-try {
+function ensureWorldBookStore(cd){
+if(!cd.worldBooks)cd.worldBooks=[];
+return cd.worldBooks;
+}
+function findOrCreateMemoryBook(contact){
 var cd=getChatData();
-if(!Object.keys(cd.contacts).length){
-cd.contacts['ai_tutor']={id:'ai_tutor',nickname:'Alice',remark:'外语陪练员 Alice',avatar:'',isTop:true,updateTime:Date.now(),blocked:false,deleted:false,configs:{op_persona:'你是一名极其开朗且平易近人的金牌英语外教。',ui_bubble_radius:12,ui_avatar_radius:8,op_trans_pos:'in_bottom',ui_my_bubble:'#b8dfbf',ui_other_bubble:'#ffffff'}};
-cd.messages['ai_tutor']=[{id:1,text:"I'm always by your side! What are we going to practice today?",isMe:false,time:Date.now()-36000,translated:'我会一直陪在你身旁！今天咱们想怎么练习呢？'}];
+var arr=ensureWorldBookStore(cd);
+var name=(contact.remark||contact.displayName||'角色')+'-记忆';
+var hit=arr.find(function(x){return x.name===name});
+if(!hit){
+hit={id:uid('wb'),name:name,type:'memory',entries:[],createdAt:Date.now(),updatedAt:Date.now()};
+arr.unshift(hit);
+}
+saveChatData(cd);
+return hit;
+}
+function appendMemoryEntries(bookId,lines){
+var cd=getChatData();
+var arr=ensureWorldBookStore(cd);
+var hit=arr.find(function(x){return x.id===bookId});
+if(!hit)return;
+lines.forEach(function(line){
+hit.entries.unshift({id:uid('m'),text:line,createdAt:Date.now()});
+});
+hit.updatedAt=Date.now();
 saveChatData(cd);
 }
-renderContactList();
-var p=document.getElementById('qaq-chat-main-page');
-if(p){p.classList.add('qaq-page-show');p.style.zIndex='999'}
-else{console.error('[Chat] 找不到聊天主页面元素')}  // ← 添加
-} catch(e) {  // ← 添加
-    console.error('[Chat] 打开页面失败:', e);
-    window.qaqToast && window.qaqToast('打开聊天失败: ' + e.message);
-}
-};
-function bindPageEvents(){
-try {
-var mainP=document.getElementById('qaq-chat-main-page');
-var winP=document.getElementById('qaq-chat-window-page');
-var setP=document.getElementById('qaq-chat-settings-page');
-document.getElementById('qaq-chat-main-back')?.addEventListener('click',function(){if(mainP)mainP.classList.remove('qaq-page-show')});
-document.getElementById('qaq-chat-win-back')?.addEventListener('click',function(){renderContactList();if(winP)winP.classList.remove('qaq-page-show');if(mainP)mainP.classList.add('qaq-page-show')});
-document.getElementById('qaq-chat-set-back')?.addEventListener('click',function(){applySettingsLive();renderMessages();if(setP)setP.classList.remove('qaq-page-show');if(winP)winP.classList.add('qaq-page-show')});
-document.getElementById('qaq-chat-win-set-btn')?.addEventListener('click',function(){renderSettings();if(setP){setP.classList.add('qaq-page-show');setP.style.zIndex='999'}});
-// 右上角加号菜单
-var addBtn=document.getElementById('qaq-chat-top-add-btn');
-if(addBtn&&mainP){
-var pop=document.createElement('div');pop.className='qaq-chat-pop-menu';
-pop.innerHTML='<div class="qaq-chat-pop-item" id="qaq-chat-add-ai">'+svgI('user-plus')+' 添加陪练AI</div><div class="qaq-chat-pop-item" id="qaq-chat-add-group">'+svgI('users')+' 发起群聊</div>';
-mainP.appendChild(pop);
-addBtn.addEventListener('click',function(e){e.stopPropagation();pop.classList.toggle('qaq-show')});
-mainP.addEventListener('click',function(){pop.classList.remove('qaq-show')});
-document.getElementById('qaq-chat-add-group').addEventListener('click',function(e){e.stopPropagation();pop.classList.remove('qaq-show');toast('群聊功能开发中')});
-document.getElementById('qaq-chat-add-ai').addEventListener('click',function(e){
-e.stopPropagation();pop.classList.remove('qaq-show');
-showHtmlModal('添加陪练AI','<div style="display:flex;flex-direction:column;gap:10px"><label style="font-size:12px;color:#888">昵称</label><input class="qaq-modal-input" id="qaq-add-name" placeholder="如：雅思考官"><label style="font-size:12px;color:#888">人设</label><textarea class="qaq-modal-textarea" id="qaq-add-persona" placeholder="如：毒舌且阴阳怪气的考官" style="height:60px"></textarea></div>',function(){
-var n=document.getElementById('qaq-add-name').value.trim()||'不具名陪读';
-var pe=document.getElementById('qaq-add-persona').value.trim()||'我是一名专业的学习助理。';
-var cd=getChatData();var nid='ai_'+Date.now();
-cd.contacts[nid]={id:nid,nickname:n,remark:n,avatar:'',isTop:false,updateTime:Date.now(),blocked:false,deleted:false,configs:{op_persona:pe}};
-saveChatData(cd);renderContactList();toast('已添加：'+n);
-});
-});
-}
-// 发送
-document.getElementById('qaq-chat-send-btn')?.addEventListener('click',sendMsg);
-var box=document.getElementById('qaq-chat-input-box');
-if(box)box.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg()}});
-// 接收AI
-document.getElementById('qaq-chat-recv-ai-btn')?.addEventListener('click',recvAI);
-// 扩展菜单
-var extBtn=document.getElementById('qaq-chat-toggle-menu');
-var extMenu=document.getElementById('qaq-chat-ext-menu');
-if(extBtn&&extMenu){extBtn.addEventListener('click',function(){extMenu.style.display=extMenu.style.display==='none'?'grid':'none'})}
-renderExtMenu();
-} catch(e) {  // ← 添加
-    console.error('[Chat] 事件绑定失败:', e);
-}
-}
-function svgI(n){
-var m={
-'user-plus':'<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>',
-'users':'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
-'download':'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
-'upload':'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
-'save':'<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>',
-'trash':'<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
-'refresh':'<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>',
-'image':'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
-'folder':'<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>'
-};
-return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(m[n]||'')+'</svg>';
-}
-function renderExtMenu(){
-var m=document.getElementById('qaq-chat-ext-menu');if(!m)return;
-m.innerHTML=[{n:'照片',i:'image'},{n:'听译',i:'download'},{n:'纠错',i:'save'},{n:'剧场',i:'folder'}].map(function(f){
-return '<div class="qaq-ext-item" onclick="(window.qaqToast||alert)(\''+f.n+'开发中\')"><div class="qaq-ext-icon">'+svgI(f.i)+'</div><div class="qaq-ext-label">'+f.n+'</div></div>';
-}).join('');
-}
-// ===== 联系人列表 =====
-function renderContactList(){
+function bindMemoryBook(contactId,book){
 var cd=getChatData();
-var el=document.getElementById('qaq-chat-contact-list');if(!el)return;
+var c=cd.contacts[contactId];
+if(!c)return;
+if(!c.configs)c.configs={};
+c.configs.o_worldbook=book.id;
+c.configs.o_worldbook_bound_name=book.name;
+saveChatData(cd);
+}
+async function autoSummarizeMemory(contactId){
+var cd=getChatData();
+var c=cd.contacts[contactId];
+if(!c)return;
+var s=c.configs||{};
+if(!s.o_mem_summary)return;
+var cnt=Math.max(50,Math.min(100,parseInt(s.o_mem_summary_cnt,10)||50));
+var msgs=(cd.messages[contactId]||[]);
+if(!msgs.length||msgs.length<cnt)return;
+var lastDone=s._lastSummaryMsgCount||0;
+if(msgs.length-lastDone<cnt)return;
+var api=getApiBase(s,'api');
+if(!api.url||!api.key||!api.model){toast('自动总结失败：缺少专属/全局API');return;}
+var prompt=buildMemorySummaryPrompt(c.remark||c.displayName||'角色',msgs.slice(-cnt),cnt);
+try{
+toast('正在自动总结记忆...');
+var res=await fetch(normalizeApiUrl(api.url)+'/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+api.key,'Content-Type':'application/json'},body:JSON.stringify({model:api.model,messages:[{role:'system',content:'你是一个擅长抽取长期记忆的总结器。'},{role:'user',content:prompt}],temperature:0.5})}).then(function(r){return r.json()});
+var text=((res.choices&&res.choices[0]&&res.choices[0].message&&res.choices[0].message.content)||'').trim();
+if(!text)return;
+var lines=text.split(/\n+/).map(function(x){return x.trim()}).filter(Boolean).filter(function(x){return x!=='无有效长期记忆'});
+if(!lines.length){c.configs._lastSummaryMsgCount=msgs.length;saveChatData(cd);return;}
+var book=findOrCreateMemoryBook(c);
+appendMemoryEntries(book.id,lines);
+bindMemoryBook(contactId,book);
+cd=getChatData();
+cd.contacts[contactId].configs._lastSummaryMsgCount=msgs.length;
+saveChatData(cd);
+toast('已自动总结并挂载记忆世界书');
+}catch(e){
+console.error('[Chat] 自动总结失败',e);
+toast('自动总结失败');
+}
+}
+function renderContactList(){
+applyPageTheme();
+var cd=getChatData();
+var el=document.getElementById('qaq-chat-contact-list');
+if(!el)return;
 var arr=Object.values(cd.contacts).filter(function(c){return!c.deleted});
-arr.sort(function(a,b){if(a.isTop!==b.isTop)return a.isTop?-1:1;return(b.updateTime||0)-(a.updateTime||0)});
-if(!arr.length){el.innerHTML='<div style="text-align:center;color:#aaa;padding:60px">点击右上方+添加陪练AI</div>';return}
-var dAva="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23e8e8ec'/%3E%3C/svg%3E";
+arr.sort(function(a,b){if(!!a.isTop!==!!b.isTop)return a.isTop?-1:1;return(b.updateTime||0)-(a.updateTime||0)});
 el.innerHTML='';
+var fr=(cd.friendRequests||[]).filter(function(x){return!x.done});
+if(fr.length){
+var frDiv=document.createElement('div');
+frDiv.className='qaq-chat-list-item';
+frDiv.innerHTML='<div class="qaq-chat-list-avatar" style="display:flex;align-items:center;justify-content:center;background:rgba(196,112,104,0.12);font-size:20px;">📩</div><div class="qaq-chat-list-info"><div class="qaq-chat-list-top-row"><div class="qaq-chat-list-name">新朋友</div><div class="qaq-chat-list-time">'+fr.length+'条</div></div><div class="qaq-chat-list-preview">查看好友申请</div></div>';
+frDiv.onclick=showFriendRequests;
+el.appendChild(frDiv);
+}
+if(!arr.length){
+el.innerHTML+='<div style="text-align:center;color:#aaa;padding:60px 20px;">点击右上角 + 添加陪练AI</div>';
+return;
+}
+var dAva="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23e8e8ec'/%3E%3C/svg%3E";
 arr.forEach(function(c){
 var s=c.configs||{};
 var msgs=cd.messages[c.id]||[];
-var lst=msgs.length?msgs[msgs.length-1]:null;
-var rR=s.ui_avatar_radius!==undefined?s.ui_avatar_radius:10;
+var last=msgs[msgs.length-1];
 var div=document.createElement('div');
 div.className='qaq-chat-list-item'+(c.isTop?' qaq-top':'');
-div.innerHTML='<img class="qaq-chat-list-avatar" src="'+(c.avatar||dAva)+'" style="border-radius:'+rR+'px"><div class="qaq-chat-list-info"><div class="qaq-chat-list-top-row"><div class="qaq-chat-list-name">'+escHTML(c.remark||c.nickname)+'</div><div class="qaq-chat-list-time">'+(lst?fmtTime(lst.time):'')+' </div></div><div class="qaq-chat-list-preview">'+escHTML(lst?(lst.text||'[消息]'):'等候您的问候')+'</div></div>';
+div.innerHTML='<img class="qaq-chat-list-avatar" src="'+escHTML(c.avatar||dAva)+'" style="border-radius:'+(s.ui_avatar_radius!=null?s.ui_avatar_radius:10)+'px"><div class="qaq-chat-list-info"><div class="qaq-chat-list-top-row"><div class="qaq-chat-list-name">'+escHTML(c.remark||c.displayName||'未命名角色')+'</div><div class="qaq-chat-list-time">'+(last?fmtTime(last.time,'HH:mm'):'')+'</div></div><div class="qaq-chat-list-preview">'+escHTML(last?last.text:'等候您的问候')+'</div></div>';
 div.onclick=function(){openChat(c.id)};
-// 长按删除/置顶
 div.addEventListener('contextmenu',function(e){
 e.preventDefault();
-showHtmlModal('操作','<div style="display:flex;flex-direction:column;gap:8px"><button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-cl-top">'+(c.isTop?'取消置顶':'置顶')+'</button><button class="qaq-modal-btn qaq-modal-btn-cancel" id="qaq-cl-del" style="color:#d9534f">删除角色</button></div>',null,{
-afterRender:function(){
-document.getElementById('qaq-cl-top').onclick=function(){c.isTop=!c.isTop;saveChatData(cd);renderContactList();document.getElementById('qaq-chat-modal-ccl').click()};
-document.getElementById('qaq-cl-del').onclick=function(){document.getElementById('qaq-chat-modal-ccl').click();showHtmlModal('确认删除','<p style="font-size:13px">确认删除「'+escHTML(c.remark||c.nickname)+'」及所有聊天记录？此操作不可恢复。</p>',function(){c.deleted=true;delete cd.messages[c.id];saveChatData(cd);renderContactList();toast('已删除')})};
-}});
+openContactMenu(c.id);
 });
 el.appendChild(div);
 });
-// 好友申请通知
-var fr=cd.friendRequests||[];
-if(fr.length){
-var frDiv=document.createElement('div');frDiv.style.cssText='padding:12px 16px;font-size:12px;color:#c47068;cursor:pointer;border-bottom:1px solid rgba(0,0,0,0.04)';
-frDiv.textContent='📩 '+fr.length+' 条好友申请';
-frDiv.onclick=function(){showFriendRequests()};
-el.insertBefore(frDiv,el.firstChild);
 }
+function openContactMenu(cid){
+var cd=getChatData();
+var c=cd.contacts[cid];
+if(!c)return;
+showHtmlModal('联系人操作','<div class="qaq-custom-select-list"><div class="qaq-custom-select-option" id="qaq-chat-op-top"><span>'+(c.isTop?'取消置顶':'置顶')+'</span></div><div class="qaq-custom-select-option" id="qaq-chat-op-block"><span>'+(c.blocked?'取消拉黑':'拉黑角色')+'</span></div><div class="qaq-custom-select-option" id="qaq-chat-op-del"><span style="color:#d9534f;">删除角色</span></div></div>',null,{hideConfirm:true,afterRender:function(){
+document.getElementById('qaq-chat-op-top').onclick=function(){c.isTop=!c.isTop;saveChatData(cd);renderContactList();window.qaqCloseModal&&window.qaqCloseModal();};
+document.getElementById('qaq-chat-op-block').onclick=function(){c.blocked=!c.blocked;saveChatData(cd);renderContactList();window.qaqCloseModal&&window.qaqCloseModal();toast(c.blocked?'已拉黑':'已取消拉黑');};
+document.getElementById('qaq-chat-op-del').onclick=function(){window.qaqCloseModal&&window.qaqCloseModal();confirmDeleteRole(cid);};
+}});
 }
 function showFriendRequests(){
-var cd=getChatData();var fr=cd.friendRequests||[];
-if(!fr.length){toast('暂无好友申请');return}
-var h=fr.map(function(r,i){return '<div style="display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid rgba(0,0,0,0.04)"><span style="flex:1;font-size:13px">'+escHTML(r.name)+' 请求添加好友</span><button class="qaq-modal-btn qaq-modal-btn-confirm" style="flex:0;padding:0 12px;height:30px;font-size:11px" data-fri="'+i+'">接受</button></div>'}).join('');
-showHtmlModal('好友申请',h,null,{afterRender:function(){
-document.querySelectorAll('[data-fri]').forEach(function(b){b.onclick=function(){
-var idx=parseInt(this.dataset.fri);
-var req=cd.friendRequests[idx];if(!req)return;
-// 解除拉黑
-if(cd.contacts[req.cid]){cd.contacts[req.cid].blocked=false}
-cd.friendRequests.splice(idx,1);saveChatData(cd);
-toast('已接受');document.getElementById('qaq-chat-modal-ccl').click();renderContactList();
-}});
+var cd=getChatData();
+var list=(cd.friendRequests||[]).filter(function(x){return!x.done});
+if(!list.length){toast('暂无好友申请');return;}
+var html='<div class="qaq-custom-select-list">'+list.map(function(r,i){
+return'<div class="qaq-custom-select-option" data-fr="'+i+'" style="display:block;"><div style="font-size:13px;color:#333;">'+escHTML(r.name)+' 请求添加好友</div><div style="font-size:11px;color:#999;margin-top:4px;">来源角色：'+escHTML(r.name)+'</div><div style="margin-top:8px;display:flex;gap:8px;"><button class="qaq-modal-btn qaq-modal-btn-confirm" data-fr-ok="'+i+'" style="height:32px;font-size:12px;">接受</button><button class="qaq-modal-btn qaq-modal-btn-cancel" data-fr-no="'+i+'" style="height:32px;font-size:12px;">忽略</button></div></div>';
+}).join('')+'</div>';
+showHtmlModal('新朋友',html,null,{hideConfirm:true,afterRender:function(){
+document.querySelectorAll('[data-fr-ok]').forEach(function(b){
+b.onclick=function(e){
+e.stopPropagation();
+var i=parseInt(this.getAttribute('data-fr-ok'),10);
+var fr=list[i];
+if(!fr)return;
+var real=cd.friendRequests.find(function(x){return x.id===fr.id});
+if(real)real.done=true;
+if(cd.contacts[fr.cid])cd.contacts[fr.cid].blocked=false;
+saveChatData(cd);
+toast('已接受好友申请');
+window.qaqCloseModal&&window.qaqCloseModal();
+renderContactList();
+if(activeContactId===fr.cid)renderMessages();
+};
+});
+document.querySelectorAll('[data-fr-no]').forEach(function(b){
+b.onclick=function(e){
+e.stopPropagation();
+var i=parseInt(this.getAttribute('data-fr-no'),10);
+var fr=list[i];
+if(!fr)return;
+var real=cd.friendRequests.find(function(x){return x.id===fr.id});
+if(real)real.done=true;
+saveChatData(cd);
+toast('已忽略');
+window.qaqCloseModal&&window.qaqCloseModal();
+renderContactList();
+};
+});
 }});
 }
-// ===== 聊天窗口 =====
 function openChat(cid){
 activeContactId=cid;
-var cd=getChatData();var c=cd.contacts[cid];
-var s=Object.assign({},cd.globalSettings||{},c.configs||{});
-document.getElementById('qaq-chat-win-title').textContent=c.remark||c.nickname;
-applySettingsLive();
+applyPageTheme();
+var mainP=document.getElementById('qaq-chat-main-page');
 var winP=document.getElementById('qaq-chat-window-page');
-if(winP){winP.classList.add('qaq-page-show');winP.style.zIndex='999'}
+var cd=getChatData();
+var c=cd.contacts[cid];
+if(!c)return;
+document.getElementById('qaq-chat-win-title').textContent=c.remark||c.displayName||'聊天';
+if(mainP)mainP.classList.remove('qaq-page-show');
+if(winP){winP.classList.add('qaq-page-show');winP.style.zIndex='999';}
+applySettingsLive();
 renderMessages();
-// 拉黑提示
-var inputArea=document.getElementById('qaq-chat-input-area');
-var oldTip=document.getElementById('qaq-chat-block-tip');
-if(oldTip)oldTip.remove();
-if(c.blocked){
-var tip=document.createElement('div');tip.id='qaq-chat-block-tip';
-tip.style.cssText='text-align:center;font-size:11px;color:#999;padding:8px;background:rgba(0,0,0,0.02)';
-tip.textContent='你已拉黑 '+escHTML(c.remark||c.nickname);
-if(inputArea)inputArea.parentNode.insertBefore(tip,inputArea);
+renderFriendTipInChat();
+}
+function renderFriendTipInChat(){
+var cd=getChatData();
+var c=cd.contacts[activeContactId];
+var wrap=document.getElementById('qaq-chat-friend-request-tip-wrap');
+if(!wrap)return;
+wrap.innerHTML='';
+var hasPending=(cd.friendRequests||[]).some(function(x){return x.cid===activeContactId&&!x.done});
+if(hasPending){
+wrap.innerHTML='<div style="margin:8px 16px 0;padding:10px 12px;border-radius:10px;background:rgba(91,155,213,0.08);font-size:12px;color:#5b9bd5;cursor:pointer;">该角色向你发送了好友申请，点击查看</div>';
+wrap.firstChild.onclick=showFriendRequests;
 }
 }
 function applySettingsLive(){
 if(!activeContactId)return;
-var cd=getChatData();var c=cd.contacts[activeContactId]||{};
-var s=Object.assign({},cd.globalSettings||{},c.configs||{});
+var cd=getChatData();
+var c=cd.contacts[activeContactId]||{};
+var s=Object.assign({u_theme:getGlobalTheme()},cd.globalSettings||{},c.configs||{});
 document.documentElement.style.setProperty('--chat-my-bub',s.ui_my_bubble||'#fce8e2');
 document.documentElement.style.setProperty('--chat-oth-bub',s.ui_other_bubble||'#ffffff');
-var rBtn=document.getElementById('qaq-chat-recv-ai-btn');
-var mBtn=document.getElementById('qaq-chat-toggle-menu');
-if(rBtn)rBtn.style.display=s.ui_hide_rbtn?'none':'block';
-if(mBtn)mBtn.style.display=s.ui_hide_mbtn?'none':'flex';
+var recvBtn=document.getElementById('qaq-chat-recv-ai-btn');
+var menuBtn=document.getElementById('qaq-chat-toggle-menu');
+var extMenu=document.getElementById('qaq-chat-ext-menu');
+var inputWrap=document.getElementById('qaq-chat-input-row');
+if(recvBtn)recvBtn.style.display=s.ui_hide_rbtn?'none':'';
+if(menuBtn)menuBtn.style.display=s.ui_hide_mbtn?'none':'flex';
+if(extMenu&&inputWrap){
+if((s.u_menu_pos||'top')==='bottom'){
+inputWrap.parentNode.appendChild(extMenu);
+}else{
+inputWrap.parentNode.insertBefore(extMenu,inputWrap);
+}
+}
+applyChatThemeToPages(s.u_theme||getGlobalTheme());
+applyRuntimeStyles(s);
+renderBlockedTip();
+}
+function applyChatThemeToPages(theme){
+var pages=document.querySelectorAll('.qaq-chat-main-page,.qaq-chat-window-page,.qaq-chat-settings-page');
+pages.forEach(function(p){p.classList.remove('qaq-theme-dark','qaq-theme-cool');});
+if(theme==='dark')pages.forEach(function(p){p.classList.add('qaq-theme-dark');});
+if(theme==='cool')pages.forEach(function(p){p.classList.add('qaq-theme-cool');});
+}
+function applyRuntimeStyles(s){
+runtimeStyles.globalCss=s.u_global_css||'/* 示例: body{letter-spacing:0.2px;} */';
+runtimeStyles.bubbleCss=s.u_bubble_css||'/* 示例: box-shadow:0 2px 8px rgba(0,0,0,0.06); */';
+var g=document.getElementById('qaq-chat-global-style');
+if(!g){g=document.createElement('style');g.id='qaq-chat-global-style';document.head.appendChild(g);}
+g.textContent=runtimeStyles.globalCss;
+var b=document.getElementById('qaq-chat-bubble-style');
+if(!b){b=document.createElement('style');b.id='qaq-chat-bubble-style';document.head.appendChild(b);}
+b.textContent='.qaq-chat-bubble{'+runtimeStyles.bubbleCss+'}';
+if(s.u_font_url&&s.u_font_url!==runtimeStyles.fontUrl){
+var fname='ChatCustomFont_'+Date.now();
+runtimeStyles.fontUrl=s.u_font_url;
+runtimeStyles.fontName=fname;
+try{
+var ff=new FontFace(fname,'url('+s.u_font_url+')');
+ff.load().then(function(loaded){
+document.fonts.add(loaded);
+renderMessages();
+}).catch(function(){toast('字体加载失败');});
+}catch(e){}
+}else{
+renderMessages();
+}
+}
+function renderBlockedTip(){
+var tip=document.getElementById('qaq-chat-block-tip');
+if(!tip)return;
+var cd=getChatData();
+var c=cd.contacts[activeContactId]||{};
+if(c.blocked){
+tip.style.display='';
+tip.textContent='你已拉黑'+(c.remark||c.displayName||'该角色');
+}else{
+tip.style.display='none';
+}
 }
 function renderMessages(){
 if(!activeContactId)return;
-var cd=getChatData();var msgs=cd.messages[activeContactId]||[];
+var cd=getChatData();
 var c=cd.contacts[activeContactId]||{};
-var s=Object.assign({},cd.globalSettings||{},c.configs||{});
-var el=document.getElementById('qaq-chat-msg-list');if(!el)return;
+var s=Object.assign({u_theme:getGlobalTheme()},cd.globalSettings||{},c.configs||{});
+var list=document.getElementById('qaq-chat-msg-list');
+if(!list)return;
+var msgs=cd.messages[activeContactId]||[];
+var me=cd.myProfile||{};
 var dAva="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23e8e8ec'/%3E%3C/svg%3E";
-var rR=s.ui_avatar_radius!==undefined?s.ui_avatar_radius:10;
-var bR=s.ui_bubble_radius!==undefined?s.ui_bubble_radius:14;
-var fSz=s.ui_font_size||'14px';
-var fClr=s.u_font_color||'';
-var tFmt=s.u_time_fmt||'HH:mm';
-var tPos=s.u_time_pos||'top';
+var avatarRadius=s.ui_avatar_radius!=null?parseFloat(s.ui_avatar_radius):10;
+var bubbleRadius=s.ui_bubble_radius!=null?parseFloat(s.ui_bubble_radius):14;
+var fontSize=s.ui_font_size||'14px';
+var fontColor=s.u_font_color||'';
+var timeFmt=s.u_time_fmt||'HH:mm';
+var timePos=s.u_time_pos||'top';
 var showTime=s.ui_show_time!=='false';
-var avaShow=s.ui_avatar_show||'all';
+var avatarShow=s.ui_avatar_show||'all';
 var trPos=s.op_trans_pos||'in_bottom';
-var html='';
-msgs.forEach(function(m,idx){
-var isMe=m.isMe;
-var avaUrl=isMe?(cd.myProfile.avatar||dAva):(c.avatar||dAva);
-// 头像可见性
+var fontFamily=runtimeStyles.fontName?(runtimeStyles.fontName+', sans-serif'):'';
+list.style.fontFamily=fontFamily;
+list.innerHTML=msgs.map(function(m,idx){
+var isMe=!!m.isMe;
+var avaUrl=isMe?(me.avatar||dAva):(c.avatar||dAva);
 var showAva=true;
-if(avaShow==='hide_all')showAva=false;
-else if(avaShow==='first'&&idx>0)showAva=false;
-else if(avaShow==='last'&&idx<msgs.length-1)showAva=false;
-var avaHtml=showAva?'<img class="qaq-chat-bubble-avatar" src="'+escHTML(avaUrl)+'" style="border-radius:'+rR+'px">':'<div style="width:38px;flex-shrink:0"></div>';
-var bStyle=isMe?'border-radius:'+bR+'px 2px '+bR+'px '+bR+'px':'border-radius:2px '+bR+'px '+bR+'px '+bR+'px';
-var colorStyle=fClr?';color:'+fClr:'';
-// 翻译
-var trIn='',trOut='';
-if(m.translated&&trPos!=='hide'){
-var th='<div class="qaq-chat-trans" style="font-size:'+(parseInt(fSz)-2)+'px">'+escHTML(m.translated)+'</div>';
-if(trPos.indexOf('in')>-1)trIn=th;else trOut=th;
+if(avatarShow==='hide_all')showAva=false;
+else if(avatarShow==='first')showAva=idx===0||(msgs[idx-1]&&msgs[idx-1].isMe!==m.isMe);
+else if(avatarShow==='last')showAva=idx===msgs.length-1||(msgs[idx+1]&&msgs[idx+1].isMe!==m.isMe);
+var avatarHtml=showAva?'<img class="qaq-chat-bubble-avatar" src="'+escHTML(avaUrl)+'" style="border-radius:'+avatarRadius+'px">':'<div style="width:38px;flex-shrink:0;"></div>';
+var bubbleStyle='border-radius:'+(isMe?(bubbleRadius+'px 2px '+bubbleRadius+'px '+bubbleRadius+'px'):( '2px '+bubbleRadius+'px '+bubbleRadius+'px '+bubbleRadius+'px'))+';font-size:'+fontSize+';'+(fontColor?('color:'+fontColor+';'):'');
+var timeHtml=showTime?'<div class="qaq-chat-msg-time">'+fmtTime(m.time,timeFmt)+'</div>':'';
+var transHtml=m.translated&&trPos!=='hide'?'<div class="qaq-chat-trans" style="font-size:'+(Math.max(10,parseInt(fontSize,10)-2))+'px;">'+escHTML(m.translated)+'</div>':'';
+var bubbleInner='';
+var bubbleOuterTop='';
+var bubbleOuterBottom='';
+if(trPos==='in_top')bubbleInner=transHtml+escHTML(m.text||'');
+else if(trPos==='in_bottom')bubbleInner=escHTML(m.text||'')+transHtml;
+else{
+bubbleInner=escHTML(m.text||'');
+if(trPos==='out_top')bubbleOuterTop=transHtml;
+if(trPos==='out_bottom')bubbleOuterBottom=transHtml;
 }
-var bContent=trPos==='in_top'?(trIn+escHTML(m.text)):(escHTML(m.text)+trIn);
-// 时间
-var timeHtml='';
+var timeTop='',timeBottom='',timeInside='';
 if(showTime){
-var tStr=fmtTime(m.time,tFmt);
-timeHtml='<div class="qaq-chat-msg-time" style="'+(tPos==='avatar_top'||tPos==='avatar_bottom'?'text-align:center;':'')+'">'+tStr+'</div>';
+if(timePos==='top'||timePos==='avatar_top')timeTop=timeHtml;
+else if(timePos==='bottom'||timePos==='avatar_bottom'||timePos==='bubble_outer')timeBottom=timeHtml;
+else if(timePos==='bubble_inner')timeInside='<div style="font-size:10px;color:#bbb;margin-top:4px;">'+fmtTime(m.time,timeFmt)+'</div>';
 }
-var alg=isMe?'qaq-row-me':'qaq-row-other';
-// 时间位置处理
-var timeAbove='',timeBelow='',timeInBubble='';
-if(tPos==='top'||tPos==='avatar_top')timeAbove=timeHtml;
-else if(tPos==='bottom'||tPos==='avatar_bottom')timeBelow=timeHtml;
-else if(tPos==='bubble_outer')timeBelow=timeHtml;
-else if(tPos==='bubble_inner')timeInBubble='<div style="font-size:10px;color:#bbb;margin-top:4px">'+fmtTime(m.time,tFmt)+'</div>';
-html+='<div class="qaq-chat-row '+alg+'">'+avaHtml+'<div class="qaq-chat-bubble-wrap'+(trPos.indexOf('out')>-1?' qaq-has-outer-tr':'')+'">'+timeAbove+'<div class="qaq-chat-bubble" style="'+bStyle+';font-size:'+fSz+colorStyle+'">'+bContent+timeInBubble+'</div>'+trOut+timeBelow+'</div></div>';
-});
-el.innerHTML=html;
-setTimeout(function(){el.scrollTop=el.scrollHeight},10);
+return'<div class="qaq-chat-row '+(isMe?'qaq-row-me':'qaq-row-other')+'">'+avatarHtml+'<div class="qaq-chat-bubble-wrap'+((trPos==='out_top'||trPos==='out_bottom')?' qaq-has-outer-tr':'')+'">'+timeTop+bubbleOuterTop+'<div class="qaq-chat-bubble" style="'+bubbleStyle+'">'+bubbleInner+timeInside+'</div>'+bubbleOuterBottom+timeBottom+'</div></div>';
+}).join('');
+setTimeout(function(){list.scrollTop=list.scrollHeight;},16);
 }
 function sendMsg(){
 if(!activeContactId)return;
-var cd=getChatData();var c=cd.contacts[activeContactId];
-if(c&&c.blocked){toast('你已拉黑该角色，无法发送消息');return}
-var box=document.getElementById('qaq-chat-input-box');if(!box)return;
-var txt=box.value.trim();if(!txt)return;
+var cd=getChatData();
+var c=cd.contacts[activeContactId];
+if(!c)return;
+if(c.blocked){toast('你已拉黑该角色，无法发送消息');return;}
+var box=document.getElementById('qaq-chat-input-box');
+if(!box)return;
+var txt=(box.value||'').trim();
+if(!txt)return;
 if(!cd.messages[activeContactId])cd.messages[activeContactId]=[];
-cd.messages[activeContactId].push({id:Date.now(),text:txt,isMe:true,time:Date.now(),translated:''});
-cd.contacts[activeContactId].updateTime=Date.now();
-saveChatData(cd);box.value='';renderMessages();
-// 自动总结检查
-checkAutoSummary(activeContactId);
+cd.messages[activeContactId].push({id:uid('msg'),text:txt,isMe:true,time:Date.now(),translated:''});
+c.updateTime=Date.now();
+saveChatData(cd);
+box.value='';
+renderMessages();
+autoSummarizeMemory(activeContactId);
 }
-function recvAI(){
+async function recvAI(){
 if(!activeContactId)return;
-var cd=getChatData();var c=cd.contacts[activeContactId]||{};
+var cd=getChatData();
+var c=cd.contacts[activeContactId]||{};
 var s=Object.assign({},cd.globalSettings||{},c.configs||{});
+var api=getApiBase(s,'api');
+if(!api.url||!api.key||!api.model){toast('请先配置专属API或全局API');return;}
 var msgs=cd.messages[activeContactId]||[];
-// 获取API配置
-var apiUrl=s.o_api_url||getCache('qaq-api-url','')||'https://api.openai.com/v1';
-var apiKey=s.o_api_key||getCache('qaq-api-key','')||'';
-var model=s.o_api_model||getCache('qaq-api-model','')||'gpt-4';
-if(!apiUrl||!apiKey){toast('请先配置API');return}
-// 构建消息历史
-var memMax=s.mem_max||20;
-var history=msgs.slice(-memMax).map(function(m){return{role:m.isMe?'user':'assistant',content:m.text}});
-var sysPmt=window.qaqBuildChatSystemPrompt(activeContactId);
-toast('AI思考中...');
-fetch(apiUrl+'/chat/completions',{
-method:'POST',
-headers:{'Authorization':'Bearer '+apiKey,'Content-Type':'application/json'},
-body:JSON.stringify({model:model,messages:[{role:'system',content:sysPmt}].concat(history)})
-}).then(function(r){return r.json()}).then(function(d){
-if(d.choices&&d.choices[0]){
-var reply=d.choices[0].message.content;
-var trPos=s.op_trans_pos||'in_bottom';
-var orig='',trans='';
-if(trPos!=='hide'){
+var history=msgs.slice(-(parseInt(s.mem_max,10)||20)).map(function(m){return{role:m.isMe?'user':'assistant',content:m.text};});
 try{
-var j=JSON.parse(reply);
-orig=j.original_text||reply;
-trans=j.translation||'';
-}catch(e){orig=reply}
-}else{orig=reply}
-cd.messages[activeContactId].push({id:Date.now(),text:orig,isMe:false,time:Date.now(),translated:trans});
-cd.contacts[activeContactId].updateTime=Date.now();
-saveChatData(cd);renderMessages();
-checkAutoSummary(activeContactId);
-}else{toast('AI响应异常')}
-}).catch(function(){toast('请求失败')});
+toast('AI思考中...');
+var res=await fetch(normalizeApiUrl(api.url)+'/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+api.key,'Content-Type':'application/json'},body:JSON.stringify({model:api.model,messages:[{role:'system',content:window.qaqBuildChatSystemPrompt(activeContactId)}].concat(history),temperature:0.8})}).then(function(r){return r.json()});
+var reply=((res.choices&&res.choices[0]&&res.choices[0].message&&res.choices[0].message.content)||'').trim();
+if(!reply)return toast('AI响应为空');
+var orig=reply,trans='';
+if((s.op_trans_pos||'in_bottom')!=='hide'){
+try{
+var json=JSON.parse(reply);
+orig=json.original_text||reply;
+trans=json.translation||'';
+}catch(e){}
 }
-function checkAutoSummary(cid){
-var cd=getChatData();var c=cd.contacts[cid]||{};
-var s=c.configs||{};
-if(!s.o_mem_summary)return;
-var cnt=s.o_mem_summary_cnt||50;
-var msgs=cd.messages[cid]||[];
-if(msgs.length%cnt===0&&msgs.length>0){
-// 触发总结
-var pmt=buildMemorySummaryPrompt(c.remark||c.nickname,msgs,cnt);
-// 调用API生成总结（简化版，实际需完整实现）
-toast('正在生成记忆总结...');
-// 这里应调用API，生成后存入世界书，暂略
+if(!cd.messages[activeContactId])cd.messages[activeContactId]=[];
+cd.messages[activeContactId].push({id:uid('msg'),text:orig,isMe:false,time:Date.now(),translated:trans});
+c.updateTime=Date.now();
+saveChatData(cd);
+renderMessages();
+autoSummarizeMemory(activeContactId);
+}catch(e){
+console.error('[Chat] recvAI failed',e);
+toast('请求失败');
 }
 }
-// ===== 设置页面 =====
-function renderSettings(){
-var cd=getChatData();var cid=activeContactId;
-var c=cd.contacts[cid]||{};
-var s=Object.assign({},cd.globalSettings||{},c.configs||{});
-var p=cd.myProfile;
-var scr=document.getElementById('qaq-chat-settings-scroll');if(!scr)return;
-var secs=[
-{id:'other',title:'对方设置',icon:'user',fields:[
-{k:'o_avatar',l:'头像',v:c.avatar||'',ty:'img'},
-{k:'o_nickname',l:'真名',v:c.nickname||'',ty:'text'},
-{k:'o_remark',l:'备注',v:c.remark||'',ty:'text'},
-{k:'o_persona',l:'人设',v:s.op_persona||'',ty:'area',h:60},
-{k:'o_worldbook',l:'世界书',v:s.o_worldbook||'',ty:'wb'},
-{k:'o_emoji',l:'发表情包',v:!!s.o_emoji,ty:'switch'},
-{k:'o_trans_enable',l:'翻译功能',v:s.o_trans_enable!==false,ty:'switch'},
-{k:'o_trans_pos',l:'翻译显示',v:s.op_trans_pos||'in_bottom',ty:'trans'},
-{k:'o_mem_max',l:'最大记忆条数',v:s.mem_max||20,ty:'num'},
-{k:'o_mem_summary',l:'自动总结记忆',v:!!s.o_mem_summary,ty:'switch'},
-{k:'o_mem_summary_cnt',l:'总结条数',v:s.o_mem_summary_cnt||50,ty:'num'},
-{k:'o_api_url',l:'专属API URL',v:s.o_api_url||'',ty:'text',ph:'留空使用全局',preset:'api'},
-{k:'o_api_key',l:'专属API Key',v:s.o_api_key||'',ty:'pwd',preset:'api'},
-{k:'o_api_model',l:'专属模型',v:s.o_api_model||'',ty:'text',hasBtn:'fetch',preset:'api'},
-{k:'o_voice_url',l:'语音API URL',v:s.o_voice_url||'',ty:'text',preset:'voice'},
-{k:'o_voice_key',l:'语音API Key',v:s.o_voice_key||'',ty:'pwd',preset:'voice'},
-{k:'o_voice_model',l:'语音模型',v:s.o_voice_model||'speech-02-hd',ty:'voice',preset:'voice'},
-{k:'o_voice_speed',l:'语速',v:s.o_voice_speed||0.9,ty:'slider',min:0.6,max:1.2,step:0.1,preset:'voice'},
-{k:'o_img_url',l:'生图API URL',v:s.o_img_url||'',ty:'text',preset:'img'},
-{k:'o_img_key',l:'生图API Key',v:s.o_img_key||'',ty:'pwd',preset:'img'},
-{k:'o_img_model',l:'生图模型',v:s.o_img_model||'',ty:'text',hasBtn:'fetch',preset:'img'},
-{k:'o_img_prompt_pos',l:'正面提示词',v:s.o_img_prompt_pos||'high quality, detailed, beautiful',ty:'area',h:40,preset:'img'},
-{k:'o_img_prompt_neg',l:'负面提示词',v:s.o_img_prompt_neg||'low quality, blurry, distorted',ty:'area',h:40,preset:'img'}
-]},
-{id:'my',title:'我方设置',icon:'user',fields:[
-{k:'m_avatar',l:'头像',v:p.avatar||'',ty:'img'},
-{k:'m_nickname',l:'昵称',v:p.nickname||'',ty:'text'},
-{k:'m_truename',l:'真名',v:p.trueName||'',ty:'text'},
-{k:'m_persona',l:'人设',v:p.persona||'',ty:'area',h:60,preset:'persona'}
-]},
-{id:'ui',title:'美化设置',icon:'palette',fields:[
-{k:'u_my_bubble',l:'我的气泡颜色',v:s.ui_my_bubble||'#fce8e2',ty:'color'},
-{k:'u_other_bubble',l:'对方气泡颜色',v:s.ui_other_bubble||'#ffffff',ty:'color'},
-{k:'u_theme',l:'主题颜色',v:s.u_theme||'default',ty:'theme'},
-{k:'u_avatar_show',l:'头像显示',v:s.ui_avatar_show||'all',ty:'ava'},
-{k:'u_show_time',l:'显示时间戳',v:s.ui_show_time!=='false',ty:'switch'},
-{k:'u_time_pos',l:'时间戳位置',v:s.u_time_pos||'top',ty:'timepos'},
-{k:'u_time_fmt',l:'时间格式',v:s.u_time_fmt||'HH:mm',ty:'timefmt'},
-{k:'u_hide_reply',l:'隐藏回复按钮',v:!!s.ui_hide_rbtn,ty:'switch'},
-{k:'u_hide_menu',l:'隐藏菜单按钮',v:!!s.ui_hide_mbtn,ty:'switch'},
-{k:'u_menu_pos',l:'菜单位置',v:s.u_menu_pos||'top',ty:'menupos'},
-{k:'u_avatar_radius',l:'头像圆角',v:s.ui_avatar_radius||10,ty:'slider',min:0,max:30},
-{k:'u_bubble_radius',l:'气泡圆角',v:s.ui_bubble_radius||14,ty:'slider',min:0,max:30},
-{k:'u_font_url',l:'字体',v:s.u_font_url||'',ty:'font'},
-{k:'u_font_size',l:'字体大小',v:parseInt(s.ui_font_size)||14,ty:'slider',min:10,max:20},
-{k:'u_font_color',l:'字体颜色',v:s.u_font_color||'#333',ty:'color'},
-{k:'u_global_css',l:'全局CSS',v:s.u_global_css||'/* 示例: body{background:#f0f0f0} */',ty:'area',h:60,preset:'css_global'},
-{k:'u_bubble_css',l:'气泡CSS',v:s.u_bubble_css||'/* 示例: box-shadow:0 2px 8px rgba(0,0,0,0.1) */',ty:'area',h:60,preset:'css_bubble'}
-]},
-{id:'history',title:'聊天记录',icon:'message',fields:[]},
-{id:'other_ops',title:'其他',icon:'more',fields:[
-{k:'x_dnd',l:'角色勿扰',v:!!s.x_dnd,ty:'switch'},
-{k:'x_dnd_time',l:'勿扰时间段',v:s.x_dnd_time||'',ty:'dnd'},
-{k:'x_blocked',l:'拉黑此角色',v:!!c.blocked,ty:'switch'},
-{k:'x_deleted',l:'删除此角色',v:!!c.deleted,ty:'switch'}
-]}
-];
-var html='';
-secs.forEach(function(sec){
-html+='<div class="qaq-chat-set-card qaq-collapsible qaq-collapsed" data-sec="'+sec.id+'">';
-html+='<div class="qaq-chat-set-hd qaq-collapse-trigger">'+svgI(sec.icon)+'<span>'+sec.title+'</span><svg class="qaq-collapse-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div>';
-html+='<div class="qaq-chat-set-bd qaq-collapse-body">';
-if(sec.id==='history'){
-html+='<button class="qaq-chat-action-btn" id="qaq-chat-import-history">'+svgI('upload')+' 导入聊天记录</button>';
-html+='<button class="qaq-chat-action-btn" id="qaq-chat-export-history">'+svgI('download')+' 导出聊天记录</button>';
-html+='<button class="qaq-chat-action-btn qaq-danger" id="qaq-chat-clear-history">'+svgI('trash')+' 清除聊天记录</button>';
-}else{
-// 预设按钮组
-var presetTypes=['api','voice','img','persona','css_global','css_bubble'];
-var hasPreset=sec.fields.some(function(f){return presetTypes.indexOf(f.preset)>-1});
-if(hasPreset){
-var pType=sec.fields.find(function(f){return f.preset}).preset;
-html+='<div style="display:flex;gap:6px;margin-bottom:10px">';
-html+='<button class="qaq-preset-btn" data-preset-save="'+pType+'">'+svgI('save')+' 保存预设</button>';
-html+='<button class="qaq-preset-btn" data-preset-load="'+pType+'">'+svgI('upload')+' 导入预设</button>';
-if(pType.indexOf('css')>-1)html+='<button class="qaq-preset-btn" data-preset-reset="'+pType+'">'+svgI('refresh')+' 重置</button>';
-html+='</div>';
+function simulateFriendRequestForBlockedRole(){
+if(!activeContactId)return;
+var cd=getChatData();
+var c=cd.contacts[activeContactId];
+if(!c||!c.blocked)return;
+if((cd.friendRequests||[]).some(function(x){return x.cid===activeContactId&&!x.done}))return;
+cd.friendRequests.push({id:uid('fr'),cid:activeContactId,name:c.remark||c.displayName||'角色',createdAt:Date.now(),done:false});
+saveChatData(cd);
+renderFriendTipInChat();
+renderContactList();
+toast('该角色向你发送了好友申请');
 }
-sec.fields.forEach(function(f){
-var lab='<div class="qaq-chat-set-lbl">'+f.l+'</div>';
-if(f.ty==='text'||f.ty==='pwd'||f.ty==='num'){
-var tg=f.ty==='pwd'?'password':(f.ty==='num'?'number':'text');
-if(f.hasBtn==='fetch'){
-html+=lab+'<div class="qaq-input-with-btn"><input type="'+tg+'" class="qaq-chat-set-inp" id="chs_'+f.k+'" value="'+escHTML(String(f.v))+'" placeholder="'+(f.ph||'')+'"><button class="qaq-fetch-model-btn" data-target="chs_'+f.k+'" data-type="'+(f.preset||'api')+'">'+svgI('download')+'</button></div>';
-}else{
-html+=lab+'<input type="'+tg+'" class="qaq-chat-set-inp" id="chs_'+f.k+'" value="'+escHTML(String(f.v))+'" placeholder="'+(f.ph||'')+'">';
+function confirmDeleteRole(cid){
+var cd=getChatData();
+var c=cd.contacts[cid];
+if(!c)return;
+showHtmlModal('确认删除','<div style="font-size:13px;line-height:1.8;color:#666;">确认彻底删除「'+escHTML(c.remark||c.displayName||'该角色')+'」以及全部聊天记录？<br>此操作不可恢复。</div>',function(){
+delete cd.messages[cid];
+delete cd.contacts[cid];
+cd.friendRequests=(cd.friendRequests||[]).filter(function(x){return x.cid!==cid});
+saveChatData(cd);
+if(activeContactId===cid){
+activeContactId=null;
+document.getElementById('qaq-chat-window-page')&&document.getElementById('qaq-chat-window-page').classList.remove('qaq-page-show');
+document.getElementById('qaq-chat-settings-page')&&document.getElementById('qaq-chat-settings-page').classList.remove('qaq-page-show');
+document.getElementById('qaq-chat-main-page')&&document.getElementById('qaq-chat-main-page').classList.add('qaq-page-show');
 }
-}else if(f.ty==='area'){
-html+=lab+'<textarea class="qaq-chat-set-txt" id="chs_'+f.k+'" style="height:'+(f.h||60)+'px">'+escHTML(String(f.v))+'</textarea>';
-}else if(f.ty==='switch'){
-html+='<div class="qaq-chat-set-row-tog"><span>'+f.l+'</span><div class="qaq-toggle '+(f.v?'qaq-toggle-on':'')+'" id="chs_'+f.k+'"><div class="qaq-toggle-knob"></div></div></div>';
-}else if(f.ty==='slider'){
-var val=parseFloat(f.v)||0;
-html+=lab+'<div style="display:flex;align-items:center;gap:8px"><input type="range" class="qaq-chat-slider" id="chs_'+f.k+'" min="'+(f.min||0)+'" max="'+(f.max||100)+'" step="'+(f.step||1)+'" value="'+val+'" style="flex:1"><input type="number" class="qaq-chat-set-inp" id="chs_'+f.k+'_val" value="'+val+'" min="'+(f.min||0)+'" max="'+(f.max||100)+'" step="'+(f.step||1)+'" style="width:60px"></div>';
-}else if(f.ty==='img'){
-html+=lab+'<div style="display:flex;gap:6px"><input type="text" class="qaq-chat-set-inp" id="chs_'+f.k+'" value="'+escHTML(String(f.v))+'" placeholder="URL" style="flex:1"><button class="qaq-upload-img-btn" data-target="chs_'+f.k+'">'+svgI('upload')+'</button></div>';
-}else if(f.ty==='font'){
-html+=lab+'<div style="display:flex;gap:6px"><input type="text" class="qaq-chat-set-inp" id="chs_'+f.k+'" value="'+escHTML(String(f.v))+'" placeholder="字体URL" style="flex:1"><button class="qaq-upload-font-btn" data-target="chs_'+f.k+'">'+svgI('upload')+'</button></div>';
-}else if(f.ty==='color'){
-html+=lab+'<div style="display:flex;gap:6px"><button class="qaq-color-pick-btn" data-target="chs_'+f.k+'" style="width:40px;height:36px;border-radius:8px;border:1px solid #ddd;background:'+f.v+'"></button><input type="text" class="qaq-chat-set-inp" id="chs_'+f.k+'" value="'+escHTML(String(f.v))+'" style="flex:1"></div>';
-}else if(f.ty==='wb'){
-html+=lab+'<button class="qaq-chat-action-btn" id="chs_'+f.k+'_btn">'+svgI('folder')+' 选择世界书</button><input type="hidden" id="chs_'+f.k+'" value="'+escHTML(String(f.v))+'">';
-}else if(f.ty==='trans'){
-html+=lab+'<button class="qaq-chat-action-btn" id="chs_'+f.k+'_btn">'+escHTML(getTransLabel(f.v))+'</button><input type="hidden" id="chs_'+f.k+'" value="'+escHTML(String(f.v))+'">';
-}else if(f.ty==='voice'){
-html+=lab+'<button class="qaq-chat-action-btn" id="chs_'+f.k+'_btn">'+escHTML(f.v)+'</button><input type="hidden" id="chs_'+f.k+'" value="'+escHTML(String(f.v))+'">';
-}else if(f.ty==='theme'){
-html+=lab+'<button class="qaq-chat-action-btn" id="chs_'+f.k+'_btn">'+escHTML(getThemeLabel(f.v))+'</button><input type="hidden" id="chs_'+f.k+'" value="'+escHTML(String(f.v))+'">';
-}else if(f.ty==='ava'){
-html+=lab+'<button class="qaq-chat-action-btn" id="chs_'+f.k+'_btn">'+escHTML(getAvaLabel(f.v))+'</button><input type="hidden" id="chs_'+f.k+'" value="'+escHTML(String(f.v))+'">';
-}else if(f.ty==='timepos'){
-html+=lab+'<button class="qaq-chat-action-btn" id="chs_'+f.k+'_btn">'+escHTML(getTimePosLabel(f.v))+'</button><input type="hidden" id="chs_'+f.k+'" value="'+escHTML(String(f.v))+'">';
-}else if(f.ty==='timefmt'){
-html+=lab+'<button class="qaq-chat-action-btn" id="chs_'+f.k+'_btn">'+escHTML(f.v)+'</button><input type="hidden" id="chs_'+f.k+'" value="'+escHTML(String(f.v))+'">';
-}else if(f.ty==='menupos'){
-html+=lab+'<button class="qaq-chat-action-btn" id="chs_'+f.k+'_btn">'+escHTML(f.v==='top'?'输入框上方':'输入框下方')+'</button><input type="hidden" id="chs_'+f.k+'" value="'+escHTML(String(f.v))+'">';
-}else if(f.ty==='dnd'){
-html+=lab+'<button class="qaq-chat-action-btn" id="chs_'+f.k+'_btn">'+(f.v||'点击设置')+'</button><input type="hidden" id="chs_'+f.k+'" value="'+escHTML(String(f.v))+'">';
-}
+renderContactList();
+toast('已删除角色');
 });
 }
-html+='</div></div>';
+function renderExtMenu(){
+var m=document.getElementById('qaq-chat-ext-menu');
+if(!m)return;
+m.innerHTML=[
+{name:'照片',icon:'🖼️'},
+{name:'听译',icon:'🎧'},
+{name:'纠错',icon:'📝'},
+{name:'剧场',icon:'🎭'},
+{name:'模拟新朋友',icon:'📩',id:'qaq-chat-sim-fr'}
+].map(function(x){
+return'<div class="qaq-ext-item" '+(x.id?'id="'+x.id+'"':'')+'><div class="qaq-ext-icon">'+x.icon+'</div><div class="qaq-ext-label">'+x.name+'</div></div>';
+}).join('');
+m.querySelectorAll('.qaq-ext-item').forEach(function(el){
+el.onclick=function(){
+if(this.id==='qaq-chat-sim-fr'){simulateFriendRequestForBlockedRole();return;}
+toast((this.querySelector('.qaq-ext-label')||{}).textContent+'开发中');
+};
 });
-html+='<button class="qaq-chat-set-save" id="qaq-chs-sv">保存全部设置</button>';
-scr.innerHTML=html;
-// 绑定折叠
-scr.querySelectorAll('.qaq-collapse-trigger').forEach(function(t){t.onclick=function(e){e.stopPropagation();this.parentElement.classList.toggle('qaq-collapsed')}});
-// 绑定开关
-scr.querySelectorAll('.qaq-toggle').forEach(function(t){t.onclick=function(e){e.stopPropagation();this.classList.toggle('qaq-toggle-on')}});
-// 绑定滑块
-scr.querySelectorAll('.qaq-chat-slider').forEach(function(sl){
-var inp=document.getElementById(sl.id+'_val');
-sl.oninput=function(){if(inp)inp.value=this.value};
-if(inp)inp.oninput=function(){sl.value=this.value};
+}
+function chooseWorldBook(){
+var cd=getChatData();
+var books=ensureWorldBookStore(cd);
+if(!books.length){
+showHtmlModal('绑定世界书','<div style="font-size:13px;line-height:1.8;color:#888;text-align:center;">世界书APP暂未上线。<br>这里已预留选择逻辑。<br>当前可绑定聊天自动生成的记忆世界书。</div><div class="qaq-custom-select-list" style="margin-top:12px;"><div class="qaq-custom-select-option" id="qaq-chat-create-memory-book"><span>新建当前角色记忆世界书</span></div></div>',null,{hideConfirm:true,afterRender:function(){
+document.getElementById('qaq-chat-create-memory-book').onclick=function(){
+var cd2=getChatData(),c=cd2.contacts[activeContactId];
+if(!c)return;
+var book=findOrCreateMemoryBook(c);
+bindMemoryBook(activeContactId,book);
+var inp=document.getElementById('chs_o_worldbook');
+var btn=document.getElementById('chs_o_worldbook_btn');
+if(inp)inp.value=book.id;
+if(btn)btn.textContent=book.name;
+window.qaqCloseModal&&window.qaqCloseModal();
+toast('已绑定：'+book.name);
+};
+}});
+return;
+}
+var current=(document.getElementById('chs_o_worldbook')||{}).value||'';
+openSelectModal('选择绑定世界书',books.map(function(b){return{label:b.name,value:b.id};}),current,function(v){
+var book=books.find(function(x){return x.id===v});
+var inp=document.getElementById('chs_o_worldbook');
+var btn=document.getElementById('chs_o_worldbook_btn');
+if(inp)inp.value=v;
+if(btn)btn.textContent=book?book.name:'未绑定';
 });
-// 绑定图片上传
-scr.querySelectorAll('.qaq-upload-img-btn').forEach(function(b){b.onclick=function(){uploadFile('image/*',this.dataset.target)}});
-// 绑定字体上传
-scr.querySelectorAll('.qaq-upload-font-btn').forEach(function(b){b.onclick=function(){uploadFile('.ttf,.otf,.woff,.woff2',this.dataset.target)}});
-// 绑定颜色选择
-scr.querySelectorAll('.qaq-color-pick-btn').forEach(function(b){b.onclick=function(){pickColor(this.dataset.target,this)}});
-// 绑定拉取模型
-scr.querySelectorAll('.qaq-fetch-model-btn').forEach(function(b){b.onclick=function(){fetchModels(this.dataset.target,this.dataset.type)}});
-// 绑定预设
-scr.querySelectorAll('[data-preset-save]').forEach(function(b){b.onclick=function(){savePreset(this.dataset.presetSave)}});
-scr.querySelectorAll('[data-preset-load]').forEach(function(b){b.onclick=function(){loadPreset(this.dataset.presetLoad)}});
-scr.querySelectorAll('[data-preset-reset]').forEach(function(b){b.onclick=function(){resetPreset(this.dataset.presetReset)}});
-// 绑定世界书选择
-var wbBtn=document.getElementById('chs_o_worldbook_btn');
-if(wbBtn)wbBtn.onclick=function(){toast('世界书功能开发中')};
-// 绑定翻译显示
-var trBtn=document.getElementById('chs_o_trans_pos_btn');
-if(trBtn)trBtn.onclick=function(){selectTransPos()};
-// 绑定语音模型
-var vmBtn=document.getElementById('chs_o_voice_model_btn');
-if(vmBtn)vmBtn.onclick=function(){selectVoiceModel()};
-// 绑定主题
-var thBtn=document.getElementById('chs_u_theme_btn');
-if(thBtn)thBtn.onclick=function(){selectTheme()};
-// 绑定头像显示
-var avBtn=document.getElementById('chs_u_avatar_show_btn');
-if(avBtn)avBtn.onclick=function(){selectAvaShow()};
-// 绑定时间位置
-var tpBtn=document.getElementById('chs_u_time_pos_btn');
-if(tpBtn)tpBtn.onclick=function(){selectTimePos()};
-// 绑定时间格式
-var tfBtn=document.getElementById('chs_u_time_fmt_btn');
-if(tfBtn)tfBtn.onclick=function(){selectTimeFmt()};
-// 绑定菜单位置
-var mpBtn=document.getElementById('chs_u_menu_pos_btn');
-if(mpBtn)mpBtn.onclick=function(){selectMenuPos()};
-// 绑定勿扰时间
-var dndBtn=document.getElementById('chs_x_dnd_time_btn');
-if(dndBtn)dndBtn.onclick=function(){selectDndTime()};
-// 聊天记录操作
-var impBtn=document.getElementById('qaq-chat-import-history');
-if(impBtn)impBtn.onclick=function(){importHistory()};
-var expBtn=document.getElementById('qaq-chat-export-history');
-if(expBtn)expBtn.onclick=function(){exportHistory()};
-var clrBtn=document.getElementById('qaq-chat-clear-history');
-if(clrBtn)clrBtn.onclick=function(){clearHistory()};
-// 保存按钮
-document.getElementById('qaq-chs-sv').onclick=function(){saveSettings()};
 }
 function getTransLabel(v){
-var m={'in_bottom':'气泡内下方','in_top':'气泡内上方','out_bottom':'气泡外下方','out_top':'气泡外上方','hide':'隐藏'};
-return m[v]||v;
+return({in_bottom:'气泡内下方',in_top:'气泡内上方',out_bottom:'气泡外下方',out_top:'气泡外上方',hide:'隐藏'})[v]||v;
 }
 function getThemeLabel(v){
-var m={'default':'暖阳','cool':'冷雾','dark':'夜幕'};
-return m[v]||v;
+return({default:'暖阳',cool:'冷雾',dark:'夜幕'})[v]||v;
 }
 function getAvaLabel(v){
-var m={'all':'全显示','hide_all':'全隐藏','first':'首条','last':'末条'};
-return m[v]||v;
+return({all:'全显示',hide_all:'全隐藏',first:'首条',last:'末条'})[v]||v;
 }
 function getTimePosLabel(v){
-var m={'top':'气泡上方','bottom':'气泡下方','avatar_top':'头像上方','avatar_bottom':'头像下方','bubble_outer':'气泡外侧','bubble_inner':'气泡内侧'};
-return m[v]||v;
+return({top:'气泡上方',bottom:'气泡下方',avatar_top:'头像上方',avatar_bottom:'头像下方',bubble_outer:'气泡外侧',bubble_inner:'气泡内侧'})[v]||v;
 }
-function uploadFile(accept,targetId){
-var inp=document.createElement('input');inp.type='file';inp.accept=accept;
-inp.onchange=function(){
-if(!this.files||!this.files[0])return;
-var reader=new FileReader();
-reader.onload=function(e){
-var tgt=document.getElementById(targetId);
-if(tgt)tgt.value=e.target.result;
-toast('已上传');
-};
-reader.readAsDataURL(this.files[0]);
-};
-inp.click();
+function openImageInputModal(targetId){
+showHtmlModal('设置头像','<div style="display:flex;flex-direction:column;gap:10px;"><input class="qaq-modal-input" id="qaq-chat-avatar-url" placeholder="输入图片URL"><button class="qaq-modal-btn qaq-modal-btn-confirm" id="qaq-chat-avatar-upload" style="height:38px;">上传本地图片</button></div>',function(){
+var url=(document.getElementById('qaq-chat-avatar-url').value||'').trim();
+if(url){
+var t=document.getElementById(targetId);
+if(t)t.value=url;
 }
-function pickColor(targetId,btn){
-var inp=document.getElementById(targetId);if(!inp)return;
-var opts=['#fce8e2','#b8dfbf','#dce4f0','#ffffff','#f4f5f7','#fdfaec','#111111','#333333'];
-var h='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'+opts.map(function(c){
-return '<div style="width:100%;aspect-ratio:1;background:'+c+';border-radius:8px;border:2px solid #ddd;cursor:pointer" data-color="'+c+'"></div>';
-}).join('')+'</div><div style="margin-top:10px"><input type="text" class="qaq-modal-input" id="qaq-color-custom" placeholder="自定义颜色 #RRGGBB" value="'+inp.value+'"></div>';
-showHtmlModal('选择颜色',h,function(){
-var cust=document.getElementById('qaq-color-custom').value.trim();
-if(cust){inp.value=cust;btn.style.background=cust}
 },{afterRender:function(){
-document.querySelectorAll('[data-color]').forEach(function(d){d.onclick=function(){
-inp.value=this.dataset.color;btn.style.background=this.dataset.color;
-document.getElementById('qaq-chat-modal-ccl').click();
-}});
+document.getElementById('qaq-chat-avatar-upload').onclick=function(e){
+e.preventDefault();
+uploadLocalFile('image/*',function(data){
+var t=document.getElementById(targetId);
+if(t)t.value=data;
+window.qaqCloseModal&&window.qaqCloseModal();
+toast('头像已导入');
+});
+};
 }});
 }
 function fetchModels(targetId,type){
-var cd=getChatData();var c=cd.contacts[activeContactId]||{};
-var s=Object.assign({},cd.globalSettings||{},c.configs||{});
-var url,key;
-if(type==='img'){url=s.o_img_url||'';key=s.o_img_key||''}
-else{url=s.o_api_url||getCache('qaq-api-url','')||'';key=s.o_api_key||getCache('qaq-api-key','')||''}
-if(!url||!key){toast('请先配置API');return}
-toast('拉取中...');
-fetch(url+'/v1/models',{headers:{'Authorization':'Bearer '+key}})
-.then(function(r){return r.json()})
-.then(function(d){
-if(d.data&&d.data.length){
-var ms=d.data.map(function(m){return m.id});
-var h='<select class="qaq-modal-input" id="qaq-model-sel" style="width:100%">'+ms.map(function(m){return '<option value="'+m+'">'+m+'</option>'}).join('')+'</select>';
-showHtmlModal('选择模型',h,function(){
-var sel=document.getElementById('qaq-model-sel');
-if(sel){var tgt=document.getElementById(targetId);if(tgt)tgt.value=sel.value}
+if(!activeContactId)return;
+var cd=getChatData(),c=cd.contacts[activeContactId]||{},s=Object.assign({},cd.globalSettings||{},c.configs||{});
+var api=getApiBase(s,type==='img'?'img':'api');
+if(!api.url||!api.key){toast('请先配置API');return;}
+toast('拉取模型中...');
+fetch(normalizeApiUrl(api.url)+'/models',{headers:{'Authorization':'Bearer '+api.key}}).then(function(r){return r.json()}).then(function(d){
+var arr=(d.data||d.models||[]).map(function(x){return typeof x==='string'?x:(x.id||x.name||'')}).filter(Boolean);
+if(!arr.length){toast('未获取到模型');return;}
+openSelectModal('选择模型',arr,(document.getElementById(targetId)||{}).value||'',function(v){
+var t=document.getElementById(targetId);
+if(t)t.value=v;
 });
-}else{toast('未获取到模型')}
-}).catch(function(){toast('拉取失败')});
+}).catch(function(e){
+console.error(e);
+toast('拉取失败');
+});
 }
 function savePreset(type){
-var cd=getChatData();var c=cd.contacts[activeContactId]||{};
-var s=c.configs||{};
-var p=cd.myProfile;
-var data={};
-if(type==='api'){data={url:s.o_api_url||'',key:s.o_api_key||'',model:s.o_api_model||''}}
-else if(type==='voice'){data={url:s.o_voice_url||'',key:s.o_voice_key||'',model:s.o_voice_model||'',speed:s.o_voice_speed||0.9}}
-else if(type==='img'){data={url:s.o_img_url||'',key:s.o_img_key||'',model:s.o_img_model||'',pos:s.o_img_prompt_pos||'',neg:s.o_img_prompt_neg||''}}
-else if(type==='persona'){data={persona:p.persona||''}}
-else if(type==='css_global'){data={css:s.u_global_css||''}}
-else if(type==='css_bubble'){data={css:s.u_bubble_css||''}}
 var ps=getPresets();
+var cd=getChatData(),c=cd.contacts[activeContactId]||{},s=c.configs||{},me=cd.myProfile||{};
+var data={};
+if(type==='api')data={url:s.o_api_url||'',key:s.o_api_key||'',model:s.o_api_model||''};
+if(type==='voice')data={url:s.o_voice_url||'',key:s.o_voice_key||'',model:s.o_voice_model||'speech-02-hd',speed:s.o_voice_speed||0.9};
+if(type==='img')data={url:s.o_img_url||'',key:s.o_img_key||'',model:s.o_img_model||'',pos:s.o_img_prompt_pos||'',neg:s.o_img_prompt_neg||''};
+if(type==='persona')data={persona:me.persona||''};
+if(type==='css_global')data={css:s.u_global_css||'/* 示例: body{letter-spacing:0.2px;} */'};
+if(type==='css_bubble')data={css:s.u_bubble_css||'/* 示例: box-shadow:0 2px 8px rgba(0,0,0,0.06); */'};
+showHtmlModal('保存预设','<input class="qaq-modal-input" id="qaq-chat-preset-name" placeholder="输入预设名称">',function(){
+var name=(document.getElementById('qaq-chat-preset-name').value||'').trim();
+if(!name){toast('请输入预设名称');return false;}
 if(!ps[type])ps[type]=[];
-showHtmlModal('保存预设','<input class="qaq-modal-input" id="qaq-preset-name" placeholder="预设名称">',function(){
-var n=document.getElementById('qaq-preset-name').value.trim();
-if(!n){toast('请输入名称');return}
-ps[type].push({name:n,data:data});
-savePresets(ps);toast('已保存预设：'+n);
+ps[type].push({id:uid('pst'),name:name,data:data});
+savePresets(ps);
+toast('预设已保存');
 });
 }
 function loadPreset(type){
 var ps=getPresets();
-if(!ps[type]||!ps[type].length){toast('暂无预设');return}
-var h='<div style="display:flex;flex-direction:column;gap:8px">'+ps[type].map(function(pr,i){
-return '<div style="display:flex;align-items:center;gap:8px;padding:8px;border:1px solid #ddd;border-radius:8px"><span style="flex:1">'+escHTML(pr.name)+'</span><button class="qaq-modal-btn qaq-modal-btn-confirm" style="flex:0;padding:0 12px;height:30px;font-size:11px" data-pi="'+i+'">导入</button></div>';
-}).join('')+'</div>';
-showHtmlModal('导入预设',h,null,{afterRender:function(){
-document.querySelectorAll('[data-pi]').forEach(function(b){b.onclick=function(){
-var idx=parseInt(this.dataset.pi);
-var pr=ps[type][idx];if(!pr)return;
-var cd=getChatData();var c=cd.contacts[activeContactId]||{};
-var s=c.configs||{};
-var p=cd.myProfile;
-if(type==='api'){s.o_api_url=pr.data.url;s.o_api_key=pr.data.key;s.o_api_model=pr.data.model}
-else if(type==='voice'){s.o_voice_url=pr.data.url;s.o_voice_key=pr.data.key;s.o_voice_model=pr.data.model;s.o_voice_speed=pr.data.speed}
-else if(type==='img'){s.o_img_url=pr.data.url;s.o_img_key=pr.data.key;s.o_img_model=pr.data.model;s.o_img_prompt_pos=pr.data.pos;s.o_img_prompt_neg=pr.data.neg}
-else if(type==='persona'){p.persona=pr.data.persona}
-else if(type==='css_global'){s.u_global_css=pr.data.css}
-else if(type==='css_bubble'){s.u_bubble_css=pr.data.css}
-c.configs=s;cd.myProfile=p;saveChatData(cd);
-toast('已导入：'+pr.name);
-document.getElementById('qaq-chat-modal-ccl').click();
+var list=ps[type]||[];
+if(!list.length){toast('暂无预设');return;}
+showHtmlModal('导入预设','<div class="qaq-custom-select-list">'+list.map(function(x){return'<div class="qaq-custom-select-option" data-preset="'+x.id+'"><span>'+escHTML(x.name)+'</span></div>'}).join('')+'</div>',null,{hideConfirm:true,afterRender:function(){
+document.querySelectorAll('[data-preset]').forEach(function(el){
+el.onclick=function(){
+var id=this.getAttribute('data-preset');
+var item=list.find(function(x){return x.id===id});
+if(!item)return;
+applyPreset(type,item.data);
+window.qaqCloseModal&&window.qaqCloseModal();
+toast('已导入预设');
 renderSettings();
+};
+});
 }});
-}});
+}
+function applyPreset(type,data){
+var cd=getChatData(),c=cd.contacts[activeContactId]||{},s=c.configs||{},me=cd.myProfile||{};
+if(type==='api'){s.o_api_url=data.url||'';s.o_api_key=data.key||'';s.o_api_model=data.model||'';}
+if(type==='voice'){s.o_voice_url=data.url||'';s.o_voice_key=data.key||'';s.o_voice_model=data.model||'speech-02-hd';s.o_voice_speed=data.speed||0.9;}
+if(type==='img'){s.o_img_url=data.url||'';s.o_img_key=data.key||'';s.o_img_model=data.model||'';s.o_img_prompt_pos=data.pos||'';s.o_img_prompt_neg=data.neg||'';}
+if(type==='persona'){me.persona=data.persona||'';}
+if(type==='css_global'){s.u_global_css=data.css||'/* 示例: body{letter-spacing:0.2px;} */';}
+if(type==='css_bubble'){s.u_bubble_css=data.css||'/* 示例: box-shadow:0 2px 8px rgba(0,0,0,0.06); */';}
+c.configs=s;cd.myProfile=me;saveChatData(cd);
 }
 function resetPreset(type){
-var cd=getChatData();var c=cd.contacts[activeContactId]||{};
-var s=c.configs||{};
-if(type==='css_global')s.u_global_css='/* 示例: body{background:#f0f0f0} */';
-else if(type==='css_bubble')s.u_bubble_css='/* 示例: box-shadow:0 2px 8px rgba(0,0,0,0.1) */';
-c.configs=s;saveChatData(cd);
-toast('已重置');renderSettings();
-}
-function selectTransPos(){
-var opts=[{l:'气泡内下方',v:'in_bottom'},{l:'气泡内上方',v:'in_top'},{l:'气泡外下方',v:'out_bottom'},{l:'气泡外上方',v:'out_top'},{l:'隐藏',v:'hide'}];
-var h='<div style="display:flex;flex-direction:column;gap:8px">'+opts.map(function(o){
-return '<button class="qaq-modal-btn qaq-modal-btn-confirm" data-val="'+o.v+'">'+o.l+'</button>';
-}).join('')+'</div>';
-showHtmlModal('翻译显示模式',h,null,{afterRender:function(){
-document.querySelectorAll('[data-val]').forEach(function(b){b.onclick=function(){
-var inp=document.getElementById('chs_o_trans_pos');
-var btn=document.getElementById('chs_o_trans_pos_btn');
-if(inp)inp.value=this.dataset.val;
-if(btn)btn.textContent=getTransLabel(this.dataset.val);
-document.getElementById('qaq-chat-modal-ccl').click();
-}});
-}});
-}
-function selectVoiceModel(){
-var opts=['speech-02-hd','speech-02-turbo','speech-2.8-hd','speech-2.8-turbo','speech-2.6-hd','speech-2.6-turbo','speech-01-turbo'];
-var h='<div style="display:flex;flex-direction:column;gap:8px">'+opts.map(function(o){
-return '<button class="qaq-modal-btn qaq-modal-btn-confirm" data-val="'+o+'">'+o+'</button>';
-}).join('')+'</div>';
-showHtmlModal('语音模型',h,null,{afterRender:function(){
-document.querySelectorAll('[data-val]').forEach(function(b){b.onclick=function(){
-var inp=document.getElementById('chs_o_voice_model');
-var btn=document.getElementById('chs_o_voice_model_btn');
-if(inp)inp.value=this.dataset.val;
-if(btn)btn.textContent=this.dataset.val;
-document.getElementById('qaq-chat-modal-ccl').click();
-}});
-}});
-}
-function selectTheme(){
-var opts=[{l:'暖阳',v:'default'},{l:'冷雾',v:'cool'},{l:'夜幕',v:'dark'}];
-var h='<div style="display:flex;flex-direction:column;gap:8px">'+opts.map(function(o){
-return '<button class="qaq-modal-btn qaq-modal-btn-confirm" data-val="'+o.v+'">'+o.l+'</button>';
-}).join('')+'</div>';
-showHtmlModal('主题颜色',h,null,{afterRender:function(){
-document.querySelectorAll('[data-val]').forEach(function(b){b.onclick=function(){
-var inp=document.getElementById('chs_u_theme');
-var btn=document.getElementById('chs_u_theme_btn');
-if(inp)inp.value=this.dataset.val;
-if(btn)btn.textContent=getThemeLabel(this.dataset.val);
-document.getElementById('qaq-chat-modal-ccl').click();
-}});
-}});
-}
-function selectAvaShow(){
-var opts=[{l:'全显示',v:'all'},{l:'全隐藏',v:'hide_all'},{l:'首条',v:'first'},{l:'末条',v:'last'}];
-var h='<div style="display:flex;flex-direction:column;gap:8px">'+opts.map(function(o){
-return '<button class="qaq-modal-btn qaq-modal-btn-confirm" data-val="'+o.v+'">'+o.l+'</button>';
-}).join('')+'</div>';
-showHtmlModal('头像显示',h,null,{afterRender:function(){
-document.querySelectorAll('[data-val]').forEach(function(b){b.onclick=function(){
-var inp=document.getElementById('chs_u_avatar_show');
-var btn=document.getElementById('chs_u_avatar_show_btn');
-if(inp)inp.value=this.dataset.val;
-if(btn)btn.textContent=getAvaLabel(this.dataset.val);
-document.getElementById('qaq-chat-modal-ccl').click();
-}});
-}});
-}
-function selectTimePos(){
-var opts=[{l:'气泡上方',v:'top'},{l:'气泡下方',v:'bottom'},{l:'头像上方',v:'avatar_top'},{l:'头像下方',v:'avatar_bottom'},{l:'气泡外侧',v:'bubble_outer'},{l:'气泡内侧',v:'bubble_inner'}];
-var h='<div style="display:flex;flex-direction:column;gap:8px">'+opts.map(function(o){
-return '<button class="qaq-modal-btn qaq-modal-btn-confirm" data-val="'+o.v+'">'+o.l+'</button>';
-}).join('')+'</div>';
-showHtmlModal('时间戳位置',h,null,{afterRender:function(){
-document.querySelectorAll('[data-val]').forEach(function(b){b.onclick=function(){
-var inp=document.getElementById('chs_u_time_pos');
-var btn=document.getElementById('chs_u_time_pos_btn');
-if(inp)inp.value=this.dataset.val;
-if(btn)btn.textContent=getTimePosLabel(this.dataset.val);
-document.getElementById('qaq-chat-modal-ccl').click();
-}});
-}});
-}
-function selectTimeFmt(){
-var opts=['HH:mm','HH:mm:ss','MM-DD HH:mm'];
-var h='<div style="display:flex;flex-direction:column;gap:8px">'+opts.map(function(o){
-return '<button class="qaq-modal-btn qaq-modal-btn-confirm" data-val="'+o+'">'+o+'</button>';
-}).join('')+'</div>';
-showHtmlModal('时间格式',h,null,{afterRender:function(){
-document.querySelectorAll('[data-val]').forEach(function(b){b.onclick=function(){
-var inp=document.getElementById('chs_u_time_fmt');
-var btn=document.getElementById('chs_u_time_fmt_btn');
-if(inp)inp.value=this.dataset.val;
-if(btn)btn.textContent=this.dataset.val;
-document.getElementById('qaq-chat-modal-ccl').click();
-}});
-}});
-}
-function selectMenuPos(){
-var opts=[{l:'输入框上方',v:'top'},{l:'输入框下方',v:'bottom'}];
-var h='<div style="display:flex;flex-direction:column;gap:8px">'+opts.map(function(o){
-return '<button class="qaq-modal-btn qaq-modal-btn-confirm" data-val="'+o.v+'">'+o.l+'</button>';
-}).join('')+'</div>';
-showHtmlModal('菜单位置',h,null,{afterRender:function(){
-document.querySelectorAll('[data-val]').forEach(function(b){b.onclick=function(){
-var inp=document.getElementById('chs_u_menu_pos');
-var btn=document.getElementById('chs_u_menu_pos_btn');
-if(inp)inp.value=this.dataset.val;
-if(btn)btn.textContent=this.dataset.val==='top'?'输入框上方':'输入框下方';
-document.getElementById('qaq-chat-modal-ccl').click();
-}});
-}});
-}
-function selectDndTime(){
-var h='<div style="display:flex;flex-direction:column;gap:10px"><label style="font-size:12px;color:#888">开始时间</label><input type="time" class="qaq-modal-input" id="qaq-dnd-start"><label style="font-size:12px;color:#888">结束时间</label><input type="time" class="qaq-modal-input" id="qaq-dnd-end"><div style="font-size:11px;color:#999">留空则需手动关闭勿扰</div></div>';
-showHtmlModal('勿扰时间段',h,function(){
-var s=document.getElementById('qaq-dnd-start').value;
-var e=document.getElementById('qaq-dnd-end').value;
-var val=s&&e?(s+'-'+e):'';
-var inp=document.getElementById('chs_x_dnd_time');
-var btn=document.getElementById('chs_x_dnd_time_btn');
-if(inp)inp.value=val;
-if(btn)btn.textContent=val||'点击设置';
-});
+var cd=getChatData(),c=cd.contacts[activeContactId]||{},s=c.configs||{};
+if(type==='css_global')s.u_global_css='/* 示例: body{letter-spacing:0.2px;} */\n/* 示例: .qaq-chat-msg-list{background:transparent;} */';
+if(type==='css_bubble')s.u_bubble_css='/* 示例: box-shadow:0 2px 8px rgba(0,0,0,0.06); */\n/* 示例: border:1px solid rgba(0,0,0,0.03); */';
+c.configs=s;saveChatData(cd);renderSettings();toast('已重置');
 }
 function importHistory(){
-var inp=document.createElement('input');inp.type='file';inp.accept='.json';
-inp.onchange=function(){
-if(!this.files||!this.files[0])return;
-var reader=new FileReader();
-reader.onload=function(e){
+uploadLocalFile('.json',function(text){
 try{
-var d=JSON.parse(e.target.result);
-if(d.messages&&Array.isArray(d.messages)){
+var json=JSON.parse(text);
 var cd=getChatData();
-cd.messages[activeContactId]=d.messages;
-saveChatData(cd);renderMessages();toast('导入成功');
-}else{toast('文件格式错误')}
-}catch(err){toast('导入失败')}
-};
-reader.readAsText(this.files[0]);
-};
-inp.click();
+if(Array.isArray(json.messages)){
+cd.messages[activeContactId]=json.messages;
+saveChatData(cd);
+renderMessages();
+toast('聊天记录已导入');
+}else toast('文件格式错误');
+}catch(e){toast('导入失败');}
+},'text');
 }
 function exportHistory(){
 var cd=getChatData();
-var msgs=cd.messages[activeContactId]||[];
-var blob=new Blob([JSON.stringify({messages:msgs},null,2)],{type:'application/json'});
-var url=URL.createObjectURL(blob);
+var data={messages:cd.messages[activeContactId]||[]};
+var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
 var a=document.createElement('a');
-a.href=url;a.download='chat_'+activeContactId+'_'+Date.now()+'.json';
-a.click();URL.revokeObjectURL(url);toast('已导出');
+a.href=URL.createObjectURL(blob);
+a.download='chat_'+activeContactId+'_'+Date.now()+'.json';
+a.click();
+URL.revokeObjectURL(a.href);
+toast('已导出');
 }
 function clearHistory(){
-showHtmlModal('清除聊天记录','<p style="font-size:13px">确认清除所有聊天记录？此操作不可恢复。</p>',function(){
+showHtmlModal('清空聊天记录','<div style="font-size:13px;color:#666;line-height:1.8;">确认清空当前角色的全部聊天记录？此操作不可恢复。</div>',function(){
 var cd=getChatData();
 cd.messages[activeContactId]=[];
-saveChatData(cd);renderMessages();toast('已清除');
+saveChatData(cd);
+renderMessages();
+toast('已清空');
 });
 }
+function renderSettings(){
+if(!activeContactId)return;
+applyPageTheme();
+var cd=getChatData(),c=cd.contacts[activeContactId]||{},me=cd.myProfile||{},s=Object.assign({u_theme:getGlobalTheme(),o_voice_model:'speech-02-hd',o_voice_speed:0.9,o_img_prompt_pos:'masterpiece,best quality,ultra detailed,beautiful lighting,sharp focus,cinematic composition',o_img_prompt_neg:'low quality,blurry,distorted,deformed,ugly,watermark,text,logo,extra fingers,bad anatomy'},cd.globalSettings||{},c.configs||{});
+var scr=document.getElementById('qaq-chat-settings-scroll');
+if(!scr)return;
+scr.innerHTML=[
+'<div class="qaq-chat-set-card qaq-collapsible" data-sec="other">',
+'<div class="qaq-chat-set-hd qaq-collapse-trigger"><span>对方设置</span><svg class="qaq-collapse-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div>',
+'<div class="qaq-collapse-body"><div class="qaq-chat-set-bd">',
+'<div class="qaq-chat-set-lbl">头像</div><div style="display:flex;gap:6px;"><input class="qaq-chat-set-inp" id="chs_o_avatar" value="'+escHTML(c.avatar||'')+'" placeholder="头像URL或本地图片DataURL"><button class="qaq-upload-img-btn" data-avatar-target="chs_o_avatar">上传</button></div>',
+'<div class="qaq-chat-set-lbl">真名</div><input class="qaq-chat-set-inp" id="chs_o_name" value="'+escHTML(c.displayName||'')+'" placeholder="角色真名">',
+'<div class="qaq-chat-set-lbl">备注</div><input class="qaq-chat-set-inp" id="chs_o_remark" value="'+escHTML(c.remark||'')+'" placeholder="备注名称">',
+'<div class="qaq-chat-set-lbl">人设</div><textarea class="qaq-chat-set-txt" id="chs_o_persona" style="height:72px;">'+escHTML(s.op_persona||'')+'</textarea>',
+'<div class="qaq-chat-set-lbl">绑定世界书</div><button class="qaq-chat-action-btn" id="chs_o_worldbook_btn">'+escHTML(s.o_worldbook_bound_name||'未绑定')+'</button><input type="hidden" id="chs_o_worldbook" value="'+escHTML(s.o_worldbook||'')+'">',
+'<div class="qaq-chat-set-row-tog"><span>翻译功能</span><div class="qaq-toggle '+(s.o_trans_enable!==false?'qaq-toggle-on':'')+'" id="chs_o_trans_enable"><div class="qaq-toggle-knob"></div></div></div>',
+'<div class="qaq-chat-set-lbl">翻译显示模式</div><button class="qaq-chat-action-btn" id="chs_o_trans_pos_btn">'+escHTML(getTransLabel(s.op_trans_pos||'in_bottom'))+'</button><input type="hidden" id="chs_o_trans_pos" value="'+escHTML(s.op_trans_pos||'in_bottom')+'">',
+'<div class="qaq-chat-set-lbl">最大记忆条数</div><input class="qaq-chat-set-inp" type="number" id="chs_o_mem_max" value="'+escHTML(String(s.mem_max||20))+'">',
+'<div class="qaq-chat-set-row-tog"><span>自动总结记忆</span><div class="qaq-toggle '+(s.o_mem_summary?'qaq-toggle-on':'')+'" id="chs_o_mem_summary"><div class="qaq-toggle-knob"></div></div></div>',
+'<div class="qaq-chat-set-lbl">总结条数（50-100）</div><input class="qaq-chat-set-inp" type="number" id="chs_o_mem_summary_cnt" min="50" max="100" value="'+escHTML(String(s.o_mem_summary_cnt||50))+'">',
+'<div style="display:flex;gap:6px;margin-top:4px;"><button class="qaq-preset-btn" data-preset-save="api">保存API预设</button><button class="qaq-preset-btn" data-preset-load="api">导入API预设</button></div>',
+'<div class="qaq-chat-set-lbl">专属API URL</div><input class="qaq-chat-set-inp" id="chs_o_api_url" value="'+escHTML(s.o_api_url||'')+'" placeholder="留空使用全局">',
+'<div class="qaq-chat-set-lbl">专属API Key</div><input class="qaq-chat-set-inp" id="chs_o_api_key" type="password" value="'+escHTML(s.o_api_key||'')+'" placeholder="留空使用全局">',
+'<div class="qaq-chat-set-lbl">专属模型</div><div class="qaq-input-with-btn"><input class="qaq-chat-set-inp" id="chs_o_api_model" value="'+escHTML(s.o_api_model||'')+'" placeholder="点击右侧拉取模型"><button class="qaq-fetch-model-btn" data-fetch-type="api" data-fetch-target="chs_o_api_model">拉</button></div>',
+'<div style="display:flex;gap:6px;margin-top:4px;"><button class="qaq-preset-btn" data-preset-save="voice">保存语音预设</button><button class="qaq-preset-btn" data-preset-load="voice">导入语音预设</button></div>',
+'<div class="qaq-chat-set-lbl">语音API URL</div><input class="qaq-chat-set-inp" id="chs_o_voice_url" value="'+escHTML(s.o_voice_url||'')+'">',
+'<div class="qaq-chat-set-lbl">语音API Key</div><input class="qaq-chat-set-inp" id="chs_o_voice_key" type="password" value="'+escHTML(s.o_voice_key||'')+'">',
+'<div class="qaq-chat-set-lbl">语音模型</div><button class="qaq-chat-action-btn" id="chs_o_voice_model_btn">'+escHTML(s.o_voice_model||'speech-02-hd')+'</button><input type="hidden" id="chs_o_voice_model" value="'+escHTML(s.o_voice_model||'speech-02-hd')+'">',
+'<div class="qaq-chat-set-lbl">语速</div><div style="display:flex;align-items:center;gap:8px;"><input type="range" class="qaq-chat-slider" id="chs_o_voice_speed" min="0.6" max="1.2" step="0.1" value="'+escHTML(String(s.o_voice_speed||0.9))+'" style="flex:1;"><input class="qaq-chat-set-inp" id="chs_o_voice_speed_val" type="number" min="0.6" max="1.2" step="0.1" value="'+escHTML(String(s.o_voice_speed||0.9))+'" style="width:64px;"></div>',
+'<div style="display:flex;gap:6px;margin-top:4px;"><button class="qaq-preset-btn" data-preset-save="img">保存生图预设</button><button class="qaq-preset-btn" data-preset-load="img">导入生图预设</button></div>',
+'<div class="qaq-chat-set-lbl">生图API URL</div><input class="qaq-chat-set-inp" id="chs_o_img_url" value="'+escHTML(s.o_img_url||'')+'">',
+'<div class="qaq-chat-set-lbl">生图API Key</div><input class="qaq-chat-set-inp" id="chs_o_img_key" type="password" value="'+escHTML(s.o_img_key||'')+'">',
+'<div class="qaq-chat-set-lbl">生图模型</div><div class="qaq-input-with-btn"><input class="qaq-chat-set-inp" id="chs_o_img_model" value="'+escHTML(s.o_img_model||'')+'" placeholder="点击右侧拉取模型"><button class="qaq-fetch-model-btn" data-fetch-type="img" data-fetch-target="chs_o_img_model">拉</button></div>',
+'<div class="qaq-chat-set-lbl">正面提示词</div><textarea class="qaq-chat-set-txt" id="chs_o_img_prompt_pos" style="height:60px;">'+escHTML(s.o_img_prompt_pos||'')+'</textarea>',
+'<div class="qaq-chat-set-lbl">负面提示词</div><textarea class="qaq-chat-set-txt" id="chs_o_img_prompt_neg" style="height:60px;">'+escHTML(s.o_img_prompt_neg||'')+'</textarea>',
+'</div></div></div>',
+'<div class="qaq-chat-set-card qaq-collapsible qaq-collapsed" data-sec="my">',
+'<div class="qaq-chat-set-hd qaq-collapse-trigger"><span>我方设置</span><svg class="qaq-collapse-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div>',
+'<div class="qaq-collapse-body"><div class="qaq-chat-set-bd">',
+'<div class="qaq-chat-set-lbl">头像</div><div style="display:flex;gap:6px;"><input class="qaq-chat-set-inp" id="chs_m_avatar" value="'+escHTML(me.avatar||'')+'" placeholder="头像URL或本地图片DataURL"><button class="qaq-upload-img-btn" data-avatar-target="chs_m_avatar">上传</button></div>',
+'<div class="qaq-chat-set-lbl">真名</div><input class="qaq-chat-set-inp" id="chs_m_name" value="'+escHTML(me.displayName||'')+'" placeholder="你的真名">',
+'<div class="qaq-chat-set-lbl">备注</div><input class="qaq-chat-set-inp" id="chs_m_remark" value="'+escHTML(me.remark||'')+'" placeholder="你的备注">',
+'<div style="display:flex;gap:6px;margin-top:4px;"><button class="qaq-preset-btn" data-preset-save="persona">保存人设预设</button><button class="qaq-preset-btn" data-preset-load="persona">导入人设预设</button></div>',
+'<div class="qaq-chat-set-lbl">人设</div><textarea class="qaq-chat-set-txt" id="chs_m_persona" style="height:72px;">'+escHTML(me.persona||'')+'</textarea>',
+'</div></div></div>',
+'<div class="qaq-chat-set-card qaq-collapsible qaq-collapsed" data-sec="ui">',
+'<div class="qaq-chat-set-hd qaq-collapse-trigger"><span>美化设置</span><svg class="qaq-collapse-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div>',
+'<div class="qaq-collapse-body"><div class="qaq-chat-set-bd">',
+'<div class="qaq-chat-set-lbl">我的气泡颜色</div><div style="display:flex;gap:6px;"><button class="qaq-color-pick-btn" id="btn_u_my_bubble" style="width:40px;height:36px;border-radius:8px;border:1px solid #ddd;background:'+(s.ui_my_bubble||'#fce8e2')+';"></button><input class="qaq-chat-set-inp" id="chs_u_my_bubble" value="'+escHTML(s.ui_my_bubble||'#fce8e2')+'"></div>',
+'<div class="qaq-chat-set-lbl">对方气泡颜色</div><div style="display:flex;gap:6px;"><button class="qaq-color-pick-btn" id="btn_u_other_bubble" style="width:40px;height:36px;border-radius:8px;border:1px solid #ddd;background:'+(s.ui_other_bubble||'#ffffff')+';"></button><input class="qaq-chat-set-inp" id="chs_u_other_bubble" value="'+escHTML(s.ui_other_bubble||'#ffffff')+'"></div>',
+'<div class="qaq-chat-set-lbl">主题颜色</div><button class="qaq-chat-action-btn" id="chs_u_theme_btn">'+escHTML(getThemeLabel(s.u_theme||getGlobalTheme()))+'</button><input type="hidden" id="chs_u_theme" value="'+escHTML(s.u_theme||getGlobalTheme())+'">',
+'<div class="qaq-chat-set-lbl">头像显示</div><button class="qaq-chat-action-btn" id="chs_u_avatar_show_btn">'+escHTML(getAvaLabel(s.ui_avatar_show||'all'))+'</button><input type="hidden" id="chs_u_avatar_show" value="'+escHTML(s.ui_avatar_show||'all')+'">',
+'<div class="qaq-chat-set-row-tog"><span>显示时间戳</span><div class="qaq-toggle '+(s.ui_show_time!=='false'?'qaq-toggle-on':'')+'" id="chs_u_show_time"><div class="qaq-toggle-knob"></div></div></div>',
+'<div class="qaq-chat-set-lbl">时间戳位置</div><button class="qaq-chat-action-btn" id="chs_u_time_pos_btn">'+escHTML(getTimePosLabel(s.u_time_pos||'top'))+'</button><input type="hidden" id="chs_u_time_pos" value="'+escHTML(s.u_time_pos||'top')+'">',
+'<div class="qaq-chat-set-lbl">时间格式</div><button class="qaq-chat-action-btn" id="chs_u_time_fmt_btn">'+escHTML(s.u_time_fmt||'HH:mm')+'</button><input type="hidden" id="chs_u_time_fmt" value="'+escHTML(s.u_time_fmt||'HH:mm')+'">',
+'<div class="qaq-chat-set-row-tog"><span>隐藏回复按钮</span><div class="qaq-toggle '+(s.ui_hide_rbtn?'qaq-toggle-on':'')+'" id="chs_u_hide_reply"><div class="qaq-toggle-knob"></div></div></div>',
+'<div class="qaq-chat-set-row-tog"><span>隐藏菜单按钮</span><div class="qaq-toggle '+(s.ui_hide_mbtn?'qaq-toggle-on':'')+'" id="chs_u_hide_menu"><div class="qaq-toggle-knob"></div></div></div>',
+'<div class="qaq-chat-set-lbl">菜单位置</div><button class="qaq-chat-action-btn" id="chs_u_menu_pos_btn">'+escHTML((s.u_menu_pos||'top')==='top'?'输入框上方':'输入框下方')+'</button><input type="hidden" id="chs_u_menu_pos" value="'+escHTML(s.u_menu_pos||'top')+'">',
+'<div class="qaq-chat-set-lbl">头像圆角</div><div style="display:flex;align-items:center;gap:8px;"><input type="range" class="qaq-chat-slider" id="chs_u_avatar_radius" min="0" max="30" step="1" value="'+escHTML(String(s.ui_avatar_radius!=null?s.ui_avatar_radius:10))+'" style="flex:1;"><input class="qaq-chat-set-inp" id="chs_u_avatar_radius_val" type="number" min="0" max="30" value="'+escHTML(String(s.ui_avatar_radius!=null?s.ui_avatar_radius:10))+'" style="width:60px;"></div>',
+'<div class="qaq-chat-set-lbl">气泡圆角</div><div style="display:flex;align-items:center;gap:8px;"><input type="range" class="qaq-chat-slider" id="chs_u_bubble_radius" min="0" max="30" step="1" value="'+escHTML(String(s.ui_bubble_radius!=null?s.ui_bubble_radius:14))+'" style="flex:1;"><input class="qaq-chat-set-inp" id="chs_u_bubble_radius_val" type="number" min="0" max="30" value="'+escHTML(String(s.ui_bubble_radius!=null?s.ui_bubble_radius:14))+'" style="width:60px;"></div>',
+'<div class="qaq-chat-set-lbl">字体URL</div><div style="display:flex;gap:6px;"><input class="qaq-chat-set-inp" id="chs_u_font_url" value="'+escHTML(s.u_font_url||'')+'" placeholder="字体URL或本地上传后自动填充"><button class="qaq-upload-font-btn" data-font-target="chs_u_font_url">上传</button></div>',
+'<div class="qaq-chat-set-lbl">字体大小</div><div style="display:flex;align-items:center;gap:8px;"><input type="range" class="qaq-chat-slider" id="chs_u_font_size" min="10" max="24" step="1" value="'+escHTML(String(parseInt(s.ui_font_size||'14px',10)||14))+'" style="flex:1;"><input class="qaq-chat-set-inp" id="chs_u_font_size_val" type="number" min="10" max="24" value="'+escHTML(String(parseInt(s.ui_font_size||'14px',10)||14))+'" style="width:60px;"></div>',
+'<div class="qaq-chat-set-lbl">字体颜色</div><div style="display:flex;gap:6px;"><button class="qaq-color-pick-btn" id="btn_u_font_color" style="width:40px;height:36px;border-radius:8px;border:1px solid #ddd;background:'+(s.u_font_color||'#333333')+';"></button><input class="qaq-chat-set-inp" id="chs_u_font_color" value="'+escHTML(s.u_font_color||'#333333')+'"></div>',
+'<div style="display:flex;gap:6px;margin-top:4px;"><button class="qaq-preset-btn" data-preset-save="css_global">保存全局CSS预设</button><button class="qaq-preset-btn" data-preset-load="css_global">导入预设</button><button class="qaq-preset-btn" data-preset-reset="css_global">重置</button></div>',
+'<div class="qaq-chat-set-lbl">全局CSS</div><textarea class="qaq-chat-set-txt" id="chs_u_global_css" style="height:84px;">'+escHTML(s.u_global_css||'/* 示例: body{letter-spacing:0.2px;} */\n/* 示例: .qaq-chat-msg-list{background:transparent;} */')+'</textarea>',
+'<div style="display:flex;gap:6px;margin-top:4px;"><button class="qaq-preset-btn" data-preset-save="css_bubble">保存气泡CSS预设</button><button class="qaq-preset-btn" data-preset-load="css_bubble">导入预设</button><button class="qaq-preset-btn" data-preset-reset="css_bubble">重置</button></div>',
+'<div class="qaq-chat-set-lbl">气泡CSS</div><textarea class="qaq-chat-set-txt" id="chs_u_bubble_css" style="height:84px;">'+escHTML(s.u_bubble_css||'/* 示例: box-shadow:0 2px 8px rgba(0,0,0,0.06); */\n/* 示例: border:1px solid rgba(0,0,0,0.03); */')+'</textarea>',
+'</div></div></div>',
+'<div class="qaq-chat-set-card qaq-collapsible qaq-collapsed" data-sec="history">',
+'<div class="qaq-chat-set-hd qaq-collapse-trigger"><span>聊天记录</span><svg class="qaq-collapse-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div>',
+'<div class="qaq-collapse-body"><div class="qaq-chat-set-bd">',
+'<button class="qaq-chat-action-btn" id="qaq-chat-import-history">导入聊天记录</button>',
+'<button class="qaq-chat-action-btn" id="qaq-chat-export-history">导出聊天记录</button>',
+'<button class="qaq-chat-action-btn qaq-danger" id="qaq-chat-clear-history">清空聊天记录</button>',
+'</div></div></div>',
+'<div class="qaq-chat-set-card qaq-collapsible qaq-collapsed" data-sec="other_ops">',
+'<div class="qaq-chat-set-hd qaq-collapse-trigger"><span>其他</span><svg class="qaq-collapse-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div>',
+'<div class="qaq-collapse-body"><div class="qaq-chat-set-bd">',
+'<div class="qaq-chat-set-row-tog"><span>角色勿扰</span><div class="qaq-toggle '+(s.x_dnd?'qaq-toggle-on':'')+'" id="chs_x_dnd"><div class="qaq-toggle-knob"></div></div></div>',
+'<div class="qaq-chat-set-lbl">勿扰时间段</div><button class="qaq-chat-action-btn" id="chs_x_dnd_time_btn">'+escHTML(s.x_dnd_time||'点击设置')+'</button><input type="hidden" id="chs_x_dnd_time" value="'+escHTML(s.x_dnd_time||'')+'">',
+'<div class="qaq-chat-set-row-tog"><span>拉黑此角色</span><div class="qaq-toggle '+(c.blocked?'qaq-toggle-on':'')+'" id="chs_x_blocked"><div class="qaq-toggle-knob"></div></div></div>',
+'<button class="qaq-chat-action-btn qaq-danger" id="qaq-chat-delete-role-btn">删除此角色</button>',
+'</div></div></div>',
+'<button class="qaq-chat-set-save" id="qaq-chs-sv">保存全部设置</button>'
+].join('');
+bindSettingsEvents(s,c,me);
+}
+function bindRangePair(id){
+var a=document.getElementById(id),b=document.getElementById(id+'_val');
+if(!a||!b)return;
+a.oninput=function(){b.value=this.value;if(activeContactId&&id.indexOf('chs_u_')===0)previewLiveFromSettings();};
+b.oninput=function(){a.value=this.value;if(activeContactId&&id.indexOf('chs_u_')===0)previewLiveFromSettings();};
+}
+function bindSettingsEvents(s,c,me){
+document.querySelectorAll('.qaq-collapse-trigger').forEach(function(el){
+el.onclick=function(){this.parentNode.classList.toggle('qaq-collapsed');};
+});
+document.querySelectorAll('.qaq-toggle').forEach(function(el){
+el.onclick=function(e){e.stopPropagation();this.classList.toggle('qaq-toggle-on');if(this.id.indexOf('chs_u_')===0||this.id==='chs_x_blocked')previewLiveFromSettings();};
+});
+bindRangePair('chs_o_voice_speed');
+bindRangePair('chs_u_avatar_radius');
+bindRangePair('chs_u_bubble_radius');
+bindRangePair('chs_u_font_size');
+document.querySelectorAll('[data-avatar-target]').forEach(function(btn){
+btn.onclick=function(){openImageInputModal(this.getAttribute('data-avatar-target'));};
+});
+document.querySelectorAll('[data-font-target]').forEach(function(btn){
+btn.onclick=function(){
+uploadLocalFile('.ttf,.otf,.woff,.woff2',function(data){var t=document.getElementById(btn.getAttribute('data-font-target'));if(t)t.value=data;toast('字体已导入');});
+};
+});
+document.getElementById('btn_u_my_bubble').onclick=function(){openColorModal('选择我的气泡颜色',document.getElementById('chs_u_my_bubble').value,function(v){document.getElementById('chs_u_my_bubble').value=v;document.getElementById('btn_u_my_bubble').style.background=v;previewLiveFromSettings();});};
+document.getElementById('btn_u_other_bubble').onclick=function(){openColorModal('选择对方气泡颜色',document.getElementById('chs_u_other_bubble').value,function(v){document.getElementById('chs_u_other_bubble').value=v;document.getElementById('btn_u_other_bubble').style.background=v;previewLiveFromSettings();});};
+document.getElementById('btn_u_font_color').onclick=function(){openColorModal('选择字体颜色',document.getElementById('chs_u_font_color').value,function(v){document.getElementById('chs_u_font_color').value=v;document.getElementById('btn_u_font_color').style.background=v;previewLiveFromSettings();});};
+document.getElementById('chs_o_worldbook_btn').onclick=chooseWorldBook;
+document.getElementById('chs_o_trans_pos_btn').onclick=function(){
+openSelectModal('翻译显示模式',[{label:'气泡内下方',value:'in_bottom'},{label:'气泡内上方',value:'in_top'},{label:'气泡外下方',value:'out_bottom'},{label:'气泡外上方',value:'out_top'},{label:'隐藏',value:'hide'}],document.getElementById('chs_o_trans_pos').value,function(v){document.getElementById('chs_o_trans_pos').value=v;document.getElementById('chs_o_trans_pos_btn').textContent=getTransLabel(v);previewLiveFromSettings();});
+};
+document.getElementById('chs_o_voice_model_btn').onclick=function(){
+openSelectModal('语音模型',['speech-02-hd','speech-02-turbo','speech-2.8-hd','speech-2.8-turbo','speech-2.6-hd','speech-2.6-turbo','speech-01-turbo'],document.getElementById('chs_o_voice_model').value,function(v){document.getElementById('chs_o_voice_model').value=v;document.getElementById('chs_o_voice_model_btn').textContent=v;});
+};
+document.getElementById('chs_u_theme_btn').onclick=function(){
+openSelectModal('主题颜色',[{label:'暖阳',value:'default'},{label:'冷雾',value:'cool'},{label:'夜幕',value:'dark'}],document.getElementById('chs_u_theme').value,function(v){document.getElementById('chs_u_theme').value=v;document.getElementById('chs_u_theme_btn').textContent=getThemeLabel(v);previewLiveFromSettings();});
+};
+document.getElementById('chs_u_avatar_show_btn').onclick=function(){
+openSelectModal('头像显示',[{label:'全显示',value:'all'},{label:'全隐藏',value:'hide_all'},{label:'首条',value:'first'},{label:'末条',value:'last'}],document.getElementById('chs_u_avatar_show').value,function(v){document.getElementById('chs_u_avatar_show').value=v;document.getElementById('chs_u_avatar_show_btn').textContent=getAvaLabel(v);previewLiveFromSettings();});
+};
+document.getElementById('chs_u_time_pos_btn').onclick=function(){
+openSelectModal('时间戳位置',[{label:'气泡上方',value:'top'},{label:'气泡下方',value:'bottom'},{label:'头像上方',value:'avatar_top'},{label:'头像下方',value:'avatar_bottom'},{label:'气泡外侧',value:'bubble_outer'},{label:'气泡内侧',value:'bubble_inner'}],document.getElementById('chs_u_time_pos').value,function(v){document.getElementById('chs_u_time_pos').value=v;document.getElementById('chs_u_time_pos_btn').textContent=getTimePosLabel(v);previewLiveFromSettings();});
+};
+document.getElementById('chs_u_time_fmt_btn').onclick=function(){
+openSelectModal('时间格式',['HH:mm','HH:mm:ss','MM-DD HH:mm','YYYY-MM-DD HH:mm'],document.getElementById('chs_u_time_fmt').value,function(v){document.getElementById('chs_u_time_fmt').value=v;document.getElementById('chs_u_time_fmt_btn').textContent=v;previewLiveFromSettings();});
+};
+document.getElementById('chs_u_menu_pos_btn').onclick=function(){
+openSelectModal('菜单位置',[{label:'输入框上方',value:'top'},{label:'输入框下方',value:'bottom'}],document.getElementById('chs_u_menu_pos').value,function(v){document.getElementById('chs_u_menu_pos').value=v;document.getElementById('chs_u_menu_pos_btn').textContent=v==='top'?'输入框上方':'输入框下方';previewLiveFromSettings();});
+};
+document.getElementById('chs_x_dnd_time_btn').onclick=function(){
+showHtmlModal('设置勿扰时间段','<div style="display:flex;flex-direction:column;gap:10px;"><label style="font-size:12px;color:#888;">开始时间</label><input class="qaq-modal-input" id="qaq-dnd-start" type="time"><label style="font-size:12px;color:#888;">结束时间</label><input class="qaq-modal-input" id="qaq-dnd-end" type="time"><div style="font-size:11px;color:#999;">不填写时间则表示需要手动关闭勿扰</div></div>',function(){
+var a=(document.getElementById('qaq-dnd-start').value||'').trim();
+var b=(document.getElementById('qaq-dnd-end').value||'').trim();
+var v=(a&&b)?(a+'-'+b):'';
+document.getElementById('chs_x_dnd_time').value=v;
+document.getElementById('chs_x_dnd_time_btn').textContent=v||'点击设置';
+},{afterRender:function(){
+var old=(document.getElementById('chs_x_dnd_time').value||'').trim();
+if(old.indexOf('-')>-1){
+var sp=old.split('-');
+document.getElementById('qaq-dnd-start').value=sp[0]||'';
+document.getElementById('qaq-dnd-end').value=sp[1]||'';
+}
+}});
+};
+document.querySelectorAll('[data-fetch-target]').forEach(function(btn){
+btn.onclick=function(){fetchModels(this.getAttribute('data-fetch-target'),this.getAttribute('data-fetch-type'));};
+});
+document.querySelectorAll('[data-preset-save]').forEach(function(btn){btn.onclick=function(){savePreset(this.getAttribute('data-preset-save'));};});
+document.querySelectorAll('[data-preset-load]').forEach(function(btn){btn.onclick=function(){loadPreset(this.getAttribute('data-preset-load'));};});
+document.querySelectorAll('[data-preset-reset]').forEach(function(btn){btn.onclick=function(){resetPreset(this.getAttribute('data-preset-reset'));};});
+document.getElementById('qaq-chat-import-history').onclick=importHistory;
+document.getElementById('qaq-chat-export-history').onclick=exportHistory;
+document.getElementById('qaq-chat-clear-history').onclick=clearHistory;
+document.getElementById('qaq-chat-delete-role-btn').onclick=function(){confirmDeleteRole(activeContactId);};
+['chs_u_my_bubble','chs_u_other_bubble','chs_u_font_color','chs_u_font_url','chs_u_global_css','chs_u_bubble_css'].forEach(function(id){
+var el=document.getElementById(id);
+if(el)el.addEventListener('input',previewLiveFromSettings);
+});
+document.getElementById('qaq-chs-sv').onclick=saveSettings;
+}
+function previewLiveFromSettings(){
+if(!activeContactId)return;
+var fake={
+ui_my_bubble:(document.getElementById('chs_u_my_bubble')||{}).value||'#fce8e2',
+ui_other_bubble:(document.getElementById('chs_u_other_bubble')||{}).value||'#ffffff',
+u_theme:(document.getElementById('chs_u_theme')||{}).value||getGlobalTheme(),
+ui_avatar_show:(document.getElementById('chs_u_avatar_show')||{}).value||'all',
+ui_show_time:(document.getElementById('chs_u_show_time')||{}).classList&&document.getElementById('chs_u_show_time').classList.contains('qaq-toggle-on')?'true':'false',
+u_time_pos:(document.getElementById('chs_u_time_pos')||{}).value||'top',
+u_time_fmt:(document.getElementById('chs_u_time_fmt')||{}).value||'HH:mm',
+ui_hide_rbtn:(document.getElementById('chs_u_hide_reply')||{}).classList&&document.getElementById('chs_u_hide_reply').classList.contains('qaq-toggle-on'),
+ui_hide_mbtn:(document.getElementById('chs_u_hide_menu')||{}).classList&&document.getElementById('chs_u_hide_menu').classList.contains('qaq-toggle-on'),
+u_menu_pos:(document.getElementById('chs_u_menu_pos')||{}).value||'top',
+ui_avatar_radius:parseFloat((document.getElementById('chs_u_avatar_radius_val')||{}).value||10),
+ui_bubble_radius:parseFloat((document.getElementById('chs_u_bubble_radius_val')||{}).value||14),
+ui_font_size:(((document.getElementById('chs_u_font_size_val')||{}).value||14)+'px'),
+u_font_color:(document.getElementById('chs_u_font_color')||{}).value||'#333333',
+u_font_url:(document.getElementById('chs_u_font_url')||{}).value||'',
+u_global_css:(document.getElementById('chs_u_global_css')||{}).value||'',
+u_bubble_css:(document.getElementById('chs_u_bubble_css')||{}).value||'',
+op_trans_pos:(document.getElementById('chs_o_trans_pos')||{}).value||'in_bottom'
+};
+var cd=getChatData(),c=cd.contacts[activeContactId]||{};
+var merged=Object.assign({},cd.globalSettings||{},c.configs||{},fake);
+applyChatThemeToPages(merged.u_theme||getGlobalTheme());
+document.documentElement.style.setProperty('--chat-my-bub',merged.ui_my_bubble||'#fce8e2');
+document.documentElement.style.setProperty('--chat-oth-bub',merged.ui_other_bubble||'#ffffff');
+var recvBtn=document.getElementById('qaq-chat-recv-ai-btn');
+var menuBtn=document.getElementById('qaq-chat-toggle-menu');
+if(recvBtn)recvBtn.style.display=merged.ui_hide_rbtn?'none':'';
+if(menuBtn)menuBtn.style.display=merged.ui_hide_mbtn?'none':'flex';
+applyRuntimeStyles(merged);
+renderMessages();
+}
 function saveSettings(){
-function vx(id,isT){var x=document.getElementById('chs_'+id);return x?(isT?x.classList.contains('qaq-toggle-on'):x.value):undefined}
-function vxSlider(id){var x=document.getElementById('chs_'+id+'_val');return x?parseFloat(x.value):undefined}
-var cd=getChatData();var c=cd.contacts[activeContactId]||{};
-var s=c.configs||{};var p=cd.myProfile;
-// 对方设置
-var oAva=vx('o_avatar');if(oAva!==undefined)c.avatar=oAva;
-var oNick=vx('o_nickname');if(oNick!==undefined)c.nickname=oNick;
-var oRmk=vx('o_remark');if(oRmk!==undefined)c.remark=oRmk;
-s.op_persona=vx('o_persona');
-s.o_worldbook=vx('o_worldbook');
-s.o_emoji=vx('o_emoji',true);
-s.o_trans_enable=vx('o_trans_enable',true);
-s.op_trans_pos=vx('o_trans_pos');
-s.mem_max=parseInt(vx('o_mem_max'))||20;
-s.o_mem_summary=vx('o_mem_summary',true);
-s.o_mem_summary_cnt=parseInt(vx('o_mem_summary_cnt'))||50;
-s.o_api_url=vx('o_api_url');
-s.o_api_key=vx('o_api_key');
-s.o_api_model=vx('o_api_model');
-s.o_voice_url=vx('o_voice_url');
-s.o_voice_key=vx('o_voice_key');
-s.o_voice_model=vx('o_voice_model');
-var vSpeed=vxSlider('o_voice_speed');if(vSpeed!==undefined)s.o_voice_speed=vSpeed;
-s.o_img_url=vx('o_img_url');
-s.o_img_key=vx('o_img_key');
-s.o_img_model=vx('o_img_model');
-s.o_img_prompt_pos=vx('o_img_prompt_pos');
-s.o_img_prompt_neg=vx('o_img_prompt_neg');
-// 我方设置
-p.avatar=vx('m_avatar');
-p.nickname=vx('m_nickname');
-p.trueName=vx('m_truename');
-p.persona=vx('m_persona');
-// 美化设置
-s.ui_my_bubble=vx('u_my_bubble');
-s.ui_other_bubble=vx('u_other_bubble');
-s.u_theme=vx('u_theme');
-s.ui_avatar_show=vx('u_avatar_show');
-s.ui_show_time=vx('u_show_time',true)?'true':'false';
-s.u_time_pos=vx('u_time_pos');
-s.u_time_fmt=vx('u_time_fmt');
-s.ui_hide_rbtn=vx('u_hide_reply',true);
-s.ui_hide_mbtn=vx('u_hide_menu',true);
-s.u_menu_pos=vx('u_menu_pos');
-var aRad=vxSlider('u_avatar_radius');if(aRad!==undefined)s.ui_avatar_radius=aRad;
-var bRad=vxSlider('u_bubble_radius');if(bRad!==undefined)s.ui_bubble_radius=bRad;
-s.u_font_url=vx('u_font_url');
-var fSize=vxSlider('u_font_size');if(fSize!==undefined)s.ui_font_size=fSize+'px';
-s.u_font_color=vx('u_font_color');
-s.u_global_css=vx('u_global_css');
-s.u_bubble_css=vx('u_bubble_css');
-// 其他
-s.x_dnd=vx('x_dnd',true);
-s.x_dnd_time=vx('x_dnd_time');
-c.blocked=vx('x_blocked',true);
-var wasDel=c.deleted;
-c.deleted=vx('x_deleted',true);
-if(!wasDel&&c.deleted){
-showHtmlModal('确认删除','<p style="font-size:13px">确认删除「'+escHTML(c.remark||c.nickname)+'」及所有聊天记录？此操作不可恢复。</p>',function(){
-delete cd.messages[activeContactId];
-saveChatData(cd);toast('已删除');
-document.getElementById('qaq-chat-set-back').click();
-document.getElementById('qaq-chat-win-back').click();
-renderContactList();
-},{onCancel:function(){c.deleted=false}});
-return;
-}
-c.configs=s;cd.myProfile=p;saveChatData(cd);
-// 应用主题
-var frame=document.querySelector('.qaq-phone-frame');
-if(frame){
-frame.classList.remove('qaq-theme-dark','qaq-theme-cool');
-if(s.u_theme==='dark')frame.classList.add('qaq-theme-dark');
-else if(s.u_theme==='cool')frame.classList.add('qaq-theme-cool');
-}
-// 应用字体
-if(s.u_font_url){
-var ff=new FontFace('ChatCustomFont','url('+s.u_font_url+')');
-ff.load().then(function(loaded){
-document.fonts.add(loaded);
-var ml=document.getElementById('qaq-chat-msg-list');
-if(ml)ml.style.fontFamily='ChatCustomFont,sans-serif';
-}).catch(function(){toast('字体加载失败')});
-}
-// 应用CSS
-var gStyle=document.getElementById('qaq-chat-global-style');
-if(!gStyle){gStyle=document.createElement('style');gStyle.id='qaq-chat-global-style';document.head.appendChild(gStyle)}
-gStyle.textContent=s.u_global_css||'';
-var bStyle=document.getElementById('qaq-chat-bubble-style');
-if(!bStyle){bStyle=document.createElement('style');bStyle.id='qaq-chat-bubble-style';document.head.appendChild(bStyle)}
-bStyle.textContent='.qaq-chat-bubble{'+(s.u_bubble_css||'')+'}';
-toast('设置已保存');
-applySettingsLive();
-}
-    if(document.readyState==='loading')
-        document.addEventListener('DOMContentLoaded',bindPageEvents);
-    else 
-        bindPageEvents();
+if(!activeContactId)return;
+var cd=getChatData(),c=cd.contacts[activeContactId]||{},s=c.configs||{},me=cd.myProfile||{};
+var getVal=function(id){var el=document.getElementById(id);return el?el.value:'';};
+var getOn=function(id){var el=document.getElementById(id);return !!(el&&el.classList.contains('qaq-toggle-on'));};
 
-} catch(err) {
-    console.error('[Chat] 模块加载失败:', err);
-    console.error('[Chat] 错误堆栈:', err.stack);
-    window.qaqToast && window.qaqToast('聊天模块加载失败，请查看日志');
+c.avatar=getVal('chs_o_avatar');
+c.displayName=getVal('chs_o_name')||'未命名角色';
+c.remark=getVal('chs_o_remark')||c.displayName;
+
+s.op_persona=getVal('chs_o_persona');
+s.o_worldbook=getVal('chs_o_worldbook');
+var wbNameBtn=document.getElementById('chs_o_worldbook_btn');
+s.o_worldbook_bound_name=wbNameBtn?wbNameBtn.textContent:'';
+s.o_trans_enable=getOn('chs_o_trans_enable');
+s.op_trans_pos=getVal('chs_o_trans_pos')||'in_bottom';
+s.mem_max=Math.max(1,parseInt(getVal('chs_o_mem_max'),10)||20);
+s.o_mem_summary=getOn('chs_o_mem_summary');
+s.o_mem_summary_cnt=Math.max(50,Math.min(100,parseInt(getVal('chs_o_mem_summary_cnt'),10)||50));
+
+s.o_api_url=getVal('chs_o_api_url');
+s.o_api_key=getVal('chs_o_api_key');
+s.o_api_model=getVal('chs_o_api_model');
+
+s.o_voice_url=getVal('chs_o_voice_url');
+s.o_voice_key=getVal('chs_o_voice_key');
+s.o_voice_model=getVal('chs_o_voice_model')||'speech-02-hd';
+s.o_voice_speed=parseFloat(getVal('chs_o_voice_speed_val')||getVal('chs_o_voice_speed')||0.9);
+
+s.o_img_url=getVal('chs_o_img_url');
+s.o_img_key=getVal('chs_o_img_key');
+s.o_img_model=getVal('chs_o_img_model');
+s.o_img_prompt_pos=getVal('chs_o_img_prompt_pos')||'masterpiece,best quality,ultra detailed,beautiful lighting,sharp focus,cinematic composition';
+s.o_img_prompt_neg=getVal('chs_o_img_prompt_neg')||'low quality,blurry,distorted,deformed,ugly,watermark,text,logo,extra fingers,bad anatomy';
+
+me.avatar=getVal('chs_m_avatar');
+me.displayName=getVal('chs_m_name')||'学生';
+me.remark=getVal('chs_m_remark');
+me.persona=getVal('chs_m_persona')||'正在全力攻克外语考试的学习者';
+
+s.ui_my_bubble=getVal('chs_u_my_bubble')||'#fce8e2';
+s.ui_other_bubble=getVal('chs_u_other_bubble')||'#ffffff';
+s.u_theme=getVal('chs_u_theme')||getGlobalTheme();
+s.ui_avatar_show=getVal('chs_u_avatar_show')||'all';
+s.ui_show_time=getOn('chs_u_show_time')?'true':'false';
+s.u_time_pos=getVal('chs_u_time_pos')||'top';
+s.u_time_fmt=getVal('chs_u_time_fmt')||'HH:mm';
+s.ui_hide_rbtn=getOn('chs_u_hide_reply');
+s.ui_hide_mbtn=getOn('chs_u_hide_menu');
+s.u_menu_pos=getVal('chs_u_menu_pos')||'top';
+s.ui_avatar_radius=parseFloat(getVal('chs_u_avatar_radius_val')||getVal('chs_u_avatar_radius')||10);
+s.ui_bubble_radius=parseFloat(getVal('chs_u_bubble_radius_val')||getVal('chs_u_bubble_radius')||14);
+s.u_font_url=getVal('chs_u_font_url');
+s.ui_font_size=(parseInt(getVal('chs_u_font_size_val')||getVal('chs_u_font_size')||14,10)||14)+'px';
+s.u_font_color=getVal('chs_u_font_color')||'#333333';
+s.u_global_css=getVal('chs_u_global_css')||'/* 示例: body{letter-spacing:0.2px;} */\n/* 示例: .qaq-chat-msg-list{background:transparent;} */';
+s.u_bubble_css=getVal('chs_u_bubble_css')||'/* 示例: box-shadow:0 2px 8px rgba(0,0,0,0.06); */\n/* 示例: border:1px solid rgba(0,0,0,0.03); */';
+
+s.x_dnd=getOn('chs_x_dnd');
+s.x_dnd_time=getVal('chs_x_dnd_time');
+
+var oldBlocked=!!c.blocked;
+c.blocked=getOn('chs_x_blocked');
+
+c.configs=s;
+cd.myProfile=me;
+saveChatData(cd);
+
+if(oldBlocked!==c.blocked&&c.blocked){
+toast('已拉黑，该角色仍可向你发消息或好友申请');
+}else if(oldBlocked!==c.blocked&&!c.blocked){
+toast('已取消拉黑');
+}else{
+toast('设置已保存');
+}
+applySettingsLive();
+renderContactList();
+renderMessages();
+}
+function checkAutoDndState(){
+var cd=getChatData();
+Object.keys(cd.contacts||{}).forEach(function(cid){
+var c=cd.contacts[cid];
+if(!c||!c.configs)return;
+var s=c.configs;
+if(!s.x_dnd)return;
+if(!s.x_dnd_time)return;
+var now=new Date();
+var hm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+var sp=String(s.x_dnd_time).split('-');
+if(sp.length!==2)return;
+var start=sp[0],end=sp[1];
+var inRange=false;
+if(start<=end)inRange=hm>=start&&hm<=end;
+else inRange=hm>=start||hm<=end;
+if(!inRange){
+s.x_dnd=false;
+}
+});
+saveChatData(cd);
+}
+function maybeReceiveAutoMessage(){
+if(!activeContactId)return;
+var cd=getChatData();
+var c=cd.contacts[activeContactId];
+if(!c||c.deleted)return;
+var s=c.configs||{};
+if(s.x_dnd)return;
+}
+function addAIContact(){
+showHtmlModal('添加陪练AI','<div style="display:flex;flex-direction:column;gap:10px;"><div style="font-size:12px;color:#888;">真名</div><input class="qaq-modal-input" id="qaq-add-name" placeholder="如：雅思考官"><div style="font-size:12px;color:#888;">备注</div><input class="qaq-modal-input" id="qaq-add-remark" placeholder="如：口语考官A"><div style="font-size:12px;color:#888;">人设</div><textarea class="qaq-modal-textarea" id="qaq-add-persona" style="height:70px;" placeholder="如：毒舌但专业的雅思考官"></textarea></div>',function(){
+var n=(document.getElementById('qaq-add-name').value||'').trim()||'不具名陪读';
+var r=(document.getElementById('qaq-add-remark').value||'').trim()||n;
+var p=(document.getElementById('qaq-add-persona').value||'').trim()||'我是一名专业的学习助理。';
+var cd=getChatData();
+var id=uid('ai');
+cd.contacts[id]={id:id,displayName:n,remark:r,avatar:'',isTop:false,updateTime:Date.now(),blocked:false,deleted:false,configs:{op_persona:p,ui_bubble_radius:14,ui_avatar_radius:10,op_trans_pos:'in_bottom',ui_my_bubble:'#fce8e2',ui_other_bubble:'#ffffff',u_theme:getGlobalTheme(),ui_avatar_show:'all',ui_show_time:'true',u_time_pos:'top',u_time_fmt:'HH:mm',u_menu_pos:'top',mem_max:20,o_mem_summary:false,o_mem_summary_cnt:50,o_img_prompt_pos:'masterpiece,best quality,ultra detailed,beautiful lighting,sharp focus,cinematic composition',o_img_prompt_neg:'low quality,blurry,distorted,deformed,ugly,watermark,text,logo,extra fingers,bad anatomy'}};
+cd.messages[id]=[{id:uid('msg'),text:'你好，我已准备好和你开始练习。',isMe:false,time:Date.now(),translated:'你好，我已准备好和你开始练习。'}];
+saveChatData(cd);
+renderContactList();
+toast('已添加角色');
+});
+}
+function bindPageEvents(){
+applyPageTheme();
+ensureDemoData();
+checkAutoDndState();
+var mainP=document.getElementById('qaq-chat-main-page');
+var winP=document.getElementById('qaq-chat-window-page');
+var setP=document.getElementById('qaq-chat-settings-page');
+var backMain=document.getElementById('qaq-chat-main-back');
+var backWin=document.getElementById('qaq-chat-win-back');
+var backSet=document.getElementById('qaq-chat-set-back');
+var setBtn=document.getElementById('qaq-chat-win-set-btn');
+var sendBtn=document.getElementById('qaq-chat-send-btn');
+var recvBtn=document.getElementById('qaq-chat-recv-ai-btn');
+var input=document.getElementById('qaq-chat-input-box');
+var menuBtn=document.getElementById('qaq-chat-toggle-menu');
+var extMenu=document.getElementById('qaq-chat-ext-menu');
+var addBtn=document.getElementById('qaq-chat-top-add-btn');
+if(backMain)backMain.onclick=function(){mainP&&mainP.classList.remove('qaq-page-show');};
+if(backWin)backWin.onclick=function(){setP&&setP.classList.remove('qaq-page-show');winP&&winP.classList.remove('qaq-page-show');mainP&&mainP.classList.add('qaq-page-show');renderContactList();};
+if(backSet)backSet.onclick=function(){saveSettings();setP&&setP.classList.remove('qaq-page-show');winP&&winP.classList.add('qaq-page-show');};
+if(setBtn)setBtn.onclick=function(){renderSettings();winP&&winP.classList.remove('qaq-page-show');setP&&setP.classList.add('qaq-page-show');};
+if(sendBtn)sendBtn.onclick=sendMsg;
+if(recvBtn)recvBtn.onclick=recvAI;
+if(input)input.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});
+if(menuBtn&&extMenu)menuBtn.onclick=function(){extMenu.style.display=extMenu.style.display==='none'||!extMenu.style.display?'grid':'none';};
+if(addBtn)addBtn.onclick=function(){addAIContact();};
+renderExtMenu();
+renderContactList();
+}
+window.qaqOpenChatPage=function(){
+try{
+applyPageTheme();
+ensureDemoData();
+var p=document.getElementById('qaq-chat-main-page');
+if(p){p.classList.add('qaq-page-show');p.style.zIndex='999';renderContactList();}
+else{console.error('[Chat] 找不到聊天主页面元素');toast('聊天页面不存在');}
+}catch(e){
+console.error('[Chat] 打开页面失败:',e);
+toast('打开聊天失败: '+e.message);
+}
+};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindPageEvents);
+else bindPageEvents();
+setInterval(function(){
+checkAutoDndState();
+},60000);
+}catch(err){
+console.error('[Chat] 模块加载失败:',err);
+console.error(err.stack);
+window.qaqToast&&window.qaqToast('聊天模块加载失败，请查看日志');
 }
 })();

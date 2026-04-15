@@ -1,1 +1,202 @@
+/* ===== QAQ Chat App Patch ===== */
 
+.qaq-chat-main-page,
+.qaq-chat-window-page,
+.qaq-chat-settings-page{
+    will-change: transform;
+    contain: layout paint style;
+}
+
+.qaq-chat-contact-list,
+.qaq-chat-msg-list,
+.qaq-chat-settings-scroll{
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+}
+.qaq-chat-contact-list::-webkit-scrollbar,
+.qaq-chat-msg-list::-webkit-scrollbar,
+.qaq-chat-settings-scroll::-webkit-scrollbar{
+    display:none;
+}
+
+.qaq-chat-list-item{
+    min-height:72px;
+}
+.qaq-chat-list-avatar{
+    background:#f2f2f4;
+}
+
+.qaq-chat-msg-list{
+    background: transparent;
+}
+
+.qaq-chat-bubble{
+    position: relative;
+}
+
+.qaq-chat-row.qaq-row-me .qaq-chat-bubble::after{
+    content:'';
+    position:absolute;
+    right:-6px;
+    top:10px;
+    width:10px;
+    height:10px;
+    background:var(--chat-my-bub);
+    clip-path:polygon(0 0,100% 50%,0 100%);
+}
+.qaq-chat-row.qaq-row-other .qaq-chat-bubble::before{
+    content:'';
+    position:absolute;
+    left:-6px;
+    top:10px;
+    width:10px;
+    height:10px;
+    background:var(--chat-oth-bub);
+    clip-path:polygon(100% 0,0 50%,100% 100%);
+}
+
+.qaq-chat-row .qaq-chat-bubble-wrap.qaq-has-outer-tr .qaq-chat-bubble::after,
+.qaq-chat-row .qaq-chat-bubble-wrap.qaq-has-outer-tr .qaq-chat-bubble::before{
+    display:block;
+}
+
+.qaq-chat-msg-time{
+    user-select:none;
+}
+
+.qaq-chat-input-area{
+    flex-shrink:0;
+}
+
+.qaq-chat-input-box{
+    overflow-y:auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.qaq-chat-settings-scroll{
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+}
+
+.qaq-chat-set-card{
+    box-shadow:none;
+    backdrop-filter:none;
+    -webkit-backdrop-filter:none;
+}
+
+.qaq-chat-set-hd{
+    border-bottom:1px solid rgba(0,0,0,.04);
+}
+.qaq-collapsible.qaq-collapsed .qaq-chat-set-hd{
+    border-bottom:none;
+}
+
+.qaq-chat-set-bd .qaq-chat-action-btn,
+.qaq-chat-set-bd .qaq-preset-btn,
+.qaq-chat-set-bd .qaq-fetch-model-btn,
+.qaq-chat-set-bd .qaq-upload-img-btn,
+.qaq-chat-set-bd .qaq-upload-font-btn{
+    touch-action:manipulation;
+}
+
+.qaq-chat-set-bd .qaq-chat-set-inp[type="number"]{
+    -moz-appearance:textfield;
+}
+.qaq-chat-set-bd .qaq-chat-set-inp[type="number"]::-webkit-outer-spin-button,
+.qaq-chat-set-bd .qaq-chat-set-inp[type="number"]::-webkit-inner-spin-button{
+    -webkit-appearance:none;
+    margin:0;
+}
+
+.qaq-chat-main-page.qaq-theme-dark .qaq-chat-list-item.qaq-top{
+    background: rgba(120, 70, 70, 0.16) !important;
+}
+.qaq-chat-main-page.qaq-theme-cool .qaq-chat-list-item.qaq-top{
+    background: rgba(160, 180, 210, 0.16) !important;
+}
+
+.qaq-chat-window-page.qaq-theme-dark .qaq-chat-row.qaq-row-me .qaq-chat-bubble::after{
+    background:var(--chat-my-bub);
+}
+.qaq-chat-window-page.qaq-theme-dark .qaq-chat-row.qaq-row-other .qaq-chat-bubble::before{
+    background:var(--chat-oth-bub);
+}
+
+.qaq-chat-window-page.qaq-theme-dark .qaq-chat-msg-time{
+    color:#777;
+}
+.qaq-chat-window-page.qaq-theme-cool .qaq-chat-msg-time{
+    color:#8b97a6;
+}
+
+.qaq-chat-window-page.qaq-theme-dark .qaq-chat-trans{
+    background:transparent;
+}
+.qaq-chat-window-page.qaq-theme-cool .qaq-chat-trans{
+    color:#7d8794;
+}
+
+.qaq-chat-settings-page.qaq-theme-dark .qaq-chat-set-hd{
+    border-bottom-color:rgba(255,255,255,.05);
+}
+.qaq-chat-settings-page.qaq-theme-cool .qaq-chat-set-hd{
+    border-bottom-color:rgba(0,0,0,.04);
+}
+
+.qaq-chat-main-page .qaq-settings-item,
+.qaq-chat-settings-page .qaq-settings-item{
+    background:transparent;
+}
+
+.qaq-chat-set-save{
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+}
+
+.qaq-chat-window-page .qaq-chat-ext-menu{
+    display:none;
+}
+
+.qaq-chat-window-page .qaq-chat-ext-menu.qaq-chat-ext-show{
+    display:grid;
+}
+
+.qaq-chat-window-page .qaq-chat-input-row,
+.qaq-chat-window-page .qaq-chat-ext-menu{
+    width:100%;
+}
+
+.qaq-chat-window-page.qaq-theme-dark .qaq-ext-icon{
+    box-shadow:none;
+}
+.qaq-chat-window-page.qaq-theme-cool .qaq-ext-icon{
+    box-shadow:none;
+}
+
+.qaq-chat-main-page .qaq-chat-list-preview,
+.qaq-chat-window-page .qaq-chat-list-preview{
+    line-height:1.55;
+}
+
+.qaq-chat-main-page .qaq-chat-list-name,
+.qaq-chat-window-page .qaq-chat-list-name{
+    line-height:1.3;
+}
+
+.qaq-chat-window-page .qaq-chat-bubble-avatar{
+    background:#f0f0f2;
+}
+
+.qaq-chat-window-page.qaq-theme-dark .qaq-chat-bubble-avatar{
+    background:#333;
+}
+
+.qaq-chat-main-page .qaq-chat-list-item,
+.qaq-chat-window-page .qaq-chat-send-btn,
+.qaq-chat-window-page .qaq-chat-recv-ai-btn,
+.qaq-chat-window-page .qaq-chat-circle-btn,
+.qaq-chat-settings-page .qaq-chat-action-btn,
+.qaq-chat-settings-page .qaq-preset-btn{
+    -webkit-tap-highlight-color: transparent;
+}

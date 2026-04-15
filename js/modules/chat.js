@@ -338,6 +338,15 @@ function buildContactList() {
 
 function qs(id) { return document.getElementById(id); }
 
+function showOnlyChatPage(pageId) {
+    ['qaq-chat-main-page', 'qaq-chat-window-page', 'qaq-chat-settings-page'].forEach(function (id) {
+        var el = qs(id);
+        if (!el) return;
+        if (id === pageId) el.classList.add('qaq-page-show');
+        else el.classList.remove('qaq-page-show');
+    });
+}
+
 function openModal(title, html, opts) {
     opts = opts || {};
     var titleEl = qs('qaq-modal-title');
@@ -899,15 +908,11 @@ function editMyProfile() {
 
 function openChat(cid) {
     activeContactId = cid;
-    qs('qaq-chat-main-page').classList.remove('qaq-page-show');
-    qs('qaq-chat-settings-page').classList.remove('qaq-page-show');
-    qs('qaq-chat-window-page').classList.add('qaq-page-show');
+    showOnlyChatPage('qaq-chat-window-page');
     renderChatWindow();
 }
 function closeChatWindow() {
-    qs('qaq-chat-window-page').classList.remove('qaq-page-show');
-    qs('qaq-chat-settings-page').classList.remove('qaq-page-show');
-    qs('qaq-chat-main-page').classList.add('qaq-page-show');
+    showOnlyChatPage('qaq-chat-main-page');
     renderMainBody();
 }
 function renderChatWindow() {
@@ -1363,8 +1368,7 @@ function openAddFriendDialog() {
 function openChatSettings() {
     if (!activeContactId) return;
     renderSettingsPage();
-    qs('qaq-chat-window-page').classList.remove('qaq-page-show');
-    qs('qaq-chat-settings-page').classList.add('qaq-page-show');
+    showOnlyChatPage('qaq-chat-settings-page');
 }
 
 function renderSettingsPage() {
@@ -1372,498 +1376,81 @@ function renderSettingsPage() {
     var s = getStore();
     if (!c) return;
     var me = s.myProfile || {};
-    var cfg = getMergedChatConfig(c);
-    applyPageThemeClass(cfg.uiTheme || getGlobalTheme());
     var body = qs('qaq-chat-settings-scroll');
     if (!body) return;
 
-    body.innerHTML = [
-        renderSettingCard('对方设置', 'open', [
-            settingImageRow('头像', 'qaq-chs-o-avatar', c.avatar || ''),
-            settingInput('昵称', 'qaq-chs-o-name', c.nickname || '', '角色昵称'),
-            settingInput('备注', 'qaq-chs-o-remark', c.remark || '', '备注优先显示'),
-            settingInput('真实名字', 'qaq-chs-o-real', c.realName || '', '真实名字'),
-            settingTextarea('具体人设', 'qaq-chs-o-persona', c.persona || '', 78),
-            settingSelectBtn('绑定世界书', 'qaq-chs-o-worldbook-btn', c.worldBookName || '未绑定'),
-            settingHidden('qaq-chs-o-worldbook', c.worldBookId || ''),
-            settingToggle('是否主动发表情包', 'qaq-chs-o-sticker', !!c.activeSticker),
-            settingToggle('聊天双语翻译功能', 'qaq-chs-o-trans-enable', c.translateEnabled !== false),
-            settingSelectBtn('翻译显示模式', 'qaq-chs-o-trans-mode-btn', getTranslateLabel(c.translateMode || 'in_bottom')),
-            settingHidden('qaq-chs-o-trans-mode', c.translateMode || 'in_bottom'),
-            settingInput('最大记忆条数', 'qaq-chs-o-mem-max', String(c.memMax || 20), '1-999', 'number'),
-            settingToggle('挂载群聊记忆', 'qaq-chs-o-bind-group', !!c.bindGroupMemory),
-            settingToggle('挂载视频通话记忆', 'qaq-chs-o-bind-video', !!c.bindVideoMemory),
-            settingToggle('挂载语音通话记忆', 'qaq-chs-o-bind-voice', !!c.bindVoiceMemory),
-            settingToggle('挂载线下记忆', 'qaq-chs-o-bind-offline', !!c.bindOfflineMemory),
-            settingToggle('总结记忆功能', 'qaq-chs-o-summary', !!c.summaryMemory),
-            settingInput('总结条数', 'qaq-chs-o-summary-count', String(c.summaryCount || 50), '50-100', 'number'),
-            settingToggle('允许主动发起视频通话', 'qaq-chs-o-video-call', !!c.allowVideoCall),
-            settingToggle('允许主动发起语音通话', 'qaq-chs-o-voice-call', !!c.allowVoiceCall),
-            settingToggle('允许主动发送消息', 'qaq-chs-o-auto-msg', !!c.allowAutoMessage),
-            settingInput('主动消息间隔（分钟）', 'qaq-chs-o-auto-gap', String(c.autoMessageGap || 60), '分钟', 'number'),
-            settingToggle('允许角色拉黑用户', 'qaq-chs-o-block-user', !!c.allowBlockUser),
-            settingToggle('允许角色删除用户', 'qaq-chs-o-delete-user', !!c.allowDeleteUser),
-            settingToggle('允许角色主动生成日记', 'qaq-chs-o-auto-diary', !!c.allowAutoDiary),
+    body.innerHTML =
+        '<div class="qaq-chat-set-card">' +
+            '<div class="qaq-chat-set-hd"><span>对方设置</span></div>' +
+            '<div class="qaq-chat-set-bd">' +
+                '<div class="qaq-chat-set-lbl">头像</div>' +
+                '<input class="qaq-chat-set-inp" id="qaq-chs-o-avatar" value="' + esc(c.avatar || '') + '" placeholder="头像 URL">' +
+                '<div class="qaq-chat-set-lbl">昵称</div>' +
+                '<input class="qaq-chat-set-inp" id="qaq-chs-o-name" value="' + esc(c.nickname || '') + '" placeholder="昵称">' +
+                '<div class="qaq-chat-set-lbl">备注</div>' +
+                '<input class="qaq-chat-set-inp" id="qaq-chs-o-remark" value="' + esc(c.remark || '') + '" placeholder="备注">' +
+                '<div class="qaq-chat-set-lbl">人设</div>' +
+                '<textarea class="qaq-chat-set-txt" id="qaq-chs-o-persona" style="height:72px;">' + esc(c.persona || '') + '</textarea>' +
+            '</div>' +
+        '</div>' +
 
-            settingPresetBar('api'),
-            settingInput('聊天专属 API URL', 'qaq-chs-o-api-url', c.apiUrl || '', '留空则使用全局'),
-            settingInput('聊天专属 API Key', 'qaq-chs-o-api-key', c.apiKey || '', '留空则使用全局', 'password'),
-            settingInputWithBtn('聊天专属 Model', 'qaq-chs-o-api-model', c.apiModel || '', '点击拉取模型', 'qaq-chs-fetch-api-model'),
+        '<div class="qaq-chat-set-card">' +
+            '<div class="qaq-chat-set-hd"><span>我方设置</span></div>' +
+            '<div class="qaq-chat-set-bd">' +
+                '<div class="qaq-chat-set-lbl">头像</div>' +
+                '<input class="qaq-chat-set-inp" id="qaq-chs-m-avatar" value="' + esc(me.avatar || '') + '" placeholder="头像 URL">' +
+                '<div class="qaq-chat-set-lbl">昵称</div>' +
+                '<input class="qaq-chat-set-inp" id="qaq-chs-m-name" value="' + esc(me.nickname || '') + '" placeholder="昵称">' +
+                '<div class="qaq-chat-set-lbl">人设</div>' +
+                '<textarea class="qaq-chat-set-txt" id="qaq-chs-m-persona" style="height:72px;">' + esc(me.persona || '') + '</textarea>' +
+            '</div>' +
+        '</div>' +
 
-            settingPresetBar('voice'),
-            settingInput('声音 API URL', 'qaq-chs-o-voice-url', c.voiceUrl || '', '支持 minimax'),
-            settingInput('声音 API Key', 'qaq-chs-o-voice-key', c.voiceKey || '', '语音 key', 'password'),
-            settingSelectBtn('语音模型', 'qaq-chs-o-voice-model-btn', c.voiceModel || 'speech-02-hd'),
-            settingHidden('qaq-chs-o-voice-model', c.voiceModel || 'speech-02-hd'),
-            settingRange('调整语速', 'qaq-chs-o-voice-speed', c.voiceSpeed == null ? 0.9 : c.voiceSpeed, 0.6, 1.2, 0.1),
+        '<div class="qaq-chat-set-card">' +
+            '<div class="qaq-chat-set-hd"><span>美化设置</span></div>' +
+            '<div class="qaq-chat-set-bd">' +
+                '<div class="qaq-chat-set-lbl">主题</div>' +
+                '<select class="qaq-chat-set-inp" id="qaq-chs-u-theme">' +
+                    '<option value="default"' + ((c.uiTheme || getGlobalTheme()) === 'default' ? ' selected' : '') + '>暖阳</option>' +
+                    '<option value="cool"' + ((c.uiTheme || getGlobalTheme()) === 'cool' ? ' selected' : '') + '>冷雾</option>' +
+                    '<option value="dark"' + ((c.uiTheme || getGlobalTheme()) === 'dark' ? ' selected' : '') + '>夜幕</option>' +
+                '</select>' +
+                '<div class="qaq-chat-set-lbl">我的气泡颜色</div>' +
+                '<input class="qaq-chat-set-inp" id="qaq-chs-u-bubble-my" value="' + esc(c.uiBubbleMy || getBubbleThemeDefaults(c.uiTheme).my) + '">' +
+                '<div class="qaq-chat-set-lbl">对方气泡颜色</div>' +
+                '<input class="qaq-chat-set-inp" id="qaq-chs-u-bubble-other" value="' + esc(c.uiBubbleOther || getBubbleThemeDefaults(c.uiTheme).other) + '">' +
+                '<div class="qaq-chat-set-lbl">字体大小</div>' +
+                '<input class="qaq-chat-set-inp" id="qaq-chs-u-font-size" value="' + esc(parseInt(c.uiFontSize || '14px', 10) || 14) + '" type="number">' +
+                '<div class="qaq-chat-set-lbl">字体颜色</div>' +
+                '<input class="qaq-chat-set-inp" id="qaq-chs-u-font-color" value="' + esc(c.uiFontColor || '#333333') + '">' +
+            '</div>' +
+        '</div>' +
 
-            settingPresetBar('image'),
-            settingInput('生图 API URL', 'qaq-chs-o-img-url', c.imageUrl || '', '支持 openai 图片接口'),
-            settingInput('生图 API Key', 'qaq-chs-o-img-key', c.imageKey || '', '图片 key', 'password'),
-            settingInputWithBtn('生图模型', 'qaq-chs-o-img-model', c.imageModel || '', '点击拉取模型', 'qaq-chs-fetch-img-model'),
-            settingTextarea('生图提示词', 'qaq-chs-o-img-prompt', c.imagePrompt || '', 64),
-            settingTextarea('生图负向提示词', 'qaq-chs-o-img-negative', c.imageNegative || '', 64)
-        ]),
-        renderSettingCard('我方设置', 'closed', [
-            settingImageRow('我方头像', 'qaq-chs-m-avatar', me.avatar || ''),
-            settingInput('我方昵称', 'qaq-chs-m-name', me.nickname || '', '你的昵称'),
-            settingInput('我方真名', 'qaq-chs-m-real', me.realName || '', '你的真名'),
-            settingTextarea('具体人设', 'qaq-chs-m-persona', me.persona || '', 78),
-            settingPresetBar('persona')
-        ]),
-        renderSettingCard('美化设置', 'closed', [
-            settingColorRow('我的气泡颜色', 'qaq-chs-u-bubble-my', cfg.uiBubbleMy || getBubbleThemeDefaults(cfg.uiTheme).my),
-            settingColorRow('对方气泡颜色', 'qaq-chs-u-bubble-other', cfg.uiBubbleOther || getBubbleThemeDefaults(cfg.uiTheme).other),
-            settingSelectBtn('主题颜色', 'qaq-chs-u-theme-btn', getThemeLabel(cfg.uiTheme || getGlobalTheme())),
-            settingHidden('qaq-chs-u-theme', cfg.uiTheme || getGlobalTheme()),
-            settingSelectBtn('头像显示设置', 'qaq-chs-u-avatar-show-btn', getAvatarShowLabel(cfg.uiAvatarShow || 'all')),
-            settingHidden('qaq-chs-u-avatar-show', cfg.uiAvatarShow || 'all'),
-            settingToggle('显示时间戳', 'qaq-chs-u-show-time', !!cfg.uiShowTime),
-            settingSelectBtn('时间戳位置', 'qaq-chs-u-time-pos-btn', getTimePosLabel(cfg.uiTimePos || 'top')),
-            settingHidden('qaq-chs-u-time-pos', cfg.uiTimePos || 'top'),
-            settingSelectBtn('时间戳格式', 'qaq-chs-u-time-fmt-btn', cfg.uiTimeFmt || 'HH:mm'),
-            settingHidden('qaq-chs-u-time-fmt', cfg.uiTimeFmt || 'HH:mm'),
-            settingToggle('隐藏回复按钮', 'qaq-chs-u-hide-recv', !!cfg.uiHideReplyBtn),
-            settingToggle('隐藏菜单栏按钮', 'qaq-chs-u-hide-menu', !!cfg.uiHideMenuBtn),
-            settingSelectBtn('菜单位置', 'qaq-chs-u-menu-pos-btn', getMenuPosLabel(cfg.uiMenuPos || 'top')),
-            settingHidden('qaq-chs-u-menu-pos', cfg.uiMenuPos || 'top'),
-            settingRange('头像圆角', 'qaq-chs-u-avatar-radius', cfg.uiAvatarRadius == null ? 10 : cfg.uiAvatarRadius, 0, 30, 1),
-            settingRange('气泡圆角', 'qaq-chs-u-bubble-radius', cfg.uiBubbleRadius == null ? 16 : cfg.uiBubbleRadius, 0, 30, 1),
-            settingFontRow('字体 URL', 'qaq-chs-u-font-url', cfg.uiFontUrl || ''),
-            settingRange('字体大小', 'qaq-chs-u-font-size', parseInt(cfg.uiFontSize || '14px', 10) || 14, 10, 24, 1),
-            settingColorRow('字体颜色', 'qaq-chs-u-font-color', cfg.uiFontColor || '#333333'),
-            settingPresetBar('globalCss'),
-            settingTextarea('全局 CSS', 'qaq-chs-u-global-css', cfg.uiGlobalCss || '', 88),
-            settingPresetBar('bubbleCss'),
-            settingTextarea('气泡 CSS', 'qaq-chs-u-bubble-css', cfg.uiBubbleCss || '', 88)
-        ]),
-        renderSettingCard('聊天记录', 'closed', [
-            '<button class="qaq-chat-action-btn" id="qaq-chat-history-import">导入聊天记录</button>',
-            '<button class="qaq-chat-action-btn" id="qaq-chat-history-export">导出聊天记录</button>',
-            '<button class="qaq-chat-action-btn qaq-danger" id="qaq-chat-history-clear">清空聊天记录</button>'
-        ]),
-        renderSettingCard('其他', 'closed', [
-            settingToggle('角色勿扰', 'qaq-chs-x-dnd', !!c.dnd),
-            settingSelectBtn('勿扰时间', 'qaq-chs-x-dnd-time-btn', c.dndTime || '点击设置'),
-            settingHidden('qaq-chs-x-dnd-time', c.dndTime || ''),
-            settingToggle('拉黑角色', 'qaq-chs-x-blocked', !!c.blocked),
-            '<button class="qaq-chat-action-btn qaq-danger" id="qaq-chat-delete-contact-btn">删除角色</button>',
-            '<button class="qaq-chat-action-btn" id="qaq-chat-recover-contact-btn">尝试恢复删除入口</button>'
-        ]),
-        '<button class="qaq-chat-set-save" id="qaq-chat-settings-save-all">保存全部设置</button>'
-    ].join('');
+        '<div class="qaq-chat-set-card">' +
+            '<div class="qaq-chat-set-hd"><span>聊天记录</span></div>' +
+            '<div class="qaq-chat-set-bd">' +
+                '<button class="qaq-chat-action-btn" id="qaq-chat-history-import">导入聊天记录</button>' +
+                '<button class="qaq-chat-action-btn" id="qaq-chat-history-export">导出聊天记录</button>' +
+                '<button class="qaq-chat-action-btn qaq-danger" id="qaq-chat-history-clear">清空聊天记录</button>' +
+            '</div>' +
+        '</div>' +
 
-    bindSettingsEvents();
-    previewSettingsToUI();
-}
-function renderSettingCard(title, state, innerList) {
-    return '<div class="qaq-chat-set-card qaq-collapsible' + (state === 'closed' ? ' qaq-collapsed' : '') + '">' +
-        '<div class="qaq-chat-set-hd qaq-collapse-trigger"><span>' + title + '</span><svg class="qaq-collapse-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg></div>' +
-        '<div class="qaq-collapse-body"><div class="qaq-chat-set-bd">' + innerList.join('') + '</div></div>' +
-    '</div>';
-}
-function settingInput(label, id, value, placeholder, type) {
-    return '<div class="qaq-chat-set-lbl">' + label + '</div><input class="qaq-chat-set-inp" id="' + id + '" value="' + esc(value || '') + '" placeholder="' + esc(placeholder || '') + '"' + (type ? ' type="' + type + '"' : '') + '>';
-}
-function settingHidden(id, value) {
-    return '<input type="hidden" id="' + id + '" value="' + esc(value || '') + '">';
-}
-function settingTextarea(label, id, value, height) {
-    return '<div class="qaq-chat-set-lbl">' + label + '</div><textarea class="qaq-chat-set-txt" id="' + id + '" style="height:' + (height || 72) + 'px;">' + esc(value || '') + '</textarea>';
-}
-function settingSelectBtn(label, id, text) {
-    return '<div class="qaq-chat-set-lbl">' + label + '</div><button class="qaq-chat-action-btn" id="' + id + '">' + esc(text || '请选择') + '</button>';
-}
-function settingToggle(label, id, on) {
-    return '<div class="qaq-chat-set-row-tog"><span>' + label + '</span><div class="qaq-toggle' + (on ? ' qaq-toggle-on' : '') + '" id="' + id + '"><div class="qaq-toggle-knob"></div></div></div>';
-}
-function settingRange(label, id, value, min, max, step) {
-    value = value == null ? min : value;
-    return '<div class="qaq-chat-set-lbl">' + label + '</div>' +
-        '<div style="display:flex;align-items:center;gap:8px;">' +
-            '<input type="range" class="qaq-chat-slider" id="' + id + '" min="' + min + '" max="' + max + '" step="' + step + '" value="' + value + '" style="flex:1;">' +
-            '<input class="qaq-chat-set-inp" id="' + id + '_val" type="number" min="' + min + '" max="' + max + '" step="' + step + '" value="' + value + '" style="width:64px;">' +
-        '</div>';
-}
-function settingInputWithBtn(label, id, value, placeholder, btnId) {
-    return '<div class="qaq-chat-set-lbl">' + label + '</div>' +
-        '<div class="qaq-input-with-btn">' +
-            '<input class="qaq-chat-set-inp" id="' + id + '" value="' + esc(value || '') + '" placeholder="' + esc(placeholder || '') + '">' +
-            '<button class="qaq-fetch-model-btn" id="' + btnId + '">拉</button>' +
-        '</div>';
-}
-function settingImageRow(label, id, value) {
-    return '<div class="qaq-chat-set-lbl">' + label + '</div>' +
-        '<div style="display:flex;gap:8px;">' +
-            '<input class="qaq-chat-set-inp" id="' + id + '" value="' + esc(value || '') + '" placeholder="图片 URL 或本地 DataURL">' +
-            '<button class="qaq-upload-img-btn" data-qaq-image-target="' + id + '">导入</button>' +
-        '</div>';
-}
-function settingFontRow(label, id, value) {
-    return '<div class="qaq-chat-set-lbl">' + label + '</div>' +
-        '<div style="display:flex;gap:8px;">' +
-            '<input class="qaq-chat-set-inp" id="' + id + '" value="' + esc(value || '') + '" placeholder="字体 URL 或本地导入">' +
-            '<button class="qaq-upload-font-btn" data-qaq-font-target="' + id + '">导入</button>' +
-        '</div>';
-}
-function settingColorRow(label, id, value) {
-    return '<div class="qaq-chat-set-lbl">' + label + '</div>' +
-        '<div style="display:flex;gap:8px;">' +
-            '<button class="qaq-color-pick-btn" id="' + id + '_btn" style="width:40px;height:36px;border-radius:8px;border:1px solid #ddd;background:' + esc(value || '#333333') + ';"></button>' +
-            '<input class="qaq-chat-set-inp" id="' + id + '" value="' + esc(value || '#333333') + '">' +
-        '</div>';
-}
-function settingPresetBar(type) {
-    return '<div style="display:flex;gap:6px;margin-top:4px;">' +
-        '<button class="qaq-preset-btn" data-qaq-preset-save="' + type + '">保存预设</button>' +
-        '<button class="qaq-preset-btn" data-qaq-preset-load="' + type + '">导入预设</button>' +
-    '</div>';
-}
-function bindRangePair(id) {
-    var a = qs(id);
-    var b = qs(id + '_val');
-    if (!a || !b) return;
+        '<div class="qaq-chat-set-card">' +
+            '<div class="qaq-chat-set-hd"><span>其他</span></div>' +
+            '<div class="qaq-chat-set-bd">' +
+                '<button class="qaq-chat-action-btn qaq-danger" id="qaq-chat-delete-contact-btn">删除角色</button>' +
+            '</div>' +
+        '</div>' +
 
-    a.oninput = function () {
-        b.value = this.value;
-        previewSettingsToUI();
-    };
-    b.oninput = function () {
-        a.value = this.value;
-        previewSettingsToUI();
-    };
-}
-function bindSettingsEvents() {
-    document.querySelectorAll('.qaq-collapse-trigger').forEach(function (el) {
-        el.onclick = function () {
-            this.parentNode.classList.toggle('qaq-collapsed');
-        };
-    });
-    document.querySelectorAll('.qaq-toggle').forEach(function (el) {
-        el.onclick = function (e) {
-            e.stopPropagation();
-            this.classList.toggle('qaq-toggle-on');
-            previewSettings                     -uqaq-chs-u-bubble-radius',
-        'qaq-chs-u-font-size'
-    ].forEach(bindRangePair);
-
-    document.querySelectorAll('[data-qaq-image-target]').forEach(function (el) {
-        el.onclick = function () {
-            chooseImage(this.getAttribute('data-qaq-image-target'));
-        };
-    });
-    document.querySelectorAll('[data-qaq-font-target]').forEach(function (el) {
-        el.onclick = function () {
-            chooseFont(this.getAttribute('data-qaq-font-target'));
-        };
-    });
-
-    if (qs('qaq_btn('qaq-chs-u-bubble-my_btn').onclick = function () {
-            chooseColor('选择我的气泡颜色', qs('qaq-chs-u-bubble-my').value, function (v) {
-                qs('qaq-chs-u-bubble-my').value = v;
-                qs('qaq-chs-u-bubble-my_btn').style.background = v;
-                previewSettingsToUI();
-            });
-        };
-    }
-    if (qs('qaq-chs-u-bubble-other_btn')) {
-        qs('qaq-chs-u-bubble-other_btn').onclick = function () {
-            chooseColor('选择对方气泡颜色', qs('-other {
- qs('qaq-chs-u vs v();
-   -fontaq_btn {
-',s-u-font-color').value, function (v) {
-                qs('qaq-chs-u-font-color').value = v;
-                qs('qaq-chs-u-font-color_btn').style.background = v;
-                previewSettingsToUI();
-            });
-        };
-    }
-
-    qs('qaq-chs-o-worldbook-btn').onclick = chooseWorldBook;
-    qs('qaq-chs-o-trans-mode-btn').onclick = function () {
-        openSelect('翻译显示模式', [
-            { label: '气泡内上方', value: 'in_top' },
-            { label: '气泡内下方', value: 'in_bottom' },
-            { label: '气泡外上方', value: 'out_top' },
-            { label: '气泡外下方', value: 'out_bottom' },
-            { label: '隐藏翻译', value: 'hide' }
-        ], qs('qaq-chs-o-trans-mode').value, function (v) {
-            qs').aqContentSettings };
-    qs('qaq-chs-o-voice-model-btn').onclick = function () {
-        openSelect('语speech                      .-urbo',
-            'speech-2.6-hd',
-            'speech-2.6-turbo',
-            'speech-01-turbo'
-        ].map(function (x) { return { label: x, value: x }; }), qs('qaq-chs-o-voice-model').value, function (v) {
-            qs('qaq-chs-o-voice-model').value = v;
-            qs('qaq-chs-o-voice-model-btn').textContent =   -theme       主题颜色', [
-            { label: '暖阳', value: 'default' },
-            { label: '冷雾', value: 'cool' },
-            { label: '夜幕', value: 'dark' }
-        ], qs('qaq-chs-u-theme').value, function ( {
-            qs('qaq-chs-u-theme').value = v;
-            qs('qaq-chs-u-theme-btn').textContent = getThemeLabel(v);
-            previewSettingsToUI();
-        });
-    };
-    qs('qaq-chs-u-avatar-show-btn').onclick = function () {
-        openSelect('头像显示设置', [
-            { label {隐藏 },
-',           头像       qaq,aqvalue('-utextContent = getAvatarShowLabel(v);
-            previewSettingsToUI();
-        });
-    };
-    qs('qaq-ch-posonclick function       ('位置           :泡',top            label: '气泡下方', value: 'bottom' },
-            { label: '气泡内侧', value: 'bubble_inner' },
-            { label: '气泡外侧', value: 'bubble_outer' },
-            { label: '头像上方', value: 'avatar_top' },
-            { label: '头像下方', value: 'avatar_bottom' }
-        ], qs('qaq-chs-u-time-pos').value, function (v) {
-            qs('qaq-chs-u-time-pos').value = v;
-            qs('qaq-chs-u-time-pos-btn').textContent = getTimePosLabel(v);
-            previewSettingsToUI();
-          -f function格式HH' { label: 'HH:mm:ss', value: 'HH:mm:ss' },
-            { label: 'MM-DD HH:mm', value: 'MM-DD HH:mm' },
-            { label: 'YYYY-MM-DD HH:mm', value: 'YYYY-MM-DD HH:mm' }
-        ], qs('qaq-chs-u-time-fmt').value, function (v)s v-chtextUI('aq-chs-u-menu-pos-btn').onclick = function () {
-        openSelect('菜单位置', [
-            { label: '输入栏上方', value: 'top' },
-            { label: '输入栏下方', value: 'bottom' },
-            { label: '收在菜单栏里', value: 'inside' qs'). {
- qsq-ch-menuvalue;
-qs-postextContent = getMenuPos(v preview       q-btn设置 stylecolumn +
--size时间-modal-dtime-sizeinput class="qaq-modal-input" id="qaq-chat-dnd-end" type="time">' +
-                '<div style="font-size:11px;color:#999;">不设置则仅手动开启勿扰</div>' +
-            '</div>',
-            {
-                confirmText: '确定',
-                onConfirm: function () {
-                    var a = (qs('qaq-chat-dnd-start').value || '').trim();
-                    var b = (qs('qaq-chat-dnd-end').value || '').trim();
-                    var val = (a && b) ? (a + '-' + b) : '';
-                    qs('qaq-chs                   ';
-s                    if ().splitaq sp('value       s fetchIntoInput('api'); };
-    qs('qaq-chs-fetch-img-model').onclick = function () { fetchModelsIntoInput('image'); };
-
-    document.querySelectorAll('[data-qaq-preset-save]').forEach(function (el) {
-        el.onclick = function () {
-            var type = this.getAttribute('data-qaq-preset-save');
-            if (type === 'api') {
-                savePreset('api', {
-                    url: qs('qaq-chs-o-api-url').value,
-                    key: qs('qaq-chs-o-api-key').value,
-                    model: qs('qaq-chs-o-api-model').value
-                });
-            }
-            if (type === 'voice') {
-                savePreset('voice', {
-                    url: qs('qaq-chs-o-voice-url').value,
-                    key: qs('qaq-chs-o-voice-key').value,
-                    model: qs('qaq-chs-o-voice-model').value,
-                    speed: qs('qaq-chs-o-voice-speed_val').value
-                });
-            }
-            if (type === 'image') {
-                savePreset('image', {
-                    url: qs('qaq-chs-o-img-url').value,
-                    key: qs('qaq-chs-o-img-key').value,
-                    model: qs('qaq-chs-o-img-model').value,
-                    prompt: qs('qaq-chs-o-img-prompt').value,
-                    negative: qs('qaq-chs-o-img-negative').value
-                });
-            }
-            if (type === 'persona') {
-                savePreset('persona', {
-                    avatar: qs('qaq-chs-m-avatar').value,
-                    nickname: qs('qaq-chs-m-name').value,
-                    realName: qs('qaq-chs-m-real').value,
-                    persona: qs('qaq-chs-m-persona').value
-                });
-            }
-            if (type === 'globalCss') {
-                savePreset('globalCss', { css: qs('qaq-chs-u-global-css').value });
-            }
-            if (type === 'bubbleCss') {
-                savePreset('bubbleCss', { css: qs('qaq-chs-u-bubble-css').value });
-            }
-        };
-    });
-    document.querySelectorAll('[data-qaq-preset-load]').forEach(function (el) {
-        el.onclick = function () {
-            var type = this.getAttribute('data-qaq-preset-load');
-            if (type === 'api') {
-                loadPreset('api', function (d) {
-                    qs('qaq-chs-o-api-url').value = d.url || '';
-                    qs('qaq-chs-o-api-key').value = d.key || '';
-                    qs('qaq-chs-o-api-model').value = d.model || '';
-                });
-            }
-            if (type === 'voice') {
-                loadPreset('voice', function (d) {
-                    qs('qaq-chs-o-voice-url').value = d.url || '';
-                    qs('qaq-chs-o-voice-key').value = d.key || '';
-                    qs('qaq-chs-o-voice-model').value = d.model || 'speech-02-hd';
-                    qs('qaq-chs-o-voice-model-btn').textContent = d.model || 'speech-02-hd';
-                    qs('qaq-chs-o-voice-speed').value = d.speed || 0.9;
-                    qs('qaq-chs-o-voice-speed_val').value = d.speed || 0.9;
-                });
-            }
-            if (type === 'image') {
-                loadPreset('image', function (d) {
-                    qs('qaq-chs-o-img-url').value = d.url || '';
-                    qs('qaq-chs-o-img-key').value = d.key || '';
-                    qs('qaq-chs-o-img-model').value = d.model || '';
-                    qs('qaq-chs-o-img-prompt').value = d.prompt || '';
-                    qs('qaq-chs-o-img-negative').value = d.negative || '';
-                });
-            }
-            if (type === 'persona') {
-                loadPreset('persona', function (d) {
-                    qs('qaq-chs-m-avatar').value = d.avatar || '';
-                    qs('qaq-chs-m-name').value = d.nickname || '';
-                    qs('qaq-chs-m-real').value = d.realName || '';
-                    qs('qaq-chs-m-persona').value = d.persona || '';
-                });
-            }
-            if (type === 'globalCss') {
-                loadPreset('globalCss', function (d) {
-                    qs('qaq-chs-u-global-css').value = d.css || '';
-                    previewSettingsToUI();
-                });
-            }
-            if (type === 'bubbleCss') {
-                loadPreset('bubbleCss', function (d) {
-                    qs('qaq-chs-u-bubble-css').value = d.css || '';
-                    previewSettingsToUI();
-                });
-            }
-        };
-    });
+        '<button class="qaq-chat-set-save" id="qaq-chat-settings-save-all">保存全部设置</button>';
 
     qs('qaq-chat-history-import').onclick = importChatHistory;
     qs('qaq-chat-history-export').onclick = exportChatHistory;
     qs('qaq-chat-history-clear').onclick = clearChatHistory;
-    qs('qaq-chat-delete-contact-btn').onclick = function () { deleteContact(activeContactId); };
-    qs('qaq-chat-recover-contact-btn').onclick = showDeletedPool;
-    qs('qaq-chat-settings-save-all').onclick = saveSettingsAll;
-
-    [
-        'qaq-chs-u-bubble-my',
-        'qaq-chs-u-bubble-other',
-        'qaq-chs-u-font-color',
-        'qaq-chs-u-font-url',
-        'qaq-chs-u-global-css',
-        'qaq-chs-u-bubble-css'
-    ].forEach(function (id) {
-        var el = qs(id);
-        if (el) el.addEventListener('input', previewSettingsToUI);
-    });
-}
-function previewSettingsToUI() {
-    var fake = {
-        uiTheme: (qs('qaq-chs-u-theme') || {}).value || getGlobalTheme(),
-        uiBubbleMy: (qs('qaq-chs-u-bubble-my') || {}).value || getBubbleThemeDefaults(getGlobalTheme()).my,
-        uiBubbleOther: (qs('qaq-chs-u-bubble-other') || {}).value || getBubbleThemeDefaults(getGlobalTheme()).other,
-        uiAvatarShow: (qs('qaq-chs-u-avatar-show') || {}).value || 'all',
-        uiShowTime: !!(qs('qaq-chs-u-show-time') && qs('qaq-chs-u-show-time').classList.contains('qaq-toggle-on')),
-        uiTimePos: (qs('qaq-chs-u-time-pos') || {}).value || 'top',
-        uiTimeFmt: (qs('qaq-chs-u-time-fmt') || {}).value || 'HH:mm',
-        uiHideReplyBtn: !!(qs('qaq-chs-u-hide-recv') && qs('qaq-chs-u-hide-recv').classList.contains('qaq-toggle-on')),
-        uiHideMenuBtn: !!(qs('qaq-chs-u-hide-menu') && qs('qaq-chs-u-hide-menu').classList.contains('qaq-toggle-on')),
-        uiMenuPos: (qs('qaq-chs-u-menu-pos') || {}).value || 'top',
-        uiAvatarRadius: parseFloat((qs('qaq-chs-u-avatar-radius_val') || {}).value || 10),
-        uiBubbleRadius: parseFloat((qs('qaq-chs-u-bubble-radius_val') || {}).value || 16),
-        uiFontUrl: (qs('qaq-chs-u-font-url') || {}).value || '',
-        uiFontSize: (((qs('qaq-chs-u-font-size_val') || {}).value || 14) + 'px'),
-        uiFontColor: (qs('qaq-chs-u-font-color') || {}).value || '#333333',
-        uiGlobalCss: (qs('qaq-chs-u-global-css') || {}).value || '',
-        uiBubbleCss: (qs('qaq-chs-u-bubble-css') || {}).value || '',
-        translateEnabled: !!(qs('qaq-chs-o-trans-enable') && qs('qaq-chs-o-trans-enable').classList.contains('qaq-toggle-on')),
-        translateMode: (qs('qaq-chs-o-trans-mode') || {}).value || 'in_bottom'
+    qs('qaq-chat-delete-contact-btn').onclick = function () {
+        deleteContact(activeContactId);
     };
-    applyPageThemeClass(fake.uiTheme);
-    loadCustomFont(fake.uiFontUrl, function () {
-        applyRuntimeStyle(fake);
-        var c = getActiveContact();
-        if (c) {
-            renderChatMessageList();
-            renderChatInputArea();
-        }
-    });
-}
-
-async function fetchModelsIntoInput(kind) {
-    var s = getStore();
-    var c = getActiveContact();
-    if (!c) return;
-    var url = kind === 'image' ? (qs('qaq-chs-o-img-url').value || c.imageUrl || '') : (qs('qaq-chs-o-api-url').value || c.apiUrl || (s.globalApi && s.globalApi.url) || '');
-    var key = kind === 'image' ? (qs('qaq-chs-o-img-key').value || c.imageKey || '') : (qs('qaq-chs-o-api-key').value || c.apiKey || (s.globalApi && s.globalApi.key) || '');
-    if (!url || !key) {
-        toast('请先填写 API');
-        return;
-    }
-    try {
-        toast('正在拉取模型');
-        var resp = await fetch(normalizeUrl(url) + '/models', {
-            headers: { 'Authorization': 'Bearer ' + key }
-        });
-        var data = await resp.json();
-        var arr = (data.data || data.models || []).map(function (x) {
-            return typeof x === 'string' ? x : (x.id || x.name || '');
-        }).filter(Boolean);
-        if (!arr.length) {
-            toast('未获取到模型');
-            return;
-        }
-        openSelect('选择模型', arr.map(function (x) {
-            return { label: x, value: x };
-        }), '', function (v) {
-            if (kind === 'image') qs('qaq-chs-o-img-model').value = v;
-            else qs('qaq-chs-o-api-model').value = v;
-        });
-    } catch (e) {
-        console.error(e);
-        toast('拉取失败');
-    }
-}
-
-function chooseWorldBook() {
-    var s = getStore();
-    var arr = s.worldBooks || [];
-    if (!arr.length) {
-        openModal('绑定世界书',
-            '<div style="font-size:13px;color:#666;line-height:1.8;text-align:center;">当前没有可绑定的世界书。<br>可先在世界书模块中创建后再回来绑定。</div>',
-            { confirmText: '知道了', cancelText: '关闭' }
-        );
-        return;
-    }
-    openSelect('绑定世界书', arr.map(function (x) {
-        return { label: x.name, value: x.id };
-    }), qs('qaq-chs-o-worldbook').value, function (v) {
-        var hit = arr.find(function (x) { return x.id === v; });
-        qs('qaq-chs-o-worldbook').value = v;
-        qs('qaq-chs-o-worldbook-btn').textContent = hit ? hit.name : '未绑定';
-    });
+    qs('qaq-chat-settings-save-all').onclick = saveSettingsAll;
 }
 
 function saveSettingsAll() {
@@ -1872,70 +1459,20 @@ function saveSettingsAll() {
     if (!c) return;
     var me = s.myProfile || {};
 
-    c.avatar = qs('qaq-chs-o-avatar').value || '';
+    c.avatar = (qs('qaq-chs-o-avatar').value || '').trim();
     c.nickname = (qs('qaq-chs-o-name').value || '').trim() || '未命名联系人';
     c.remark = (qs('qaq-chs-o-remark').value || '').trim();
-    c.realName = (qs('qaq-chs-o-real').value || '').trim();
     c.persona = (qs('qaq-chs-o-persona').value || '').trim();
-    c.worldBookId = qs('qaq-chs-o-worldbook').value || '';
-    c.worldBookName = qs('qaq-chs-o-worldbook-btn').textContent === '未绑定' ? '' : qs('qaq-chs-o-worldbook-btn').textContent;
-    c.activeSticker = !!qs('qaq-chs-o-sticker').classList.contains('qaq-toggle-on');
-    c.translateEnabled = !!qs('qaq-chs-o-trans-enable').classList.contains('qaq-toggle-on');
-    c.translateMode = qs('qaq-chs-o-trans-mode').value || 'in_bottom';
-    c.memMax = Math.max(1, parseInt(qs('qaq-chs-o-mem-max').value || '20', 10));
-    c.bindGroupMemory = !!qs('qaq-chs-o-bind-group').classList.contains('qaq-toggle-on');
-    c.bindVideoMemory = !!qs('qaq-chs-o-bind-video').classList.contains('qaq-toggle-on');
-    c.bindVoiceMemory = !!qs('qaq-chs-o-bind-voice').classList.contains('qaq-toggle-on');
-    c.bindOfflineMemory = !!qs('qaq-chs-o-bind-offline').classList.contains('qaq-toggle-on');
-    c.summaryMemory = !!qs('qaq-chs-o-summary').classList.contains('qaq-toggle-on');
-    c.summaryCount = Math.max(50, Math.min(100, parseInt(qs('qaq-chs-o-summary-count').value || '50', 10)));
-    c.allowVideoCall = !!qs('qaq-chs-o-video-call').classList.contains('qaq-toggle-on');
-    c.allowVoiceCall = !!qs('qaq-chs-o-voice-call').classList.contains('qaq-toggle-on');
-    c.allowAutoMessage = !!qs('qaq-chs-o-auto-msg').classList.contains('qaq-toggle-on');
-    c.autoMessageGap = Math.max(1, parseInt(qs('qaq-chs-o-auto-gap').value || '60', 10));
-    c.allowBlockUser = !!qs('qaq-chs-o-block-user').classList.contains('qaq-toggle-on');
-    c.allowDeleteUser = !!qs('qaq-chs-o-delete-user').classList.contains('qaq-toggle-on');
-    c.allowAutoDiary = !!qs('qaq-chs-o-auto-diary').classList.contains('qaq-toggle-on');
 
-    c.apiUrl = qs('qaq-chs-o-api-url').value || '';
-    c.apiKey = qs('qaq-chs-o-api-key').value || '';
-    c.apiModel = qs('qaq-chs-o-api-model').value || '';
-    c.voiceUrl = qs('qaq-chs-o-voice-url').value || '';
-    c.voiceKey = qs('qaq-chs-o-voice-key').value || '';
-    c.voiceModel = qs('qaq-chs-o-voice-model').value || 'speech-02-hd';
-    c.voiceSpeed = parseFloat(qs('qaq-chs-o-voice-speed_val').value || '0.9');
-    c.imageUrl = qs('qaq-chs-o-img-url').value || '';
-    c.imageKey = qs('qaq-chs-o-img-key').value || '';
-    c.imageModel = qs('qaq-chs-o-img-model').value || '';
-    c.imagePrompt = qs('qaq-chs-o-img-prompt').value || '';
-    c.imageNegative = qs('qaq-chs-o-img-negative').value || '';
-
-    me.avatar = qs('qaq-chs-m-avatar').value || '';
+    me.avatar = (qs('qaq-chs-m-avatar').value || '').trim();
     me.nickname = (qs('qaq-chs-m-name').value || '').trim() || '学生';
-    me.realName = (qs('qaq-chs-m-real').value || '').trim();
     me.persona = (qs('qaq-chs-m-persona').value || '').trim();
 
-    c.uiTheme = qs('qaq-chs-u-theme').value || getGlobalTheme();
-    c.uiBubbleMy = qs('qaq-chs-u-bubble-my').value || getBubbleThemeDefaults(c.uiTheme).my;
-    c.uiBubbleOther = qs('qaq-chs-u-bubble-other').value || getBubbleThemeDefaults(c.uiTheme).other;
-    c.uiAvatarShow = qs('qaq-chs-u-avatar-show').value || 'all';
-    c.uiShowTime = !!qs('qaq-chs-u-show-time').classList.contains('qaq-toggle-on');
-    c.uiTimePos = qs('qaq-chs-u-time-pos').value || 'top';
-    c.uiTimeFmt = qs('qaq-chs-u-time-fmt').value || 'HH:mm';
-    c.uiHideReplyBtn = !!qs('qaq-chs-u-hide-recv').classList.contains('qaq-toggle-on');
-    c.uiHideMenuBtn = !!qs('qaq-chs-u-hide-menu').classList.contains('qaq-toggle-on');
-    c.uiMenuPos = qs('qaq-chs-u-menu-pos').value || 'top';
-    c.uiAvatarRadius = parseFloat(qs('qaq-chs-u-avatar-radius_val').value || '10');
-    c.uiBubbleRadius = parseFloat(qs('qaq-chs-u-bubble-radius_val').value || '16');
-    c.uiFontUrl = qs('qaq-chs-u-font-url').value || '';
-    c.uiFontSize = (parseInt(qs('qaq-chs-u-font-size_val').value || '14', 10) || 14) + 'px';
-    c.uiFontColor = qs('qaq-chs-u-font-color').value || '#333333';
-    c.uiGlobalCss = qs('qaq-chs-u-global-css').value || '';
-    c.uiBubbleCss = qs('qaq-chs-u-bubble-css').value || '';
-
-    c.dnd = !!qs('qaq-chs-x-dnd').classList.contains('qaq-toggle-on');
-    c.dndTime = qs('qaq-chs-x-dnd-time').value || '';
-    c.blocked = !!qs('qaq-chs-x-blocked').classList.contains('qaq-toggle-on');
+    c.uiTheme = (qs('qaq-chs-u-theme').value || getGlobalTheme());
+    c.uiBubbleMy = (qs('qaq-chs-u-bubble-my').value || getBubbleThemeDefaults(c.uiTheme).my);
+    c.uiBubbleOther = (qs('qaq-chs-u-bubble-other').value || getBubbleThemeDefaults(c.uiTheme).other);
+    c.uiFontSize = ((parseInt(qs('qaq-chs-u-font-size').value || '14', 10) || 14) + 'px');
+    c.uiFontColor = (qs('qaq-chs-u-font-color').value || '#333333');
 
     s.myProfile = me;
     setStore(s);
@@ -2011,12 +1548,11 @@ function bindMainEvents() {
         qs('qaq-chat-win-back').onclick = closeChatWindow;
     }
     if (qs('qaq-chat-set-back')) {
-        qs('qaq-chat-set-back').onclick = function () {
-            saveSettingsAll();
-            qs('qaq-chat-settings-page').classList.remove('qaq-page-show');
-            qs('qaq-chat-window-page').classList.add('qaq-page-show');
-        };
-    }
+    qs('qaq-chat-set-back').onclick = function () {
+        saveSettingsAll();
+        showOnlyChatPage('qaq-chat-window-page');
+    };
+}
     if (qs('qaq-chat-win-set-btn')) {
         qs('qaq-chat-win-set-btn').onclick = openChatSettings;
     }
@@ -2094,9 +1630,7 @@ window.qaqOpenChatPage = function () {
     ensureDemo();
     initThemeSync();
     activeMainTab = 'message';
-    qs('qaq-chat-settings-page') && qs('qaq-chat-settings-page').classList.remove('qaq-page-show');
-    qs('qaq-chat-window-page') && qs('qaq-chat-window-page').classList.remove('qaq-page-show');
-    qs('qaq-chat-main-page') && qs('qaq-chat-main-page').classList.add('qaq-page-show');
+    showOnlyChatPage('qaq-chat-main-page');
     renderMainBody();
 };
 

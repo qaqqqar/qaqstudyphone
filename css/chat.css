@@ -1,3 +1,47 @@
+.qaq-chat-main-page,
+.qaq-chat-window-page,
+.qaq-chat-settings-page{
+    position:absolute !important;
+    top:0 !important;
+    left:0 !important;
+    right:0 !important;
+    bottom:0 !important;
+    width:100% !important;
+    height:100% !important;
+    display:flex !important;
+    flex-direction:column !important;
+    z-index:88;
+    transform:translate3d(100%,0,0);
+    visibility:hidden;
+    pointer-events:none;
+    background:linear-gradient(160deg,#f6e9c9 0%,#faebd7 25%,#fce8e2 50%,#fed2e0 75%,#f6e9c9 100%);
+}
+
+.qaq-chat-main-page.qaq-page-show,
+.qaq-chat-window-page.qaq-page-show,
+.qaq-chat-settings-page.qaq-page-show{
+    transform:translate3d(0,0,0) !important;
+    visibility:visible !important;
+    pointer-events:auto !important;
+}
+
+.qaq-chat-main-page{ z-index: 88 !important; }
+.qaq-chat-window-page{ z-index: 89 !important; }
+.qaq-chat-settings-page{ z-index: 90 !important; }
+
+.qaq-chat-main-page:not(.qaq-page-show),
+.qaq-chat-window-page:not(.qaq-page-show),
+.qaq-chat-settings-page:not(.qaq-page-show){
+    display:flex !important;
+}
+
+.qaq-chat-main-page .qaq-chat-contact-list,
+.qaq-chat-window-page .qaq-chat-msg-list,
+.qaq-chat-settings-page .qaq-chat-settings-scroll{
+    flex:1;
+    min-height:0;
+}
+
 /* ===== QAQ Chat App Patch ===== */
 
 .qaq-chat-main-page,

@@ -526,9 +526,18 @@ function bindToggleRowById(rowId, toggleId, onChange) {
     var toggle = qs(toggleId);
     if (!toggle) return;
     function clickFn() {
-        toggle.classList.toggle('qaq-toggle-on');
-        onChange && onChange(toggle.classList.contains('qaq-toggle-on'));
+    toggle.classList.toggle('qaq-toggle-on');
+    var isOn = toggle.classList.contains('qaq-toggle-on');
+    var tt = _chatCurrentTheme || 'default';
+    if (tt === 'dark') {
+        toggle.style.background = isOn ? '#8a6a5a' : '#444';
+    } else if (tt === 'cool') {
+        toggle.style.background = isOn ? '#7a9ab8' : '#ddd';
+    } else {
+        toggle.style.background = isOn ? '#c9a08a' : '#ddd';
     }
+    onChange && onChange(isOn);
+}
     toggle.onclick = function (e) {
         e.stopPropagation();
         clickFn();
@@ -791,11 +800,408 @@ function ensureRuntimeStyleNode() {
     runtimeStyleMounted = true;
 }
 function applyPageThemeClass(theme) {
+    var bgs = {
+        'default': 'linear-gradient(160deg,#f6e9c9 0%,#faebd7 25%,#fce8e2 50%,#fed2e0 75%,#f6e9c9 100%)',
+        'cool': 'linear-gradient(160deg,#ebeef3 0%,#f0f2f5 25%,#f3f4f7 50%,#eef0f4 75%,#ebeef3 100%)',
+        'dark': 'linear-gradient(160deg,#121212 0%,#1a1a1a 25%,#161616 50%,#1c1c1c 75%,#121212 100%)'
+    };
+    var headerBgs = {
+        'default': 'rgba(255,255,255,0.45)',
+        'cool': 'rgba(255,255,255,0.6)',
+        'dark': 'rgba(30,30,30,0.75)'
+    };
+    var headerColors = {
+        'default': '#333',
+        'cool': '#222',
+        'dark': '#e0e0e0'
+    };
+    var navBgs = {
+        'default': 'rgba(255,255,255,0.65)',
+        'cool': 'rgba(255,255,255,0.72)',
+        'dark': 'rgba(30,30,30,0.8)'
+    };
+    var navColors = {
+        'default': '#aaa',
+        'cool': '#a0a8b4',
+        'dark': '#666'
+    };
+    var navActiveColors = {
+        'default': '#c47068',
+        'cool': '#4a6a9a',
+        'dark': '#c47068'
+    };
+    var navActiveBgs = {
+        'default': 'rgba(254,210,224,0.18)',
+        'cool': 'rgba(160,180,210,0.15)',
+        'dark': 'rgba(120,60,60,0.15)'
+    };
+    var inputAreaBgs = {
+        'default': 'rgba(255,255,255,0.65)',
+        'cool': 'rgba(255,255,255,0.65)',
+        'dark': 'rgba(30,30,30,0.8)'
+    };
+    var inputBoxBgs = {
+        'default': 'rgba(255,255,255,0.8)',
+        'cool': 'rgba(255,255,255,0.85)',
+        'dark': 'rgba(50,50,50,0.8)'
+    };
+    var inputBoxColors = {
+        'default': '#333',
+        'cool': '#333',
+        'dark': '#ddd'
+    };
+    var sendBtnBgs = {
+        'default': 'linear-gradient(135deg,#f6e9c9,#fed2e0)',
+        'cool': 'linear-gradient(135deg,#d0d8e8,#bfc9dd)',
+        'dark': 'linear-gradient(135deg,#4a3a2a,#5a3a4a)'
+    };
+    var sendBtnColors = {
+        'default': '#8a6050',
+        'cool': '#3a4a60',
+        'dark': '#d0b8a8'
+    };
+    var listNameColors = {
+        'default': '#333',
+        'cool': '#222',
+        'dark': '#e0e0e0'
+    };
+    var listPreviewColors = {
+        'default': '#999',
+        'cool': '#7d8794',
+        'dark': '#777'
+    };
+    var listTimeColors = {
+        'default': '#bbb',
+        'cool': '#a0a8b4',
+        'dark': '#555'
+    };
+    var listBorderColors = {
+        'default': 'rgba(0,0,0,0.04)',
+        'cool': 'rgba(100,130,180,0.06)',
+        'dark': 'rgba(255,255,255,0.04)'
+    };
+    var extMenuBgs = {
+        'default': 'rgba(255,255,255,0.5)',
+        'cool': 'rgba(255,255,255,0.5)',
+        'dark': 'rgba(30,30,30,0.7)'
+    };
+    var extIconBgs = {
+        'default': 'rgba(255,255,255,0.7)',
+        'cool': 'rgba(255,255,255,0.8)',
+        'dark': 'rgba(50,50,50,0.8)'
+    };
+    var extIconColors = {
+        'default': '#888',
+        'cool': '#6a7a8a',
+        'dark': '#888'
+    };
+    var extLabelColors = {
+        'default': '#777',
+        'cool': '#6a7a8a',
+        'dark': '#888'
+    };
+
+    var t = theme || 'default';
+
     var pages = document.querySelectorAll('.qaq-chat-main-page,.qaq-chat-window-page,.qaq-chat-settings-page');
     pages.forEach(function (p) {
         p.classList.remove('qaq-theme-dark', 'qaq-theme-cool');
-        if (theme === 'dark') p.classList.add('qaq-theme-dark');
-        if (theme === 'cool') p.classList.add('qaq-theme-cool');
+        if (t === 'dark') p.classList.add('qaq-theme-dark');
+        if (t === 'cool') p.classList.add('qaq-theme-cool');
+        p.style.background = bgs[t] || bgs['default'];
+    });
+
+    document.querySelectorAll('.qaq-chat-header').forEach(function (el) {
+        el.style.background = headerBgs[t] || headerBgs['default'];
+        el.style.borderBottomColor = listBorderColors[t] || listBorderColors['default'];
+    });
+
+    document.querySelectorAll('.qaq-chat-header .qaq-settings-title').forEach(function (el) {
+        el.style.color = headerColors[t] || headerColors['default'];
+    });
+
+    document.querySelectorAll('.qaq-chat-header .qaq-back-btn svg, .qaq-chat-header .qaq-chat-add-btn svg').forEach(function (el) {
+        el.style.stroke = headerColors[t] || headerColors['default'];
+    });
+
+    document.querySelectorAll('.qaq-chat-bottom-nav').forEach(function (el) {
+        el.style.background = navBgs[t] || navBgs['default'];
+        el.style.borderTopColor = listBorderColors[t] || listBorderColors['default'];
+    });
+
+    document.querySelectorAll('.qaq-chat-nav-item').forEach(function (el) {
+        var isActive = el.classList.contains('qaq-chat-nav-active');
+        el.style.color = isActive ? (navActiveColors[t] || navActiveColors['default']) : (navColors[t] || navColors['default']);
+        el.style.background = isActive ? (navActiveBgs[t] || navActiveBgs['default']) : 'transparent';
+        el.style.borderRadius = isActive ? '10px' : '';
+        el.querySelectorAll('svg').forEach(function (svg) {
+            svg.style.stroke = isActive ? (navActiveColors[t] || navActiveColors['default']) : (navColors[t] || navColors['default']);
+        });
+        el.querySelectorAll('span').forEach(function (sp) {
+            sp.style.color = isActive ? (navActiveColors[t] || navActiveColors['default']) : (navColors[t] || navColors['default']);
+        });
+    });
+
+    document.querySelectorAll('.qaq-chat-input-area').forEach(function (el) {
+        el.style.background = inputAreaBgs[t] || inputAreaBgs['default'];
+        el.style.borderTopColor = listBorderColors[t] || listBorderColors['default'];
+    });
+
+    document.querySelectorAll('.qaq-chat-input-box').forEach(function (el) {
+        el.style.background = inputBoxBgs[t] || inputBoxBgs['default'];
+        el.style.color = inputBoxColors[t] || inputBoxColors['default'];
+        el.style.borderColor = t === 'dark' ? 'rgba(80,80,80,0.4)' : (t === 'cool' ? 'rgba(100,130,180,0.12)' : 'rgba(0,0,0,0.06)');
+    });
+
+    document.querySelectorAll('.qaq-chat-send-btn, .qaq-chat-recv-ai-btn').forEach(function (el) {
+        el.style.background = sendBtnBgs[t] || sendBtnBgs['default'];
+        el.style.color = sendBtnColors[t] || sendBtnColors['default'];
+    });
+
+    document.querySelectorAll('.qaq-chat-circle-btn').forEach(function (el) {
+        el.style.color = t === 'dark' ? '#777' : (t === 'cool' ? '#8a98a8' : '#999');
+    });
+
+    document.querySelectorAll('.qaq-chat-ext-menu').forEach(function (el) {
+        el.style.background = extMenuBgs[t] || extMenuBgs['default'];
+    });
+
+    document.querySelectorAll('.qaq-ext-icon').forEach(function (el) {
+        el.style.background = extIconBgs[t] || extIconBgs['default'];
+        el.style.color = extIconColors[t] || extIconColors['default'];
+    });
+
+    document.querySelectorAll('.qaq-ext-label').forEach(function (el) {
+        el.style.color = extLabelColors[t] || extLabelColors['default'];
+    });
+
+    _chatCurrentTheme = t;
+}
+
+var _chatCurrentTheme = 'default';
+
+function applyChatListItemTheme() {
+    var t = _chatCurrentTheme || 'default';
+    var listNameC = { 'default': '#333', 'cool': '#222', 'dark': '#e0e0e0' };
+    var listPreviewC = { 'default': '#999', 'cool': '#7d8794', 'dark': '#777' };
+    var listTimeC = { 'default': '#bbb', 'cool': '#a0a8b4', 'dark': '#555' };
+    var listBorderC = { 'default': 'rgba(0,0,0,0.04)', 'cool': 'rgba(100,130,180,0.06)', 'dark': 'rgba(255,255,255,0.04)' };
+
+    document.querySelectorAll('.qaq-chat-list-item').forEach(function (el) {
+        el.style.borderBottomColor = listBorderC[t] || listBorderC['default'];
+    });
+    document.querySelectorAll('.qaq-chat-list-name').forEach(function (el) {
+        el.style.color = listNameC[t] || listNameC['default'];
+    });
+    document.querySelectorAll('.qaq-chat-list-preview').forEach(function (el) {
+        el.style.color = listPreviewC[t] || listPreviewC['default'];
+    });
+    document.querySelectorAll('.qaq-chat-list-time').forEach(function (el) {
+        el.style.color = listTimeC[t] || listTimeC['default'];
+    });
+    document.querySelectorAll('.qaq-chat-set-card').forEach(function (el) {
+    el.style.background = t === 'dark' ? 'rgba(40,40,40,0.7)' : (t === 'cool' ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.55)');
+    el.style.borderColor = t === 'dark' ? 'rgba(60,60,60,0.5)' : (t === 'cool' ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.6)');
+});
+document.querySelectorAll('.qaq-chat-set-hd').forEach(function (el) {
+    el.style.color = t === 'dark' ? '#ccc' : (t === 'cool' ? '#3a4a60' : '#555');
+});
+document.querySelectorAll('.qaq-chat-settings-scroll .qaq-settings-item-text').forEach(function (el) {
+    el.style.color = t === 'dark' ? '#ddd' : '#333';
+});
+document.querySelectorAll('.qaq-chat-settings-scroll .qaq-settings-item-icon').forEach(function (el) {
+    el.style.color = t === 'dark' ? '#888' : (t === 'cool' ? '#6a7a8a' : '#999');
+});
+}
+function applyChatBubbleTheme() {
+    var t = _chatCurrentTheme || 'default';
+
+    var timeCols = { 'default': '#bbb', 'cool': '#a0a8b4', 'dark': '#555' };
+    var transCols = { 'default': 'rgba(0,0,0,0.45)', 'cool': 'rgba(58,74,96,0.45)', 'dark': 'rgba(255,255,255,0.35)' };
+    var bubbleShadows = { 'default': '0 1px 4px rgba(0,0,0,0.04)', 'cool': '0 1px 4px rgba(100,130,180,0.08)', 'dark': '0 1px 4px rgba(0,0,0,0.2)' };
+    var avatarBorders = { 'default': '1px solid rgba(0,0,0,0.04)', 'cool': '1px solid rgba(100,130,180,0.1)', 'dark': '1px solid rgba(255,255,255,0.06)' };
+
+    document.querySelectorAll('.qaq-chat-msg-time').forEach(function (el) {
+        el.style.color = timeCols[t] || timeCols['default'];
+    });
+
+    document.querySelectorAll('.qaq-chat-trans').forEach(function (el) {
+        el.style.color = transCols[t] || transCols['default'];
+    });
+
+    document.querySelectorAll('.qaq-chat-bubble').forEach(function (el) {
+        el.style.boxShadow = bubbleShadows[t] || bubbleShadows['default'];
+    });
+
+    document.querySelectorAll('.qaq-chat-bubble-avatar').forEach(function (el) {
+        el.style.border = avatarBorders[t] || avatarBorders['default'];
+    });
+
+    document.querySelectorAll('.qaq-chat-voice-btn').forEach(function (el) {
+        el.style.color = t === 'dark' ? '#777' : (t === 'cool' ? '#7d8794' : '#999');
+    });
+
+    var msgList = qs('qaq-chat-msg-list');
+    if (msgList) {
+        msgList.style.color = t === 'dark' ? '#ddd' : '#333';
+    }
+}
+function applyChatSettingsTheme() {
+    var t = _chatCurrentTheme || 'default';
+
+    document.querySelectorAll('.qaq-chat-fold-card').forEach(function (el) {
+        if (t === 'dark') {
+            el.style.background = 'rgba(40,40,40,0.92)';
+            el.style.borderColor = 'rgba(60,60,60,0.5)';
+        } else if (t === 'cool') {
+            el.style.background = 'rgba(255,255,255,0.92)';
+            el.style.borderColor = 'rgba(255,255,255,0.8)';
+        } else {
+            el.style.background = 'rgba(255,255,255,0.86)';
+            el.style.borderColor = 'rgba(255,255,255,0.6)';
+        }
+    });
+
+    document.querySelectorAll('.qaq-chat-fold-title').forEach(function (el) {
+        el.style.color = t === 'dark' ? '#ddd' : '#333';
+    });
+
+    document.querySelectorAll('.qaq-chat-fold-desc').forEach(function (el) {
+        el.style.color = t === 'dark' ? '#888' : '#999';
+    });
+
+    document.querySelectorAll('.qaq-chat-fold-icon').forEach(function (el) {
+        el.style.color = t === 'dark' ? '#d0b8a8' : (t === 'cool' ? '#3a4a60' : '#8a6050');
+    });
+
+    document.querySelectorAll('.qaq-chat-fold-arrow').forEach(function (el) {
+        el.style.color = t === 'dark' ? '#888' : '#999';
+    });
+
+    document.querySelectorAll('.qaq-chat-set-lbl').forEach(function (el) {
+        el.style.color = t === 'dark' ? '#888' : '#999';
+    });
+
+    document.querySelectorAll('.qaq-chat-toggle-title').forEach(function (el) {
+        el.style.color = t === 'dark' ? '#ddd' : '#333';
+    });
+
+    document.querySelectorAll('.qaq-chat-inline-note').forEach(function (el) {
+        el.style.color = t === 'dark' ? '#666' : '#999';
+    });
+
+    document.querySelectorAll('.qaq-chat-set-inp, .qaq-chat-set-sel, .qaq-chat-set-txt').forEach(function (el) {
+        if (t === 'dark') {
+            el.style.background = '#333';
+            el.style.borderColor = '#444';
+            el.style.color = '#ddd';
+        } else if (t === 'cool') {
+            el.style.background = 'rgba(255,255,255,0.92)';
+            el.style.borderColor = 'rgba(100,130,180,0.12)';
+            el.style.color = '#333';
+        } else {
+            el.style.background = 'rgba(255,255,255,0.92)';
+            el.style.borderColor = 'rgba(0,0,0,0.08)';
+            el.style.color = '#333';
+        }
+    });
+
+    document.querySelectorAll('.qaq-chat-sub-block').forEach(function (el) {
+        if (t === 'dark') {
+            el.style.background = 'rgba(255,255,255,0.04)';
+        } else if (t === 'cool') {
+            el.style.background = 'rgba(100,130,180,0.04)';
+        } else {
+            el.style.background = 'rgba(0,0,0,0.025)';
+        }
+    });
+
+    document.querySelectorAll('.qaq-chat-mini-btn').forEach(function (el) {
+        if (t === 'dark') {
+            el.style.background = 'linear-gradient(135deg,#4a3a2a,#5a3a4a)';
+            el.style.color = '#d0b8a8';
+        } else if (t === 'cool') {
+            el.style.background = 'linear-gradient(135deg,#d0d8e8,#bfc9dd)';
+            el.style.color = '#3a4a60';
+        } else {
+            el.style.background = 'linear-gradient(135deg,#f6e9c9,#fed2e0)';
+            el.style.color = '#8a6050';
+        }
+    });
+
+    document.querySelectorAll('.qaq-chat-ghost-btn').forEach(function (el) {
+        if (t === 'dark') {
+            el.style.background = 'rgba(50,50,50,0.94)';
+            el.style.borderColor = 'rgba(255,255,255,0.08)';
+            el.style.color = '#bbb';
+        } else if (t === 'cool') {
+            el.style.background = 'rgba(255,255,255,0.94)';
+            el.style.borderColor = 'rgba(100,130,180,0.12)';
+            el.style.color = '#4a5b72';
+        } else {
+            el.style.background = '#fff';
+            el.style.borderColor = 'rgba(0,0,0,0.08)';
+            el.style.color = '#666';
+        }
+    });
+
+    document.querySelectorAll('.qaq-chat-action-btn').forEach(function (el) {
+        var isDanger = el.classList.contains('qaq-danger');
+        if (t === 'dark') {
+            el.style.background = 'rgba(50,50,50,0.94)';
+            el.style.borderColor = 'rgba(255,255,255,0.08)';
+            el.style.color = isDanger ? '#e05555' : '#bbb';
+        } else if (t === 'cool') {
+            el.style.background = 'rgba(255,255,255,0.94)';
+            el.style.borderColor = 'rgba(100,130,180,0.12)';
+            el.style.color = isDanger ? '#d9534f' : '#4a5b72';
+        } else {
+            el.style.background = 'rgba(255,255,255,0.95)';
+            el.style.borderColor = 'rgba(0,0,0,0.08)';
+            el.style.color = isDanger ? '#d9534f' : '#555';
+        }
+    });
+
+    var saveBtn = qs('qaq-chat-settings-save-all');
+    if (saveBtn) {
+        if (t === 'dark') {
+            saveBtn.style.background = 'linear-gradient(135deg,#4a3a2a,#5a3a4a)';
+            saveBtn.style.color = '#d0b8a8';
+        } else if (t === 'cool') {
+            saveBtn.style.background = 'linear-gradient(135deg,#d0d8e8,#bfc9dd)';
+            saveBtn.style.color = '#3a4a60';
+        } else {
+            saveBtn.style.background = 'linear-gradient(135deg,#f6e9c9,#fed2e0)';
+            saveBtn.style.color = '#8a6050';
+        }
+    }
+
+    document.querySelectorAll('.qaq-chat-preview-box').forEach(function (el) {
+        if (t === 'dark') {
+            el.style.background = 'rgba(255,255,255,0.04)';
+            el.style.borderColor = 'rgba(255,255,255,0.08)';
+        } else if (t === 'cool') {
+            el.style.background = 'rgba(255,255,255,0.92)';
+            el.style.borderColor = 'rgba(100,130,180,0.1)';
+        } else {
+            el.style.background = 'rgba(255,255,255,0.92)';
+            el.style.borderColor = 'rgba(0,0,0,0.08)';
+        }
+    });
+
+    document.querySelectorAll('.qaq-chat-preview-title').forEach(function (el) {
+        el.style.color = t === 'dark' ? '#888' : '#999';
+    });
+
+    document.querySelectorAll('.qaq-toggle').forEach(function (el) {
+        if (!el.closest('.qaq-chat-settings-scroll')) return;
+        if (t === 'dark') {
+            el.style.background = el.classList.contains('qaq-toggle-on') ? '#8a6a5a' : '#444';
+        } else if (t === 'cool') {
+            el.style.background = el.classList.contains('qaq-toggle-on') ? '#7a9ab8' : '#ddd';
+        } else {
+            el.style.background = el.classList.contains('qaq-toggle-on') ? '#c9a08a' : '#ddd';
+        }
     });
 }
 function applyRuntimeStyle(cfg) {
@@ -1096,6 +1502,7 @@ function renderMainNav() {
         var key = map[idx];
         el.classList.toggle('qaq-chat-nav-active', key === activeMainTab);
     });
+    applyPageThemeClass(_chatCurrentTheme || getGlobalTheme());
 }
 function renderMainBody() {
     renderMainNav();
@@ -1150,6 +1557,7 @@ function renderMessageList() {
             openContactQuickMenu(this.getAttribute('data-qaq-contact'));
         };
     });
+    applyChatListItemTheme();
 }
 function renderFriendList() {
     var list = qs('qaq-chat-contact-list');
@@ -1180,6 +1588,7 @@ function renderFriendList() {
             openContactQuickMenu(this.getAttribute('data-qaq-contact'));
         };
     });
+    applyChatListItemTheme();
 }
 function renderFeedList() {
     var list = qs('qaq-chat-contact-list');
@@ -1216,6 +1625,7 @@ function renderFeedList() {
             '</div>' +
         '</div>';
     }).join('');
+    applyChatListItemTheme();
 }
 function renderMineList() {
     var list = qs('qaq-chat-contact-list');
@@ -1263,6 +1673,7 @@ function renderMineList() {
                 '</div>' +
             '</div>' +
         '</div>';
+        applyChatListItemTheme();
     window.lucide && window.lucide.createIcons && window.lucide.createIcons();
     qs('qaq-chat-mine-edit').onclick = editMyProfile;
     qs('qaq-chat-mine-requests').onclick = showFriendRequests;
@@ -1483,6 +1894,7 @@ function renderChatWindow() {
         qs('qaq-chat-win-title').textContent = getDisplayName(c);
         renderChatFriendTip();
         renderChatMessageList();
+        applyChatBubbleTheme();
         renderChatInputArea();
         renderChatExtMenu();
     });
@@ -2081,6 +2493,15 @@ function openAddFriendDialog() {
 
 function openChatSettings() {
     if (!activeContactId) return;
+    var c = getActiveContact();
+    if (c) {
+        _chatCurrentTheme = c.uiTheme || getGlobalTheme();
+applyPageThemeClass(_chatCurrentTheme);
+applyRuntimeStyle(c);
+renderMainBody();
+renderChatWindow();
+toast('设置已保存');
+    }
     renderSettingsPage();
     showOnlyChatPage('qaq-chat-settings-page');
 }
@@ -2612,6 +3033,7 @@ qs('qaq-chs-o-fetch-models-btn').onclick = async function () {
 };
     syncConditionalBlocks();
     renderBubbleCssPreview();
+    applyChatSettingsTheme();
 }
 
 function saveSettingsAll() {
@@ -2780,6 +3202,7 @@ function bindMainEvents() {
     qs('qaq-chat-set-back').onclick = function () {
         saveSettingsAll();
         showOnlyChatPage('qaq-chat-window-page');
+        renderChatWindow();
     };
 }
     if (qs('qaq-chat-win-set-btn')) {
@@ -2825,7 +3248,8 @@ function bindMainEvents() {
 }
 
 function initThemeSync() {
-    applyPageThemeClass(getGlobalTheme());
+    _chatCurrentTheme = getGlobalTheme();
+    applyPageThemeClass(_chatCurrentTheme);
 }
 function ensureDemo() {
     var s = getStore();
@@ -2913,7 +3337,8 @@ function init() {
 }
 window.qaqOpenChatPage = function () {
     ensureDemo();
-    initThemeSync();
+    _chatCurrentTheme = getGlobalTheme();
+    applyPageThemeClass(_chatCurrentTheme);
     activeMainTab = 'message';
     showOnlyChatPage('qaq-chat-main-page');
     renderMainBody();

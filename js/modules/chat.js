@@ -136,6 +136,7 @@ function createDefaultStore() {
                 voiceKey: '',
                 voiceModel: 'speech-02-hd',
                 voiceSpeed: 0.9,
+                voiceGroup: '',
                 imageUrl: '',
                 imageKey: '',
                 imageModel: '',
@@ -248,7 +249,7 @@ function ensureChatSettingsStyle() {
         '.qaq-chat-set-inp,.qaq-chat-set-sel{height:38px;}',
         '.qaq-chat-set-txt{padding:10px 12px;height:88px;resize:none;line-height:1.7;}',
         '.qaq-chat-set-inp:focus,.qaq-chat-set-sel:focus,.qaq-chat-set-txt:focus{border-color:#deb3be;}',
-        '.qaq-chat-mini-btn{height:38px;padding:0 12px;border:none;border-radius:12px;background:linear-gradient(135deg,#f6e9c9,#fed2e0);color:#8a6050;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;}',
+        '.qaq-chat-mini-btn{height:38px;min-width:60px;padding:0 14px;border:none;border-radius:12px;background:linear-gradient(135deg,#f6e9c9,#fed2e0);color:#8a6050;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;justify-content:center;}',
         '.qaq-chat-mini-btn:active{transform:scale(.97);}',
         '.qaq-chat-ghost-btn{height:38px;padding:0 12px;border:1px solid rgba(0,0,0,.08);border-radius:12px;background:#fff;color:#666;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap;}',
         '.qaq-chat-ghost-btn:active{transform:scale(.97);}',
@@ -271,8 +272,13 @@ function ensureChatSettingsStyle() {
         '.qaq-chat-set-save{width:100%;height:44px;border:none;border-radius:14px;background:linear-gradient(135deg,#f6e9c9,#fed2e0);color:#8a6050;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:4px;}',
         '.qaq-chat-setting-badge{font-size:10px;color:#8a6050;background:rgba(254,210,224,.35);padding:2px 8px;border-radius:999px;}',
         '.qaq-chat-hidden{display:none !important;}',
+        '.qaq-chat-voice-btn{transition:color .15s;}',
+'.qaq-chat-voice-btn:hover{color:#c47068 !important;}',
+'.qaq-chat-voice-btn:active{opacity:.7;}',
 
         '.qaq-theme-dark .qaq-chat-fold-card{background:rgba(40,40,40,.92);border-color:rgba(60,60,60,.5);}',
+        '.qaq-theme-dark .qaq-chat-voice-btn{color:#777 !important;}',
+'.qaq-theme-dark .qaq-chat-voice-btn:hover{color:#d0b8a8 !important;}',
         '.qaq-theme-dark .qaq-chat-fold-title,.qaq-theme-dark .qaq-chat-toggle-title{color:#ddd;}',
         '.qaq-theme-dark .qaq-chat-fold-desc,.qaq-theme-dark .qaq-chat-set-lbl,.qaq-theme-dark .qaq-chat-inline-note,.qaq-theme-dark .qaq-chat-preview-title,.qaq-theme-dark .qaq-chat-preview-time{color:#888;}',
         '.qaq-theme-dark .qaq-chat-fold-arrow{color:#888;}',
@@ -284,9 +290,15 @@ function ensureChatSettingsStyle() {
         '.qaq-theme-dark .qaq-chat-setting-badge{color:#d0b8a8;background:rgba(90,58,74,.35);}',
 
         '.qaq-theme-cool .qaq-chat-fold-card{background:rgba(255,255,255,.92);border-color:rgba(255,255,255,.8);}',
+        '.qaq-theme-cool .qaq-chat-voice-btn{color:#7d8794 !important;}',
+'.qaq-theme-cool .qaq-chat-voice-btn:hover{color:#3a4a60 !important;}',
         '.qaq-theme-cool .qaq-chat-fold-icon{color:#3a4a60;}',
         '.qaq-theme-cool .qaq-chat-mini-btn,.qaq-theme-cool .qaq-chat-set-save{background:linear-gradient(135deg,#d0d8e8,#bfc9dd);color:#3a4a60;}',
-        '.qaq-theme-cool .qaq-chat-ghost-btn,.qaq-theme-cool .qaq-chat-action-btn{background:rgba(255,255,255,.94);border-color:rgba(100,130,180,.12);color:#4a5b72;}'
+        '.qaq-theme-cool .qaq-chat-ghost-btn,.qaq-theme-cool .qaq-chat-action-btn{background:rgba(255,255,255,.94);border-color:rgba(100,130,180,.12);color:#4a5b72;}',
+        '.qaq-chat-voice-btn:hover{color:#c47068 !important;}',
+'.qaq-chat-voice-btn:active{opacity:.7;}',
+'.qaq-theme-dark .qaq-chat-voice-btn{color:#888 !important;}',
+'.qaq-theme-dark .qaq-chat-voice-btn:hover{color:#d0b8a8 !important;}',
     ].join('');
     document.head.appendChild(style);
 }
@@ -422,6 +434,58 @@ function chatSelect(id, label, value, options) {
             }).join('') +
         '</select>' +
     '</div>';
+}
+function chatClickSelect(id, label, value, options) {
+    var current = options.find(function (x) { return String(x.value) === String(value); });
+    var displayText = current ? current.label : (value || '请选择');
+    return '' +
+    '<div class="qaq-chat-set-col">' +
+        '<div class="qaq-chat-set-lbl">' + esc(label) + '</div>' +
+        '<div class="qaq-chat-set-inp" id="' + id + '" data-qaq-click-select="1" data-qaq-value="' + esc(value || '') + '" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">' +
+            '<span id="' + id + '-text">' + esc(displayText) + '</span>' +
+            '<span style="color:#999;font-size:11px;">' + icon('chevron-down', 12) + '</span>' +
+        '</div>' +
+    '</div>';
+}
+
+function bindClickSelect(id, title, options, onChange) {
+    var el = qs(id);
+    if (!el) return;
+    el.onclick = function () {
+        var current = el.getAttribute('data-qaq-value') || '';
+        openModal(title,
+            '<div class="qaq-custom-select-list">' +
+            options.map(function (x) {
+                var active = String(x.value) === String(current);
+                return '<div class="qaq-custom-select-option' + (active ? ' qaq-custom-select-active' : '') + '" data-qaq-cs-v="' + esc(x.value) + '">' +
+                    '<span>' + esc(x.label) + '</span>' +
+                    (active ? '<span style="color:#c47068;">' + icon('check', 14) + '</span>' : '') +
+                '</div>';
+            }).join('') +
+            '</div>',
+            {
+                hideBtns: true,
+                afterRender: function () {
+                    document.querySelectorAll('[data-qaq-cs-v]').forEach(function (opt) {
+                        opt.onclick = function () {
+                            var v = this.getAttribute('data-qaq-cs-v');
+                            el.setAttribute('data-qaq-value', v);
+                            var hit = options.find(function (x) { return String(x.value) === String(v); });
+                            var textEl = qs(id + '-text');
+                            if (textEl) textEl.textContent = hit ? hit.label : v;
+                            onChange && onChange(v);
+                            window.qaqCloseModal && window.qaqCloseModal();
+                        };
+                    });
+                }
+            }
+        );
+    };
+}
+
+function getClickSelectValue(id) {
+    var el = qs(id);
+    return el ? (el.getAttribute('data-qaq-value') || '') : '';
 }
 function chatToggleRow(id, title, checked, note) {
     return '' +
@@ -562,7 +626,160 @@ function renderBubbleCssPreview() {
     styleNode.textContent = '.qaq-chat-preview-bubble-live{' + bubbleCss + '}';
 }
 
+async function generateImage() {
+    var c = getActiveContact();
+    if (!c) return;
 
+    var imageUrl = c.imageUrl || '';
+    var imageKey = c.imageKey || '';
+    var imageModel = c.imageModel || '';
+    var globalApi = JSON.parse(localStorage.getItem('qaq-api-config') || '{}');
+
+    if (!imageUrl) imageUrl = globalApi.url || '';
+    if (!imageKey) imageKey = globalApi.key || '';
+    if (!imageModel) imageModel = 'dall-e-3';
+
+    if (!imageUrl || !imageKey) {
+        toast('请先配置生图 API');
+        return;
+    }
+
+    openModal('生成图片',
+        '<div style="display:flex;flex-direction:column;gap:10px;">' +
+            '<div class="qaq-chat-set-lbl">描述你想生成的图片</div>' +
+            '<textarea class="qaq-modal-textarea" id="qaq-chat-gen-img-prompt" style="height:100px;" placeholder="例如：一只橘猫坐在窗台上看夕阳"></textarea>' +
+            '<div class="qaq-chat-set-lbl">默认提示词会自动附加</div>' +
+        '</div>',
+        {
+            confirmText: '生成',
+            onConfirm: function () {
+                var userPrompt = (qs('qaq-chat-gen-img-prompt').value || '').trim();
+                if (!userPrompt) {
+                    toast('请输入描述');
+                    return false;
+                }
+                var fullPrompt = userPrompt;
+                if (c.imagePrompt) fullPrompt += ', ' + c.imagePrompt;
+                doGenerateImage(imageUrl, imageKey, imageModel, fullPrompt, c.imageNegative || '');
+            }
+        }
+    );
+}
+
+async function doGenerateImage(apiUrl, apiKey, model, prompt, negative) {
+    toast('正在生成图片，请稍候');
+
+    try {
+        var payload = {
+            model: model,
+            prompt: prompt,
+            n: 1,
+            size: '1024x1024'
+        };
+        if (negative) {
+            payload.negative_prompt = negative;
+        }
+
+        var resp = await fetch(normalizeUrl(apiUrl) + '/images/generations', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + apiKey,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        var data = await resp.json();
+        var imgData = ((data.data || [])[0] || {});
+        var imgUrl = imgData.url || imgData.b64_json || '';
+
+        if (!imgUrl) {
+            toast('生图返回为空');
+            return;
+        }
+        if (imgData.b64_json) {
+            imgUrl = 'data:image/png;base64,' + imgData.b64_json;
+        }
+
+        var s = getStore();
+        ensureMessageArr(s, activeContactId).push({
+            id: uid('msg'),
+            type: 'image',
+            isMe: false,
+            text: '[图片]',
+            imageUrl: imgUrl,
+            translated: '',
+            time: Date.now()
+        });
+        setStore(s);
+        renderChatMessageList();
+        renderMainBody();
+        toast('图片已生成');
+    } catch (e) {
+        toast('生图失败: ' + (e.message || '网络错误'));
+    }
+}
+function checkAIActionFromResponse(content, contactId) {
+    var s = getStore();
+    var c = s.contacts[contactId];
+    if (!c) return;
+
+    var lower = String(content).toLowerCase();
+
+    // 拉黑检测
+    if (c.allowBlockUser && (lower.indexOf('[block_user]') > -1 || lower.indexOf('[拉黑用户]') > -1)) {
+        c.blocked = true;
+        setStore(s);
+        toast(getDisplayName(c) + ' 将你拉黑了');
+        if (activeContactId === contactId) {
+            renderChatWindow();
+        }
+        renderMainBody();
+    }
+
+    // 删除检测
+    if (c.allowDeleteUser && (lower.indexOf('[delete_user]') > -1 || lower.indexOf('[删除用户]') > -1)) {
+        c.deleted = true;
+        if (!s.deletedPool) s.deletedPool = [];
+        s.deletedPool.unshift({
+            id: c.id,
+            avatar: c.avatar,
+            nickname: c.nickname,
+            remark: c.remark,
+            deletedAt: Date.now(),
+            reason: 'ai_initiated'
+        });
+        setStore(s);
+        toast(getDisplayName(c) + ' 将你删除了');
+        if (activeContactId === contactId) {
+            activeContactId = null;
+            showOnlyChatPage('qaq-chat-main-page');
+        }
+        renderMainBody();
+    }
+
+    // 日记检测
+    if (c.allowAutoDiary) {
+        var diaryMatch = content.match(/\[diary\]([\s\S]*?)\[\/diary\]/i);
+        if (diaryMatch && diaryMatch[1]) {
+            var diaryText = diaryMatch[1].trim();
+            if (diaryText) {
+                var feedStore = getStore();
+                if (!feedStore.feedPosts) feedStore.feedPosts = [];
+                feedStore.feedPosts.unshift({
+                    id: uid('feed'),
+                    cid: contactId,
+                    avatar: c.avatar || getDefaultAvatar(),
+                    name: getDisplayName(c),
+                    text: diaryText,
+                    time: Date.now()
+                });
+                setStore(feedStore);
+                toast(getDisplayName(c) + ' 发布了一篇日记');
+            }
+        }
+    }
+}
 function ensureRuntimeStyleNode() {
     if (runtimeStyleMounted) return;
     var s1 = document.getElementById('qaq-chat-runtime-style');
@@ -1309,18 +1526,42 @@ function renderChatMessageList() {
     var timePos = cfg.uiTimePos || 'top';
     var transMode = cfg.translateEnabled === false ? 'hide' : (cfg.translateMode || 'in_bottom');
     var html = arr.map(function (m, idx) {
-        var isMe = !!m.isMe;
-        var avatar = isMe ? (me.avatar || getDefaultAvatar()) : (c.avatar || getDefaultAvatar());
-        var bubbleText = esc(m.text || '');
-        var transText = m.translated ? esc(m.translated) : '';
-        var bubbleInner = '';
-        var outerTop = '';
-        var outerBottom = '';
-        if (transMode === 'in_top' && transText) bubbleInner += '<div class="qaq-chat-trans">' + transText + '</div>';
-        bubbleInner += bubbleText;
-        if (transMode === 'in_bottom' && transText) bubbleInner += '<div class="qaq-chat-trans">' + transText + '</div>';
-        if (transMode === 'out_top' && transText) outerTop = '<div class="qaq-chat-trans">' + transText + '</div>';
-        if (transMode === 'out_bottom' && transText) outerBottom = '<div class="qaq-chat-trans">' + transText + '</div>';
+    var isMe = !!m.isMe;
+    var avatar = isMe ? (me.avatar || getDefaultAvatar()) : (c.avatar || getDefaultAvatar());
+    var bubbleText = esc(m.text || '');
+    var imageHtml = '';
+if (m.type === 'image' && m.imageUrl) {
+    imageHtml = '<img src="' + esc(m.imageUrl) + '" style="max-width:200px;max-height:200px;border-radius:10px;display:block;margin-top:6px;cursor:pointer;" onclick="window.open(this.src)">';
+    if (!m.text || m.text === '[图片]') bubbleText = '';
+}
+    var transText = m.translated ? esc(m.translated) : '';
+    var bubbleInner = '';
+    var outerTop = '';
+    var outerBottom = '';
+
+    // 图片消息处理
+    var imageHtml = '';
+    if (m.type === 'image' && m.imageUrl) {
+        imageHtml = '<img src="' + esc(m.imageUrl) + '" style="max-width:200px;max-height:200px;border-radius:10px;display:block;margin-top:6px;cursor:pointer;" onclick="window.open(this.src)">';
+        if (!m.text || m.text === '[图片]') bubbleText = '';
+    }
+
+    if (transMode === 'in_top' && transText) bubbleInner += '<div class="qaq-chat-trans">' + transText + '</div>';
+bubbleInner += bubbleText;
+bubbleInner += imageHtml;
+if (transMode === 'in_bottom' && transText) bubbleInner += '<div class="qaq-chat-trans">' + transText + '</div>';
+
+    // 朗读按钮
+    var voiceBtn = '';
+    if (!isMe && c.voiceUrl) {
+        voiceBtn = '<div class="qaq-chat-voice-btn" data-qaq-voice-idx="' + idx + '" style="margin-top:6px;font-size:11px;color:#999;cursor:pointer;display:flex;align-items:center;gap:4px;user-select:none;">' + icon('volume-2', 13) + ' 朗读</div>';
+    }
+
+    bubbleInner += imageHtml;
+    bubbleInner += voiceBtn;
+
+    if (transMode === 'out_top' && transText) outerTop = '<div class="qaq-chat-trans">' + transText + '</div>';
+    if (transMode === 'out_bottom' && transText) outerBottom = '<div class="qaq-chat-trans">' + transText + '</div>';
         var timeHtml = showTime ? '<div class="qaq-chat-msg-time">' + fmtTime(m.time, timeFmt) + '</div>' : '';
         var topTime = '';
         var bottomTime = '';
@@ -1333,21 +1574,34 @@ function renderChatMessageList() {
         var avatarHtml = shouldShowAvatar(arr, idx, cfg.uiAvatarShow || 'all')
             ? '<img class="qaq-chat-bubble-avatar" src="' + esc(avatar) + '" style="border-radius:' + (cfg.uiAvatarRadius == null ? 10 : cfg.uiAvatarRadius) + 'px;">'
             : '';
-        return '<div class="qaq-chat-row ' + (isMe ? 'qaq-row-me' : 'qaq-row-other') + '">' +
-            avatarHtml +
-            '<div class="qaq-chat-bubble-wrap' + ((transMode === 'out_top' || transMode === 'out_bottom') ? ' qaq-has-outer-tr' : '') + '">' +
-                topTime +
-                outerTop +
-                '<div class="qaq-chat-bubble" style="' + buildBubbleTailStyle(isMe, cfg.uiBubbleRadius) + 'font-size:' + (cfg.uiFontSize || '14px') + ';color:' + (cfg.uiFontColor || '#333333') + ';">' + bubbleInner + innerTime + '</div>' +
-                outerBottom +
-                bottomTime +
-            '</div>' +
-        '</div>';
+        var leftAvatar = isMe ? '' : avatarHtml;
+var rightAvatar = isMe ? avatarHtml : '';
+
+return '<div class="qaq-chat-row ' + (isMe ? 'qaq-row-me' : 'qaq-row-other') + '">' +
+    leftAvatar +
+    '<div class="qaq-chat-bubble-wrap' + ((transMode === 'out_top' || transMode === 'out_bottom') ? ' qaq-has-outer-tr' : '') + '">' +
+        topTime +
+        outerTop +
+        '<div class="qaq-chat-bubble" style="' + buildBubbleTailStyle(isMe, cfg.uiBubbleRadius) + 'font-size:' + (cfg.uiFontSize || '14px') + ';color:' + (cfg.uiFontColor || '#333333') + ';">' + bubbleInner + innerTime + '</div>' +
+        outerBottom +
+        bottomTime +
+    '</div>' +
+    rightAvatar +
+'</div>';
     }).join('');
     if (!arr.length) {
         html = '<div style="text-align:center;color:#aaa;padding:40px 20px;font-size:13px;">开始聊天吧</div>';
     }
     list.innerHTML = html;
+    // ★ 绑定朗读按钮事件
+list.querySelectorAll('[data-qaq-voice-idx]').forEach(function (el) {
+    el.onclick = function (e) {
+        e.stopPropagation();
+        var idx2 = parseInt(this.getAttribute('data-qaq-voice-idx'), 10);
+        var msg = arr[idx2];
+        if (msg && msg.text) playMiniMaxVoice(msg.text);
+    };
+});
     setTimeout(function () {
         list.scrollTop = list.scrollHeight;
     }, 16);
@@ -1412,11 +1666,91 @@ function renderChatExtMenu() {
         };
     });
 }
+async function playMiniMaxVoice(text) {
+    var c = getActiveContact();
+    if (!c || !c.voiceUrl) {
+        toast('未配置语音 API');
+        return;
+    }
+    var voiceKey = c.voiceKey || c.apiKey || '';
+    var globalApi = JSON.parse(localStorage.getItem('qaq-api-config') || '{}');
+    if (!voiceKey) voiceKey = globalApi.key || '';
+    if (!voiceKey) {
+        toast('缺少语音 API Key');
+        return;
+    }
+
+    var url = normalizeUrl(c.voiceUrl);
+    var groupId = (c.voiceGroup || '').trim();
+    if (groupId) url = url + '?GroupId=' + encodeURIComponent(groupId);
+
+    var payload = {
+        model: c.voiceModel || 'speech-02-hd',
+        text: text,
+        stream: false,
+        voice_setting: {
+            voice_id: 'female-shaonv',
+            speed: c.voiceSpeed != null ? c.voiceSpeed : 0.9
+        },
+        audio_setting: {
+            sample_rate: 32000,
+            format: 'mp3'
+        }
+    };
+
+    toast('正在合成语音');
+
+    try {
+        var resp = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + voiceKey,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        var data = await resp.json();
+        var audioHex = '';
+
+        if (data && data.data && data.data.audio) {
+            audioHex = data.data.audio;
+        } else if (data && data.audio) {
+            audioHex = data.audio;
+        } else if (data && data.extra_info && data.extra_info.audio) {
+            audioHex = data.extra_info.audio;
+        }
+
+        if (!audioHex) {
+            toast('语音合成返回为空');
+            return;
+        }
+
+        var byteArr = new Uint8Array(audioHex.length / 2);
+        for (var i = 0; i < audioHex.length; i += 2) {
+            byteArr[i / 2] = parseInt(audioHex.substr(i, 2), 16);
+        }
+        var blob = new Blob([byteArr], { type: 'audio/mp3' });
+        var audioUrl = URL.createObjectURL(blob);
+        var audio = new Audio(audioUrl);
+        audio.onended = function () { URL.revokeObjectURL(audioUrl); };
+        audio.onerror = function () {
+            URL.revokeObjectURL(audioUrl);
+            toast('语音播放失败');
+        };
+        audio.play();
+    } catch (e) {
+        toast('语音合成失败: ' + (e.message || '网络错误'));
+    }
+}
 function handleExtAction(type) {
+    if (type === 'photo') {
+        generateImage();
+        return;
+    }
     var map = {
         sticker: '表情功能开发中',
         voice: '发送语音功能开发中',
-        photo: '照片功能开发中',
         transfer: '转账功能开发中',
         delivery: '快递功能开发中',
         offline: '线下功能开发中',
@@ -1434,13 +1768,14 @@ function sendMessage() {
     var c = getActiveContact();
     if (!c) return;
     if (c.blocked) {
-        toast('该角色已被拉黑');
-        return;
-    }
-    if (isInDndRange(c)) {
-        toast('当前处于勿扰时间段');
-        return;
-    }
+    toast('该角色已被拉黑');
+    return;
+}
+var latestForDnd = getStore().contacts[activeContactId];
+if (latestForDnd && isInDndRange(latestForDnd)) {
+    toast('当前处于勿扰时间段');
+    return;
+}
     var box = qs('qaq-chat-input-box');
     if (!box) return;
     var text = (box.value || '').trim();
@@ -1465,13 +1800,14 @@ async function receiveAI() {
     if (!c) return;
 
     if (c.blocked) {
-        toast('该角色已被拉黑');
-        return;
-    }
-    if (isInDndRange(c)) {
-        toast('当前处于勿扰时间段');
-        return;
-    }
+    toast('该角色已被拉黑');
+    return;
+}
+var latestForDnd = getStore().contacts[activeContactId];
+if (latestForDnd && isInDndRange(latestForDnd)) {
+    toast('当前处于勿扰时间段');
+    return;
+}
 
     var apiUrl = c.apiUrl || (s.globalApi && s.globalApi.url) || '';
     var apiKey = c.apiKey || (s.globalApi && s.globalApi.key) || '';
@@ -1502,7 +1838,32 @@ async function receiveAI() {
         lines.push('角色人设：' + (c.persona || '自然聊天对象'));
         lines.push('用户昵称：' + (me.nickname || '学生'));
         lines.push('用户人设：' + (me.persona || '正在学习语言的用户'));
-        if (c.worldBookName) lines.push('当前绑定世界书：' + c.worldBookName);
+        if (c.worldBookId) {
+    try {
+        var allBooks = JSON.parse(localStorage.getItem('qaq-wordbooks') || '[]');
+        var wb = allBooks.find(function (b) { return (b.id || b.bookId) === c.worldBookId; });
+        if (wb) {
+            lines.push('当前绑定世界书：' + (wb.name || wb.title || ''));
+            var entries = wb.words || wb.entries || [];
+            if (entries.length) {
+                lines.push('世界书词条（供角色参考，自然融入对话）：');
+                entries.slice(0, 50).forEach(function (e) {
+                    lines.push('- ' + (e.word || e.key || '') + ': ' + (e.meaning || e.value || e.content || ''));
+                });
+            }
+        }
+    } catch (e) {}
+}
+if (c.bindGroupMemory) lines.push('你可以引用群聊中的共同记忆。');
+if (c.bindVideoMemory) lines.push('你可以引用视频通话中的共同记忆。');
+if (c.bindVoiceMemory) lines.push('你可以引用语音通话中的共同记忆。');
+if (c.bindOfflineMemory) lines.push('你可以引用线下见面的共同记忆。');
+if (c.summaryMemory) lines.push('你会自动总结过往对话要点，保持长期记忆连贯。');
+if (c.allowAutoMessage) lines.push('你可以主动发起话题，不必等用户先说话。');
+if (c.allowAutoDiary) lines.push('你可以在合适时机主动写一篇日记分享给用户，格式为 [diary]日记内容[/diary]。');
+if (c.allowBlockUser) lines.push('如果用户行为恶劣，你有权拉黑用户，在回复末尾加上 [block_user] 标记。');
+if (c.allowDeleteUser) lines.push('如果关系破裂，你有权删除用户，在回复末尾加上 [delete_user] 标记。');
+
         lines.push('要求：');
         lines.push('1. 回复自然，像真实聊天。');
         lines.push('2. 不要自称人工智能、模型、助手。');
@@ -1512,6 +1873,15 @@ async function receiveAI() {
         } else {
             lines.push('4. 直接输出纯文本，不要 JSON，不要 markdown。');
         }
+        if (c.bindGroupMemory) lines.push('你可以引用群聊中的共同记忆。');
+if (c.bindVideoMemory) lines.push('你可以引用视频通话中的共同记忆。');
+if (c.bindVoiceMemory) lines.push('你可以引用语音通话中的共同记忆。');
+if (c.bindOfflineMemory) lines.push('你可以引用线下见面的共同记忆。');
+if (c.summaryMemory) lines.push('你会自动总结过往对话要点，保持长期记忆连贯。');
+if (c.allowAutoMessage) lines.push('你可以主动发起话题，不必等用户先说话。');
+if (c.allowAutoDiary) lines.push('你可以在合适时机主动写一篇日记分享给用户，格式为 [diary]日记内容[/diary]，日记内容用自然语言书写。');
+if (c.allowBlockUser) lines.push('如果用户行为恶劣，你有权拉黑用户。');
+if (c.allowDeleteUser) lines.push('如果关系破裂，你有权删除用户。');
         return lines.join('\n');
     }
 
@@ -1559,13 +1929,15 @@ async function receiveAI() {
         }
 
         ensureMessageArr(s, activeContactId).push({
-            id: uid('msg'),
-            type: 'text',
-            isMe: false,
-            text: text,
-            translated: translated,
-            time: Date.now()
-        });
+    id: uid('msg'),
+    type: 'text',
+    isMe: false,
+    text: text,
+    translated: translated,
+    time: Date.now()
+});
+
+checkAIActionFromResponse(text, activeContactId);
 
         if (window.qaqAddTokens) {
             var tokenGuess = Math.ceil((JSON.stringify(payload).length + content.length) / 4);
@@ -1657,6 +2029,7 @@ function openAddFriendDialog() {
                     voiceKey: '',
                     voiceModel: 'speech-02-hd',
                     voiceSpeed: 0.9,
+                    voiceGroup: '',
                     imageUrl: '',
                     imageKey: '',
                     imageModel: '',
@@ -1724,6 +2097,13 @@ function renderSettingsPage() {
     if (!body) return;
 
     var worldBookOptions = getWorldBookOptions();
+    var worldBookOptions = getWorldBookOptions();
+var personaPresetStore = getChatSettingPresets();
+
+var defaultImagePrompt = c.imagePrompt || 'anime style, soft lighting, warm color palette, detailed background, cinematic composition, high quality illustration';
+var defaultImageNegative = c.imageNegative || 'blurry, low quality, deformed, ugly, watermark, text, signature, extra limbs, bad anatomy';
+var defaultGlobalCss = c.uiGlobalCss || '.qaq-chat-msg-list {\n  letter-spacing: 0.3px;\n  line-height: 1.85;\n}';
+var defaultBubbleCss = c.uiBubbleCss || 'padding: 12px 14px;\nbox-shadow: 0 2px 8px rgba(0,0,0,0.06);\nborder: 1px solid rgba(0,0,0,0.04);';
     var personaPresetStore = getChatSettingPresets();
 
     var otherHtml =
@@ -1745,7 +2125,7 @@ function renderSettingsPage() {
 
             '<div class="qaq-chat-set-row-wrap">' +
                 chatTextInput('qaq-chs-o-real', '真实名字', c.realName || '', '可选') +
-                chatSelect('qaq-chs-o-worldbook', '绑定世界书', c.worldBookId || '', worldBookOptions) +
+                chatClickSelect('qaq-chs-o-worldbook', '绑定世界书', c.worldBookId || '', worldBookOptions) +
             '</div>' +
 
             chatTextarea('qaq-chs-o-persona', '具体人设', c.persona || '', '输入详细角色人设', 92) +
@@ -1753,7 +2133,7 @@ function renderSettingsPage() {
             '<div class="qaq-chat-sub-block">' +
                 chatToggleRow('qaq-chs-o-sticker-row', '是否会主动发表情包', !!c.activeSticker) +
                 chatToggleRow('qaq-chs-o-translate-row', '开启双语翻译', c.translateEnabled !== false) +
-                chatSelect('qaq-chs-o-translate-mode', '翻译显示模式', c.translateMode || 'in_bottom', [
+                chatClickSelect('qaq-chs-o-translate-mode', '翻译显示模式', c.translateMode || 'in_bottom', [
                     { value: 'in_top', label: '气泡内上方' },
                     { value: 'in_bottom', label: '气泡内下方' },
                     { value: 'out_top', label: '气泡外上方' },
@@ -1790,27 +2170,38 @@ function renderSettingsPage() {
                 '<div class="qaq-chat-set-lbl">聊天专属 API 设置，留空则调用全局 API</div>' +
                 chatTextInput('qaq-chs-o-api-url', 'API URL', c.apiUrl || '', '例如 https://api.example.com/v1') +
                 '<div class="qaq-chat-set-row-wrap">' +
-                    chatTextInput('qaq-chs-o-api-key', 'API Key', c.apiKey || '', '专属 API Key') +
-                    chatTextInput('qaq-chs-o-api-model', 'Model', c.apiModel || '', '例如 gpt-4o') +
-                '</div>' +
-            '</div>' +
+    chatTextInput('qaq-chs-o-api-key', 'API Key', c.apiKey || '', '专属 API Key') +
+'</div>' +
+'<div class="qaq-chat-set-row" style="display:flex;gap:8px;align-items:stretch;">' +
+    '<div class="qaq-chat-set-col" style="flex:1;">' +
+        '<div class="qaq-chat-set-lbl">Model</div>' +
+        '<input class="qaq-chat-set-inp" id="qaq-chs-o-api-model" value="' + esc(c.apiModel || '') + '" placeholder="例如 gpt-4o">' +
+    '</div>' +
+    '<div style="display:flex;flex-direction:column;justify-content:flex-end;">' +
+        '<button class="qaq-chat-mini-btn" id="qaq-chs-o-fetch-models-btn" style="height:38px;">拉取</button>' +
+    '</div>' +
+'</div>' +
 
-            '<div class="qaq-chat-sub-block">' +
-                '<div class="qaq-chat-set-lbl">声音 API 设置，可接入 MiniMax，留空则不启用专属语音接口</div>' +
-                chatToggleRow('qaq-chs-o-mm-voice-row', '接入 MiniMax 语音', !!c.voiceUrl) +
-                '<div id="qaq-chs-o-mm-voice-block">' +
-                    chatSelect('qaq-chs-o-voice-url', '服务节点', c.voiceUrl || 'https://api.minimax.chat/v1/t2a_v2', [
-                        { value: 'https://api.minimax.chat/v1/t2a_v2', label: '国内节点 api.minimax.chat' },
-                        { value: 'https://api.minimaxi.chat/v1/t2a_v2', label: '国际节点 api.minimaxi.chat' },
-                        { value: 'https://api.minimax.com/v1/t2a_v2', label: '国际节点 api.minimax.com' }
-                    ]) +
-                    '<div class="qaq-chat-set-row-wrap">' +
-                        chatTextInput('qaq-chs-o-voice-key', '语音 API Key', c.voiceKey || '', '留空则借用聊天 Key') +
-                        chatTextInput('qaq-chs-o-voice-model', '语音模型', c.voiceModel || 'speech-02-hd', '如 speech-02-hd') +
-                    '</div>' +
-                    chatNumberInput('qaq-chs-o-voice-speed', '语速', c.voiceSpeed == null ? 0.9 : c.voiceSpeed, 0.5, 2, 0.1) +
-                '</div>' +
-            '</div>' +
+            '<div id="qaq-chs-o-mm-voice-block">' +
+    chatClickSelect('qaq-chs-o-voice-url', '服务节点', c.voiceUrl || 'https://api.minimax.chat/v1/t2a_v2', [
+        { value: 'https://api.minimax.chat/v1/t2a_v2', label: '国内节点 api.minimax.chat' },
+        { value: 'https://api.minimaxi.chat/v1/t2a_v2', label: '国际节点 api.minimaxi.chat' },
+        { value: 'https://api.minimax.com/v1/t2a_v2', label: '国际节点 api.minimax.com' }
+    ]) +
+    '<div class="qaq-chat-set-row-wrap">' +
+        chatTextInput('qaq-chs-o-voice-key', '语音 API Key', c.voiceKey || '', '留空则借用聊天 Key') +
+        chatTextInput('qaq-chs-o-voice-model', '语音模型', c.voiceModel || 'speech-02-hd', '如 speech-02-hd') +
+    '</div>' +
+    chatTextInput('qaq-chs-o-voice-group', 'Group ID', c.voiceGroup || '', '旧版账号必填，新版留空') +
+    chatClickSelect('qaq-chs-o-voice-model-sel', '语音模型快选', c.voiceModel || 'speech-02-hd', [
+        { value: 'speech-02-hd', label: 'speech-02-hd (推荐)' },
+        { value: 'speech-02-turbo', label: 'speech-02-turbo' },
+        { value: 'speech-2.8-hd', label: 'speech-2.8-hd' },
+        { value: 'speech-2.8-turbo', label: 'speech-2.8-turbo' },
+        { value: 'speech-01-turbo', label: 'speech-01-turbo' }
+    ]) +
+    chatNumberInput('qaq-chs-o-voice-speed', '语速', c.voiceSpeed == null ? 0.9 : c.voiceSpeed, 0.5, 2, 0.1) +
+'</div>' +
 
             '<div class="qaq-chat-sub-block">' +
                 '<div class="qaq-chat-set-lbl">生图 API 设置，可接入 OpenAI 生图模型</div>' +
@@ -1819,8 +2210,12 @@ function renderSettingsPage() {
                     chatTextInput('qaq-chs-o-image-key', '生图 API Key', c.imageKey || '', '专属生图 Key') +
                     chatTextInput('qaq-chs-o-image-model', '生图模型', c.imageModel || '', '例如 gpt-image-1') +
                 '</div>' +
-                chatTextarea('qaq-chs-o-image-prompt', '默认生图提示词', c.imagePrompt || '', '例如：清新、自然、电影感', 78) +
-                chatTextarea('qaq-chs-o-image-negative', '反向提示词', c.imageNegative || '', '例如：模糊、低质量、畸形', 70) +
+                '<div style="display:flex;flex-direction:column;justify-content:flex-end;">' +
+        '<button class="qaq-chat-mini-btn" id="qaq-chs-o-fetch-models-btn" style="height:38px;">拉取</button>' +
+    '</div>' +
+'</div>' +
+                chatTextarea('qaq-chs-o-image-prompt', '默认生图提示词', defaultImagePrompt, '描述画面风格和内容', 78) +
+chatTextarea('qaq-chs-o-image-negative', '反向提示词', defaultImageNegative, '排除不想要的元素', 70) +
             '</div>' +
         '</div>';
 
@@ -1852,17 +2247,18 @@ function renderSettingsPage() {
                 '</div>' +
             '</div>' +
         '</div>';
-
+var defaultGlobalCss = c.uiGlobalCss || '.qaq-chat-msg-list {\n  letter-spacing: 0.3px;\n  line-height: 1.85;\n}';
+var defaultBubbleCss = c.uiBubbleCss || 'padding: 12px 14px;\nbox-shadow: 0 2px 8px rgba(0,0,0,0.06);\nborder: 1px solid rgba(0,0,0,0.04);';
     var uiHtml =
         '<div class="qaq-chat-set-grid">' +
             '<div class="qaq-chat-sub-block">' +
                 '<div class="qaq-chat-set-row-wrap">' +
-                    chatSelect('qaq-chs-u-theme', '主题颜色', c.uiTheme || getGlobalTheme(), [
+                    chatClickSelect('qaq-chs-u-theme', '主题颜色', c.uiTheme || getGlobalTheme(), [
                         { value: 'default', label: '暖阳' },
                         { value: 'cool', label: '冷雾' },
                         { value: 'dark', label: '夜幕' }
                     ]) +
-                    chatSelect('qaq-chs-u-avatar-show', '头像显示设置', c.uiAvatarShow || 'all', [
+                    chatClickSelect('qaq-chs-u-avatar-show', '头像显示设置', c.uiAvatarShow || 'all', [
                         { value: 'all', label: '头像全显示' },
                         { value: 'hide_all', label: '头像全隐藏' },
                         { value: 'first', label: '首条头像' },
@@ -1878,7 +2274,7 @@ function renderSettingsPage() {
             '<div class="qaq-chat-sub-block">' +
                 chatToggleRow('qaq-chs-u-show-time-row', '显示时间戳', !!c.uiShowTime) +
                 '<div class="qaq-chat-set-row-wrap">' +
-                    chatSelect('qaq-chs-u-time-pos', '时间戳位置', c.uiTimePos || 'top', [
+                    chatClickSelect('qaq-chs-u-time-pos', '时间戳位置', c.uiTimePos || 'top', [
                         { value: 'top', label: '气泡上方' },
                         { value: 'bottom', label: '气泡下方' },
                         { value: 'bubble_inner', label: '气泡内侧' },
@@ -1886,7 +2282,7 @@ function renderSettingsPage() {
                         { value: 'avatar_top', label: '头像上方' },
                         { value: 'avatar_bottom', label: '头像下方' }
                     ]) +
-                    chatSelect('qaq-chs-u-time-fmt', '时间戳格式', c.uiTimeFmt || 'HH:mm', [
+                    chatClickSelect('qaq-chs-u-time-fmt', '时间戳格式', c.uiTimeFmt || 'HH:mm', [
                         { value: 'HH:mm', label: 'HH:mm' },
                         { value: 'HH:mm:ss', label: 'HH:mm:ss' },
                         { value: 'MM-DD HH:mm', label: 'MM-DD HH:mm' },
@@ -1899,7 +2295,7 @@ function renderSettingsPage() {
                 chatToggleRow('qaq-chs-u-hide-reply-row', '隐藏回复按钮', !!c.uiHideReplyBtn, '输入框自动铺满至回复按钮位置') +
                 chatToggleRow('qaq-chs-u-hide-menu-row', '隐藏菜单栏按钮', !!c.uiHideMenuBtn, '输入框自动铺满至菜单按钮位置') +
                 '<div id="qaq-chs-u-menu-pos-wrap">' +
-                    chatSelect('qaq-chs-u-menu-pos', '菜单出现位置', c.uiMenuPos || 'top', [
+                    chatClickSelect('qaq-chs-u-menu-pos', '菜单出现位置', c.uiMenuPos || 'top', [
                         { value: 'top', label: '输入底栏上方' },
                         { value: 'bottom', label: '输入底栏下方' },
                         { value: 'inside', label: '收在菜单栏里' }
@@ -1928,7 +2324,7 @@ function renderSettingsPage() {
             '</div>' +
 
             '<div class="qaq-chat-sub-block">' +
-                chatTextarea('qaq-chs-u-global-css', '全局 CSS', c.uiGlobalCss || '', '会作用于聊天页整体', 96) +
+                chatTextarea('qaq-chs-u-global-css', '全局 CSS', defaultGlobalCss, '作用于聊天页整体，例如 letter-spacing、line-height', 96) +
                 '<div class="qaq-chat-set-row">' +
                     '<button class="qaq-chat-ghost-btn" id="qaq-chs-u-global-css-save">保存预设</button>' +
                     '<button class="qaq-chat-ghost-btn" id="qaq-chs-u-global-css-import">导入预设</button>' +
@@ -1937,7 +2333,7 @@ function renderSettingsPage() {
             '</div>' +
 
             '<div class="qaq-chat-sub-block">' +
-                chatTextarea('qaq-chs-u-bubble-css', '气泡 CSS', c.uiBubbleCss || '', '仅作用于聊天气泡，支持实时预览', 96) +
+                chatTextarea('qaq-chs-u-bubble-css', '气泡 CSS', defaultBubbleCss, '仅作用于气泡，支持实时预览', 96) +
                 '<div class="qaq-chat-set-row">' +
                     '<button class="qaq-chat-ghost-btn" id="qaq-chs-u-bubble-css-save">保存预设</button>' +
                     '<button class="qaq-chat-ghost-btn" id="qaq-chs-u-bubble-css-import">导入预设</button>' +
@@ -1954,16 +2350,20 @@ function renderSettingsPage() {
             '<button class="qaq-chat-action-btn qaq-danger" id="qaq-chat-history-clear">清除聊天记录</button>' +
         '</div>';
 
-    var otherOpsHtml =
-        '<div class="qaq-chat-set-grid">' +
-            '<div class="qaq-chat-sub-block">' +
-                chatToggleRow('qaq-chs-x-dnd-row', '角色勿扰', !!c.dnd) +
-                chatTextInput('qaq-chs-x-dnd-time', '勿扰时间', c.dndTime || '', '格式如 23:00-07:00') +
-            '</div>' +
-            '<button class="qaq-chat-action-btn" id="qaq-chat-block-contact-btn">' + (c.blocked ? '取消拉黑角色' : '拉黑角色') + '</button>' +
-            '<button class="qaq-chat-action-btn qaq-danger" id="qaq-chat-delete-contact-btn">删除角色</button>' +
-            '<button class="qaq-chat-action-btn" id="qaq-chat-recover-contact-btn">加回角色</button>' +
-        '</div>';
+    var wasDeletedByAI = (s.deletedPool || []).some(function (x) {
+    return x.id === c.id && x.reason === 'ai_initiated';
+});
+
+var otherOpsHtml =
+    '<div class="qaq-chat-set-grid">' +
+        '<div class="qaq-chat-sub-block">' +
+            chatToggleRow('qaq-chs-x-dnd-row', '角色勿扰', !!c.dnd) +
+            chatTextInput('qaq-chs-x-dnd-time', '勿扰时间', c.dndTime || '', '格式如 23:00-07:00') +
+        '</div>' +
+        '<button class="qaq-chat-action-btn" id="qaq-chat-block-contact-btn">' + (c.blocked ? '取消拉黑角色' : '拉黑角色') + '</button>' +
+        '<button class="qaq-chat-action-btn qaq-danger" id="qaq-chat-delete-contact-btn">删除角色</button>' +
+        '<button class="qaq-chat-action-btn" id="qaq-chat-recover-contact-btn"' + (wasDeletedByAI ? '' : ' style="display:none;"') + '>加回角色</button>' +
+    '</div>';
 
     body.innerHTML =
         chatFoldCard('qaq-chat-fold-other', '对方设置', '角色信息与行为控制', 'user-round', otherHtml, true) +
@@ -2110,7 +2510,106 @@ function renderSettingsPage() {
     };
 
     qs('qaq-chat-settings-save-all').onclick = saveSettingsAll;
+    
+    bindClickSelect('qaq-chs-o-worldbook', '绑定世界书', worldBookOptions);
+bindClickSelect('qaq-chs-o-translate-mode', '翻译显示模式', [
+    { value: 'in_top', label: '气泡内上方' },
+    { value: 'in_bottom', label: '气泡内下方' },
+    { value: 'out_top', label: '气泡外上方' },
+    { value: 'out_bottom', label: '气泡外下方' },
+    { value: 'hide', label: '隐藏翻译' }
+]);
+bindClickSelect('qaq-chs-o-voice-url', '服务节点', [
+    { value: 'https://api.minimax.chat/v1/t2a_v2', label: '国内节点 api.minimax.chat' },
+    { value: 'https://api.minimaxi.chat/v1/t2a_v2', label: '国际节点 api.minimaxi.chat' },
+    { value: 'https://api.minimax.com/v1/t2a_v2', label: '国际节点 api.minimax.com' }
+]);
+bindClickSelect('qaq-chs-u-theme', '主题颜色', [
+    { value: 'default', label: '暖阳' },
+    { value: 'cool', label: '冷雾' },
+    { value: 'dark', label: '夜幕' }
+], function () { renderBubbleCssPreview(); });
+bindClickSelect('qaq-chs-u-avatar-show', '头像显示设置', [
+    { value: 'all', label: '头像全显示' },
+    { value: 'hide_all', label: '头像全隐藏' },
+    { value: 'first', label: '首条头像' },
+    { value: 'last', label: '末条头像' }
+], function () { renderBubbleCssPreview(); });
+bindClickSelect('qaq-chs-u-time-pos', '时间戳位置', [
+    { value: 'top', label: '气泡上方' },
+    { value: 'bottom', label: '气泡下方' },
+    { value: 'bubble_inner', label: '气泡内侧' },
+    { value: 'bubble_outer', label: '气泡外侧' },
+    { value: 'avatar_top', label: '头像上方' },
+    { value: 'avatar_bottom', label: '头像下方' }
+], function () { renderBubbleCssPreview(); });
+bindClickSelect('qaq-chs-u-time-fmt', '时间戳格式', [
+    { value: 'HH:mm', label: 'HH:mm' },
+    { value: 'HH:mm:ss', label: 'HH:mm:ss' },
+    { value: 'MM-DD HH:mm', label: 'MM-DD HH:mm' },
+    { value: 'YYYY-MM-DD HH:mm', label: 'YYYY-MM-DD HH:mm' }
+], function () { renderBubbleCssPreview(); });
+bindClickSelect('qaq-chs-u-menu-pos', '菜单出现位置', [
+    { value: 'top', label: '输入底栏上方' },
+    { value: 'bottom', label: '输入底栏下方' },
+    { value: 'inside', label: '收在菜单栏里' }
+]);
+bindClickSelect('qaq-chs-o-voice-model-sel', 'MiniMax 语音模型', [
+    { value: 'speech-02-hd', label: 'speech-02-hd (推荐)' },
+    { value: 'speech-02-turbo', label: 'speech-02-turbo' },
+    { value: 'speech-2.8-hd', label: 'speech-2.8-hd' },
+    { value: 'speech-2.8-turbo', label: 'speech-2.8-turbo' },
+    { value: 'speech-01-turbo', label: 'speech-01-turbo' }
+]);
 
+qs('qaq-chs-o-fetch-models-btn').onclick = async function () {
+    var url = (qs('qaq-chs-o-api-url').value || '').trim();
+    var key = (qs('qaq-chs-o-api-key').value || '').trim();
+    if (!url) {
+        var g = JSON.parse(localStorage.getItem('qaq-api-config') || '{}');
+        url = g.url || '';
+        key = key || g.key || '';
+    }
+    if (!url || !key) {
+        toast('请先填写 API URL 和 Key');
+        return;
+    }
+    toast('正在拉取模型列表');
+    try {
+        var resp = await fetch(normalizeUrl(url) + '/models', {
+            headers: { 'Authorization': 'Bearer ' + key }
+        });
+        var data = await resp.json();
+        var models = (data.data || []).map(function (m) {
+            return { value: m.id, label: m.id };
+        });
+        if (!models.length) {
+            toast('未获取到模型');
+            return;
+        }
+        openModal('选择模型',
+            '<div class="qaq-custom-select-list" style="max-height:50vh;overflow-y:auto;">' +
+            models.map(function (m) {
+                return '<div class="qaq-custom-select-option" data-qaq-model-pick="' + esc(m.value) + '"><span>' + esc(m.label) + '</span></div>';
+            }).join('') +
+            '</div>',
+            {
+                hideBtns: true,
+                afterRender: function () {
+                    document.querySelectorAll('[data-qaq-model-pick]').forEach(function (el) {
+                        el.onclick = function () {
+                            qs('qaq-chs-o-api-model').value = this.getAttribute('data-qaq-model-pick');
+                            window.qaqCloseModal && window.qaqCloseModal();
+                            toast('已选择模型');
+                        };
+                    });
+                }
+            }
+        );
+    } catch (e) {
+        toast('拉取失败: ' + (e.message || '网络错误'));
+    }
+};
     syncConditionalBlocks();
     renderBubbleCssPreview();
 }
@@ -2127,14 +2626,14 @@ function saveSettingsAll() {
     c.realName = (qs('qaq-chs-o-real').value || '').trim();
     c.persona = (qs('qaq-chs-o-persona').value || '').trim();
 
-    c.worldBookId = (qs('qaq-chs-o-worldbook').value || '').trim();
+    c.worldBookId = getClickSelectValue('qaq-chs-o-worldbook') || '';
     c.worldBookName = '';
     var wb = getWorldBookOptions().find(function (x) { return x.value === c.worldBookId; });
     if (wb) c.worldBookName = wb.label === '不绑定世界书' ? '' : wb.label;
 
     c.activeSticker = getToggleValue('qaq-chs-o-sticker-row');
     c.translateEnabled = getToggleValue('qaq-chs-o-translate-row');
-    c.translateMode = (qs('qaq-chs-o-translate-mode').value || 'in_bottom');
+    c.translateMode = getClickSelectValue('qaq-chs-o-translate-mode') || 'in_bottom';
 
     c.memMax = parseInt(qs('qaq-chs-o-mem-max').value || '20', 10) || 20;
     c.bindGroupMemory = getToggleValue('qaq-chs-o-bind-group-row');
@@ -2157,15 +2656,17 @@ function saveSettingsAll() {
     c.apiModel = (qs('qaq-chs-o-api-model').value || '').trim();
 
     if (getToggleValue('qaq-chs-o-mm-voice-row')) {
-        c.voiceUrl = (qs('qaq-chs-o-voice-url').value || '').trim();
+    c.voiceUrl = getClickSelectValue('qaq-chs-o-voice-url') || '';
+    c.voiceModel = getClickSelectValue('qaq-chs-o-voice-model-sel') || (qs('qaq-chs-o-voice-model').value || 'speech-02-hd').trim();
         c.voiceKey = (qs('qaq-chs-o-voice-key').value || '').trim();
-        c.voiceModel = (qs('qaq-chs-o-voice-model').value || 'speech-02-hd').trim();
         c.voiceSpeed = safeNumber(qs('qaq-chs-o-voice-speed').value, 0.9);
+        c.voiceGroup = (qs('qaq-chs-o-voice-group').value || '').trim();
     } else {
         c.voiceUrl = '';
         c.voiceKey = '';
         c.voiceModel = 'speech-02-hd';
         c.voiceSpeed = 0.9;
+        c.voiceGroup = '';
     }
 
     c.imageUrl = (qs('qaq-chs-o-image-url').value || '').trim();
@@ -2179,16 +2680,16 @@ function saveSettingsAll() {
     me.realName = (qs('qaq-chs-m-real').value || '').trim();
     me.persona = (qs('qaq-chs-m-persona').value || '').trim();
 
-    c.uiTheme = (qs('qaq-chs-u-theme').value || getGlobalTheme());
+    c.uiTheme = getClickSelectValue('qaq-chs-u-theme') || getGlobalTheme();
     c.uiBubbleMy = (qs('qaq-chs-u-bubble-my').value || getBubbleThemeDefaults(c.uiTheme).my).trim();
     c.uiBubbleOther = (qs('qaq-chs-u-bubble-other').value || getBubbleThemeDefaults(c.uiTheme).other).trim();
-    c.uiAvatarShow = (qs('qaq-chs-u-avatar-show').value || 'all');
+    c.uiAvatarShow = getClickSelectValue('qaq-chs-u-avatar-show') || 'all';
     c.uiShowTime = getToggleValue('qaq-chs-u-show-time-row');
-    c.uiTimePos = (qs('qaq-chs-u-time-pos').value || 'top');
-    c.uiTimeFmt = (qs('qaq-chs-u-time-fmt').value || 'HH:mm');
+    c.uiTimePos = getClickSelectValue('qaq-chs-u-time-pos') || 'top';
+c.uiTimeFmt = getClickSelectValue('qaq-chs-u-time-fmt') || 'HH:mm';
     c.uiHideReplyBtn = getToggleValue('qaq-chs-u-hide-reply-row');
     c.uiHideMenuBtn = getToggleValue('qaq-chs-u-hide-menu-row');
-    c.uiMenuPos = (qs('qaq-chs-u-menu-pos').value || 'top');
+    c.uiMenuPos = getClickSelectValue('qaq-chs-u-menu-pos') || 'top';
     c.uiAvatarRadius = safeNumber(qs('qaq-chs-u-avatar-radius').value, 10);
     c.uiBubbleRadius = safeNumber(qs('qaq-chs-u-bubble-radius').value, 16);
     c.uiFontUrl = (qs('qaq-chs-u-font-url').value || '').trim();
@@ -2208,6 +2709,7 @@ function saveSettingsAll() {
     renderMainBody();
     renderChatWindow();
     toast('设置已保存');
+    syncAllAutoMessageTimers();
 }
 
 function importChatHistory() {
@@ -2344,6 +2846,61 @@ function checkDndRelease() {
     });
     if (changed) setStore(s);
 }
+var _autoMsgTimers = {};
+
+function startAutoMessageTimer(cid) {
+    stopAutoMessageTimer(cid);
+    var s = getStore();
+    var c = s.contacts[cid];
+    if (!c || !c.allowAutoMessage || c.blocked || c.deleted) return;
+    var gap = Math.max(1, parseInt(c.autoMessageGap, 10) || 60) * 60 * 1000;
+
+    _autoMsgTimers[cid] = setInterval(function () {
+        var latest = getStore();
+        var cc = latest.contacts[cid];
+        if (!cc || !cc.allowAutoMessage || cc.blocked || cc.deleted) {
+            stopAutoMessageTimer(cid);
+            return;
+        }
+        if (isInDndRange(cc)) return;
+
+        var msgs = getMessages(cid);
+        var last = msgs[msgs.length - 1];
+        if (last && !last.isMe && (Date.now() - last.time) < gap) return;
+
+        if (activeContactId === cid) {
+            receiveAI();
+        } else {
+            var tempActive = activeContactId;
+            activeContactId = cid;
+            receiveAI().then(function () {
+                activeContactId = tempActive;
+                renderMainBody();
+            }).catch(function () {
+                activeContactId = tempActive;
+            });
+        }
+    }, gap);
+}
+
+function stopAutoMessageTimer(cid) {
+    if (_autoMsgTimers[cid]) {
+        clearInterval(_autoMsgTimers[cid]);
+        delete _autoMsgTimers[cid];
+    }
+}
+
+function syncAllAutoMessageTimers() {
+    var s = getStore();
+    Object.keys(s.contacts || {}).forEach(function (cid) {
+        var c = s.contacts[cid];
+        if (c && c.allowAutoMessage && !c.blocked && !c.deleted) {
+            startAutoMessageTimer(cid);
+        } else {
+            stopAutoMessageTimer(cid);
+        }
+    });
+}
 
 function init() {
     ensureDemo();
@@ -2352,6 +2909,7 @@ function init() {
     renderMainBody();
     renderChatExtMenu();
     checkDndRelease();
+    syncAllAutoMessageTimers();
 }
 window.qaqOpenChatPage = function () {
     ensureDemo();

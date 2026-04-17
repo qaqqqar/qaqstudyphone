@@ -603,18 +603,18 @@ function renderBubbleCssPreview() {
             : ('4px ' + bubbleRadius + 'px ' + bubbleRadius + 'px ' + bubbleRadius + 'px');
 
         return '' +
-        '<div class="qaq-chat-preview-msg' + (isMe ? ' qaq-me' : '') + '">' +
-            (!isMe && showAvatar ? '<div class="qaq-chat-preview-avatar" style="border-radius:' + avatarRadius + 'px;"></div>' : '') +
-            '<div style="display:flex;flex-direction:column;gap:4px;align-items:' + (isMe ? 'flex-end' : 'flex-start') + ';">' +
-                top +
-                '<div class="qaq-chat-preview-bubble qaq-chat-preview-bubble-live" style="background:' + (isMe ? myColor : otColor) + ';color:' + fontColor + ';font-size:' + fontSize + ';border-radius:' + radiusStyle + ';">' +
-                    (trans ? '<div style="font-size:12px;color:rgba(0,0,0,.55);margin-bottom:4px;">' + esc(trans) + '</div>' : '') +
-                    esc(text) + inner +
-                '</div>' +
-                bottom +
-            '</div>' +
-            (isMe && showAvatar ? '<div class="qaq-chat-preview-avatar" style="border-radius:' + avatarRadius + 'px;"></div>' : '') +
-        '</div>';
+(top ? '<div style="display:flex; justify-content:' + (isMe ? 'flex-end' : 'flex-start') + '; padding: 0 40px; margin-bottom:2px;">' + top + '</div>' : '') +
+'<div class="qaq-chat-preview-msg' + (isMe ? ' qaq-me' : '') + '">' +
+    (!isMe && showAvatar ? '<div class="qaq-chat-preview-avatar" style="border-radius:' + avatarRadius + 'px; margin-top:2px;"></div>' : '') +
+    '<div style="display:flex;flex-direction:column;gap:4px;align-items:' + (isMe ? 'flex-end' : 'flex-start') + ';">' +
+        '<div class="qaq-chat-preview-bubble qaq-chat-preview-bubble-live" style="background:' + (isMe ? myColor : otColor) + ';color:' + fontColor + ';font-size:' + fontSize + ';border-radius:' + radiusStyle + ';">' +
+            (trans ? '<div style="font-size:12px;color:rgba(0,0,0,.55);margin-bottom:4px;">' + esc(trans) + '</div>' : '') +
+            esc(text) + inner +
+        '</div>' +
+    '</div>' +
+    (isMe && showAvatar ? '<div class="qaq-chat-preview-avatar" style="border-radius:' + avatarRadius + 'px; margin-top:2px;"></div>' : '') +
+'</div>' +
+(bottom ? '<div style="display:flex; justify-content:' + (isMe ? 'flex-end' : 'flex-start') + '; padding: 0 40px; margin-top:2px;">' + bottom + '</div>' : '');
     }
 
     var showAvatar = avatarShow !== 'hide_all';
@@ -1989,17 +1989,20 @@ if (transMode === 'in_bottom' && transText) bubbleInner += '<div class="qaq-chat
         var leftAvatar = isMe ? '' : avatarHtml;
 var rightAvatar = isMe ? avatarHtml : '';
 
-return '<div class="qaq-chat-row ' + (isMe ? 'qaq-row-me' : 'qaq-row-other') + '">' +
-    leftAvatar +
-    '<div class="qaq-chat-bubble-wrap' + ((transMode === 'out_top' || transMode === 'out_bottom') ? ' qaq-has-outer-tr' : '') + '">' +
-        topTime +
-        outerTop +
-        '<div class="qaq-chat-bubble" style="' + buildBubbleTailStyle(isMe, cfg.uiBubbleRadius) + 'font-size:' + (cfg.uiFontSize || '14px') + ';color:' + (cfg.uiFontColor || '#333333') + ';">' + bubbleInner + innerTime + '</div>' +
-        outerBottom +
-        bottomTime +
-    '</div>' +
-    rightAvatar +
-'</div>';
+var timeRowTop = topTime ? '<div style="display:flex; align-items:center; justify-content:' + (isMe ? 'flex-end' : 'flex-start') + '; padding: 0 54px; margin-bottom: 4px;">' + topTime + '</div>' : '';
+var timeRowBot = bottomTime ? '<div style="display:flex; align-items:center; justify-content:' + (isMe ? 'flex-end' : 'flex-start') + '; padding: 0 54px; margin-top: 4px;">' + bottomTime + '</div>' : '';
+
+return timeRowTop + 
+    '<div class="qaq-chat-row ' + (isMe ? 'qaq-row-me' : 'qaq-row-other') + '">' +
+        leftAvatar +
+        '<div class="qaq-chat-bubble-wrap' + ((transMode === 'out_top' || transMode === 'out_bottom') ? ' qaq-has-outer-tr' : '') + '">' +
+            outerTop +
+            '<div class="qaq-chat-bubble" style="' + buildBubbleTailStyle(isMe, cfg.uiBubbleRadius) + 'font-size:' + (cfg.uiFontSize || '14px') + ';color:' + (cfg.uiFontColor || '#333333') + ';">' + bubbleInner + innerTime + '</div>' +
+            outerBottom +
+        '</div>' +
+        rightAvatar +
+    '</div>' + 
+    timeRowBot;
     }).join('');
     if (!arr.length) {
         html = '<div style="text-align:center;color:#aaa;padding:40px 20px;font-size:13px;">开始聊天吧</div>';
@@ -2524,7 +2527,7 @@ var personaPresetStore = getChatSettingPresets();
 var defaultImagePrompt = c.imagePrompt || 'anime style, soft lighting, warm color palette, detailed background, cinematic composition, high quality illustration';
 var defaultImageNegative = c.imageNegative || 'blurry, low quality, deformed, ugly, watermark, text, signature, extra limbs, bad anatomy';
 var defaultGlobalCss = c.uiGlobalCss || '.qaq-chat-msg-list {\n  letter-spacing: 0.3px;\n  line-height: 1.85;\n}';
-var defaultBubbleCss = c.uiBubbleCss || 'padding: 12px 14px;\nbox-shadow: 0 2px 8px rgba(0,0,0,0.06);\nborder: 1px solid rgba(0,0,0,0.04);';
+var defaultBubbleCss = c.uiBubbleCss || 'padding: 8px 12px;\nbox-shadow: 0 1px 4px rgba(0,0,0,0.06);\nborder: 1px solid rgba(0,0,0,0.04);';
     var personaPresetStore = getChatSettingPresets();
 
     var otherHtml =

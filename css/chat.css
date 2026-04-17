@@ -1329,7 +1329,8 @@
 }
 
 .qaq-row-me {
-    flex-direction: row-reverse !important;
+    justify-content: flex-end !important;
+    flex-direction: row !important;
 }
 
 .qaq-row-other {

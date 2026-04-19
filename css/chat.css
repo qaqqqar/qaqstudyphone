@@ -1384,3 +1384,125 @@
     margin: 0;
     padding: 0;
 }
+/* =========================================================
+   聊天窗口顶栏新布局
+   ========================================================= */
+
+.qaq-chat-win-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.qaq-chat-win-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: #ececf0;
+}
+
+.qaq-chat-win-meta {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+}
+
+.qaq-chat-win-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #333;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.qaq-chat-win-sign {
+    font-size: 11px;
+    color: #999;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#qaq-chat-win-status-btn,
+#qaq-chat-win-set-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+#qaq-chat-win-status-icon,
+#qaq-chat-win-set-icon,
+#qaq-chat-toggle-menu-icon,
+#qaq-chat-recv-icon,
+#qaq-chat-send-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+}
+
+#qaq-chat-toggle-menu-icon svg,
+#qaq-chat-recv-icon svg,
+#qaq-chat-send-icon svg,
+#qaq-chat-win-status-icon svg,
+#qaq-chat-win-set-icon svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+}
+
+/* 输入区图标按钮 */
+.qaq-chat-circle-btn,
+.qaq-chat-recv-ai-btn,
+.qaq-chat-send-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qaq-chat-recv-ai-btn,
+.qaq-chat-send-btn {
+    min-width: 44px;
+    padding: 0 12px;
+}
+
+.qaq-chat-recv-ai-btn span,
+.qaq-chat-send-btn span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 夜幕 */
+.qaq-theme-dark .qaq-chat-win-name {
+    color: #e0e0e0;
+}
+
+.qaq-theme-dark .qaq-chat-win-sign {
+    color: #888;
+}
+
+.qaq-theme-dark .qaq-chat-win-avatar {
+    background: #333;
+}
+
+/* 冷雾 */
+.qaq-theme-cool .qaq-chat-win-name {
+    color: #222;
+}
+
+.qaq-theme-cool .qaq-chat-win-sign {
+    color: #7d8794;
+}

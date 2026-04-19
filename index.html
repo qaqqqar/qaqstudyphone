@@ -1593,14 +1593,26 @@
 
 <!-- ===== 聊天窗口页 ===== -->
 <div class="qaq-chat-window-page" id="qaq-chat-window-page">
-    <div class="qaq-chat-header">
+    <div class="qaq-chat-header qaq-chat-win-header">
         <div class="qaq-back-btn" id="qaq-chat-win-back">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><polyline points="15,18 9,12 15,6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
+                <polyline points="15,18 9,12 15,6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
         </div>
-        <div class="qaq-settings-title" id="qaq-chat-win-title">聊天中</div>
-        <div class="qaq-chat-add-btn" id="qaq-chat-win-set-btn">
-            <!-- 改为三横菜单图标 -->
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+
+        <img class="qaq-chat-win-avatar" id="qaq-chat-win-avatar" src="" alt="avatar">
+
+        <div class="qaq-chat-win-meta">
+            <div class="qaq-chat-win-name" id="qaq-chat-win-title">聊天中</div>
+            <div class="qaq-chat-win-sign" id="qaq-chat-win-sign">这个人很神秘</div>
+        </div>
+
+        <div class="qaq-chat-add-btn" id="qaq-chat-win-status-btn" title="状态">
+            <span id="qaq-chat-win-status-icon"></span>
+        </div>
+
+        <div class="qaq-chat-add-btn" id="qaq-chat-win-set-btn" title="设置">
+            <span id="qaq-chat-win-set-icon"></span>
         </div>
     </div>
     
@@ -1611,13 +1623,17 @@
     <div id="qaq-chat-block-tip" style="display:none;text-align:center;font-size:11px;color:#999;padding:8px 12px;background:rgba(0,0,0,0.02);"></div>
     <div class="qaq-chat-ext-menu" id="qaq-chat-ext-menu" style="display:none;"></div>
     <div class="qaq-chat-input-row" id="qaq-chat-input-row">
-        <button class="qaq-chat-circle-btn" id="qaq-chat-toggle-menu">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-        </button>
-        <textarea class="qaq-chat-input-box" id="qaq-chat-input-box" rows="1"></textarea>
-        <button class="qaq-chat-recv-ai-btn" id="qaq-chat-recv-ai-btn">接收</button>
-        <button class="qaq-chat-send-btn" id="qaq-chat-send-btn">发送</button>
-    </div>
+    <button class="qaq-chat-circle-btn" id="qaq-chat-toggle-menu" title="更多">
+        <span id="qaq-chat-toggle-menu-icon"></span>
+    </button>
+    <textarea class="qaq-chat-input-box" id="qaq-chat-input-box" rows="1"></textarea>
+    <button class="qaq-chat-recv-ai-btn" id="qaq-chat-recv-ai-btn" title="接收回复">
+        <span id="qaq-chat-recv-icon"></span>
+    </button>
+    <button class="qaq-chat-send-btn" id="qaq-chat-send-btn" title="发送消息">
+        <span id="qaq-chat-send-icon"></span>
+    </button>
+</div>
 </div>
 </div>
 

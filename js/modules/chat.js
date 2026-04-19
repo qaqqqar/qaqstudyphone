@@ -1907,10 +1907,16 @@ function renderChatWindow() {
         var statusIconEl = qs('qaq-chat-win-status-icon');
         var setIconEl = qs('qaq-chat-win-set-icon');
 
-        if (titleEl) titleEl.textContent = getDisplayName(c);
-        if (signEl) signEl.textContent = getDisplaySignature(c);
+        // ★ 修复：显示备注优先，否则显示昵称
+        if (titleEl) titleEl.textContent = c.remark || c.nickname || '聊天';
+        
+        // ★ 修复：显示个性签名
+        if (signEl) signEl.textContent = c.signature || '这个人很神秘';
+        
+        // ★ 修复：头像自动获取
         if (avatarEl) avatarEl.src = c.avatar || getDefaultAvatar();
 
+        // ★ 修复：状态图标
         if (statusIconEl) {
             statusIconEl.innerHTML = c.blocked
                 ? icon('shield-x', 18)
@@ -1919,8 +1925,9 @@ function renderChatWindow() {
                     : icon('circle-dot', 18));
         }
 
+        // ★ 修复：设置图标
         if (setIconEl) {
-            setIconEl.innerHTML = icon('menu', 20);
+            setIconEl.innerHTML = icon('settings', 18);
         }
 
         renderChatFriendTip();
@@ -1928,7 +1935,20 @@ function renderChatWindow() {
         applyChatBubbleTheme();
         renderChatInputArea();
         renderChatExtMenu();
-        initChatWindowIcons();
+        
+        // ★ 修复：底部输入栏图标
+        var menuIcon = qs('qaq-chat-toggle-menu-icon');
+        var recvIcon = qs('qaq-chat-recv-icon');
+        var sendIcon = qs('qaq-chat-send-icon');
+
+        if (menuIcon) menuIcon.innerHTML = icon('plus', 18);
+        if (recvIcon) recvIcon.innerHTML = icon('sparkles', 18);
+        if (sendIcon) sendIcon.innerHTML = icon('send-horizontal', 18);
+        
+        // ★ 刷新 lucide 图标
+        if (window.lucide && window.lucide.createIcons) {
+            window.lucide.createIcons();
+        }
     });
 }
 function initChatWindowIcons() {

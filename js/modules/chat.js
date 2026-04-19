@@ -110,6 +110,8 @@ function createDefaultStore() {
                 remark: '外语陪练员 Alice',
                 realName: '',
                 persona: '开朗、耐心、自然、真实的人类外语陪练',
+                signature: '陪你把外语练成日常习惯',
+signatureAutoChange: true,
                 worldBookId: '',
                 worldBookName: '',
                 activeSticker: false,
@@ -1252,6 +1254,13 @@ function getMergedChatConfig(contact) {
 function getDisplayName(contact) {
     return contact ? (contact.remark || contact.nickname || '未命名联系人') : '聊天';
 }
+function getDisplaySignature(contact) {
+    if (!contact) return '';
+    var s = String(contact.signature || '').trim();
+    if (!s) s = '这个人很神秘';
+    if (s.length > 20) s = s.slice(0, 20) + '…';
+    return s;
+}
 function getMessages(contactId) {
     var s = getStore();
     return s.messages[contactId] || [];
@@ -1891,13 +1900,47 @@ function renderChatWindow() {
     applyPageThemeClass(cfg.uiTheme || getGlobalTheme());
     loadCustomFont(cfg.uiFontUrl || '', function () {
         applyRuntimeStyle(cfg);
-        qs('qaq-chat-win-title').textContent = getDisplayName(c);
+
+        var titleEl = qs('qaq-chat-win-title');
+        var signEl = qs('qaq-chat-win-sign');
+        var avatarEl = qs('qaq-chat-win-avatar');
+        var statusIconEl = qs('qaq-chat-win-status-icon');
+        var setIconEl = qs('qaq-chat-win-set-icon');
+
+        if (titleEl) titleEl.textContent = getDisplayName(c);
+        if (signEl) signEl.textContent = getDisplaySignature(c);
+        if (avatarEl) avatarEl.src = c.avatar || getDefaultAvatar();
+
+        if (statusIconEl) {
+            statusIconEl.innerHTML = c.blocked
+                ? icon('shield-x', 18)
+                : (isInDndRange(c)
+                    ? icon('moon-star', 18)
+                    : icon('circle-dot', 18));
+        }
+
+        if (setIconEl) {
+            setIconEl.innerHTML = icon('menu', 20);
+        }
+
         renderChatFriendTip();
         renderChatMessageList();
         applyChatBubbleTheme();
         renderChatInputArea();
         renderChatExtMenu();
+        initChatWindowIcons();
     });
+}
+function initChatWindowIcons() {
+    var menuIcon = qs('qaq-chat-toggle-menu-icon');
+    var recvIcon = qs('qaq-chat-recv-icon');
+    var sendIcon = qs('qaq-chat-send-icon');
+
+    if (menuIcon) menuIcon.innerHTML = icon('plus', 18);
+    if (recvIcon) recvIcon.innerHTML = icon('sparkles', 18);
+    if (sendIcon) sendIcon.innerHTML = icon('send-horizontal', 18);
+
+    window.lucide && window.lucide.createIcons && window.lucide.createIcons();
 }
 function renderChatFriendTip() {
     var wrap = qs('qaq-chat-friend-request-tip-wrap');
@@ -2056,18 +2099,18 @@ function renderChatExtMenu() {
     var ext = qs('qaq-chat-ext-menu');
     if (!ext) return;
     var items = [
-        { id: 'sticker', text: '表情', icon: 'smile' },
-        { id: 'voice', text: '发送语音', icon: 'mic' },
-        { id: 'photo', text: '照片', icon: 'image' },
-        { id: 'transfer', text: '转账', icon: 'wallet' },
-        { id: 'delivery', text: '快递', icon: 'package' },
-        { id: 'offline', text: '线下', icon: 'handshake' },
-        { id: 'theater', text: '剧场', icon: 'clapperboard' },
-        { id: 'video', text: '视频通话', icon: 'video' },
-        { id: 'voicecall', text: '语音通话', icon: 'phone' },
-        { id: 'location', text: '位置', icon: 'map-pinned' },
-        { id: 'diary', text: '日记', icon: 'book-open' }
-    ];
+    { id: 'sticker', text: '表情', icon: 'smile-plus' },
+    { id: 'voice', text: '语音', icon: 'mic' },
+    { id: 'photo', text: '图片', icon: 'image-plus' },
+    { id: 'transfer', text: '转账', icon: 'wallet-cards' },
+    { id: 'delivery', text: '快递', icon: 'package' },
+    { id: 'offline', text: '线下', icon: 'handshake' },
+    { id: 'theater', text: '剧场', icon: 'clapperboard' },
+    { id: 'video', text: '视频', icon: 'video' },
+    { id: 'voicecall', text: '通话', icon: 'phone-call' },
+    { id: 'location', text: '位置', icon: 'map-pinned' },
+    { id: 'diary', text: '日记', icon: 'notebook-pen' }
+];
     ext.innerHTML = items.map(function (x) {
         return '<div class="qaq-ext-item" data-qaq-ext="' + x.id + '">' +
             '<div class="qaq-ext-icon">' + icon(x.icon, 22) + '</div>' +
@@ -2418,6 +2461,8 @@ function openAddFriendDialog() {
                     remark: (qs('qaq-chat-add-remark').value || '').trim(),
                     realName: (qs('qaq-chat-add-real').value || '').trim(),
                     persona: (qs('qaq-chat-add-persona').value || '').trim() || '自然、真实的聊天对象',
+                    signature: '很高兴认识你',
+signatureAutoChange: true,
                     worldBookId: '',
                     worldBookName: '',
                     activeSticker: false,
@@ -2548,9 +2593,13 @@ var defaultBubbleCss = c.uiBubbleCss || 'padding: 8px 12px;\nbox-shadow: 0 1px 4
             '</div>' +
 
             '<div class="qaq-chat-set-row-wrap">' +
-                chatTextInput('qaq-chs-o-real', '真实名字', c.realName || '', '可选') +
-                chatClickSelect('qaq-chs-o-worldbook', '绑定世界书', c.worldBookId || '', worldBookOptions) +
-            '</div>' +
+    chatTextInput('qaq-chs-o-real', '真实名字', c.realName || '', '可选') +
+    chatClickSelect('qaq-chs-o-worldbook', '绑定世界书', c.worldBookId || '', worldBookOptions) +
+'</div>' +
+
+'<div class="qaq-chat-set-row-wrap">' +
+    chatTextInput('qaq-chs-o-signature', '个性签名', c.signature || '', ) +
+'</div>' +
 
             chatTextarea('qaq-chs-o-persona', '具体人设', c.persona || '', '输入详细角色人设', 92) +
 
@@ -2588,6 +2637,7 @@ var defaultBubbleCss = c.uiBubbleCss || 'padding: 8px 12px;\nbox-shadow: 0 1px 4
                 chatToggleRow('qaq-chs-o-allow-block-row', '允许角色拉黑用户', !!c.allowBlockUser) +
                 chatToggleRow('qaq-chs-o-allow-delete-row', '允许角色删除用户', !!c.allowDeleteUser) +
                 chatToggleRow('qaq-chs-o-auto-diary-row', '允许角色主动生成日记', !!c.allowAutoDiary) +
+                chatToggleRow('qaq-chs-o-sign-auto-row', '允许角色自行更改个签', !!c.signatureAutoChange) +
             '</div>' +
 
             '<div class="qaq-chat-sub-block">' +
@@ -3050,6 +3100,8 @@ function saveSettingsAll() {
     c.remark = (qs('qaq-chs-o-remark').value || '').trim();
     c.realName = (qs('qaq-chs-o-real').value || '').trim();
     c.persona = (qs('qaq-chs-o-persona').value || '').trim();
+    c.signature = (qs('qaq-chs-o-signature').value || '').trim().slice(0, 20);
+c.signatureAutoChange = getToggleValue('qaq-chs-o-sign-auto-row');
 
     c.worldBookId = getClickSelectValue('qaq-chs-o-worldbook') || '';
     c.worldBookName = '';
@@ -3211,6 +3263,16 @@ function bindMainEvents() {
     if (qs('qaq-chat-win-set-btn')) {
         qs('qaq-chat-win-set-btn').onclick = openChatSettings;
     }
+    if (qs('qaq-chat-win-status-btn')) {
+    qs('qaq-chat-win-status-btn').onclick = function () {
+        var c = getActiveContact();
+        if (!c) return;
+        var statusText = c.blocked
+            ? '已拉黑'
+            : (isInDndRange(c) ? '勿扰中' : '在线可聊');
+        toast('当前状态：' + statusText);
+    };
+}
     if (qs('qaq-chat-top-add-btn')) {
         qs('qaq-chat-top-add-btn').onclick = openAddMenu;
     }

@@ -51,17 +51,14 @@ function getGlobalTheme() {
 function icon(name, size) {
     size = size || 18;
     try {
-        if (window.lucide && window.lucide.icons && window.lucide.icons[name]) {
-            return window.lucide.icons[name].toSvg({
+        if (window.feather && window.feather.icons && window.feather.icons[name]) {
+            return window.feather.icons[name].toSvg({
                 width: size,
                 height: size,
-                stroke: 'currentColor',
                 'stroke-width': 1.9
             });
         }
-    } catch (e) {
-        console.warn('[icon] failed:', name, e);
-    }
+    } catch (e) {}
     return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"></circle></svg>';
 }
 function getDefaultAvatar() {

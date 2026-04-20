@@ -2405,8 +2405,14 @@ async function receiveAI() {
         return lines.join('\n');
     }
 
-    // ★ 显示正在输入动画
-    showTypingIndicator();
+    // ★ 调试：看实际请求的地址
+console.log('[receiveAI] apiUrl=', apiUrl);
+console.log('[receiveAI] apiKey=', apiKey ? '有key' : '空');
+console.log('[receiveAI] apiModel=', apiModel);
+console.log('[receiveAI] 完整地址=', normalizeUrl(apiUrl) + '/chat/completions');
+
+// ★ 显示正在输入动画
+showTypingIndicator();
 
     // ★ 禁用发送和接收按钮
     var sendBtn = qs('qaq-chat-send-btn');
@@ -3075,6 +3081,7 @@ bindClickSelect('qaq-chs-u-menu-pos', '菜单出现位置', [
     //★ 存储对方设置的HTML和绑定函数，等懒加载时用
     window._qaqOtherHtml = otherHtml;
     window._qaqBindOtherEvents = function () {
+    console.log('[懒加载] 对方设置事件绑定中...');
         qs('qaq-chs-o-avatar-btn').onclick = function () { chooseImage('qaq-chs-o-avatar'); };
 
         bindToggleRowById('qaq-chs-o-sticker-row', 'qaq-chs-o-sticker-row', syncConditionalBlocks);

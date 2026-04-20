@@ -3047,6 +3047,7 @@ bindClickSelect('qaq-chs-u-menu-pos', '菜单出现位置', [
         bindToggleRowById('qaq-chs-o-allow-block-row', 'qaq-chs-o-allow-block-row', syncConditionalBlocks);
         bindToggleRowById('qaq-chs-o-allow-delete-row', 'qaq-chs-o-allow-delete-row', syncConditionalBlocks);
         bindToggleRowById('qaq-chs-o-auto-diary-row', 'qaq-chs-o-auto-diary-row', syncConditionalBlocks);
+        bindToggleRowById('qaq-chs-o-sign-auto-row', 'qaq-chs-o-sign-auto-row', syncConditionalBlocks);
 
         bindClickSelect('qaq-chs-o-worldbook', '绑定世界书', getWorldBookOptions());
         bindClickSelect('qaq-chs-o-translate-mode', '翻译显示模式', [

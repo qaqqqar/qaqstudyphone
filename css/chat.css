@@ -551,7 +551,8 @@
     height:38px;
     border:none;
     border-radius:50%;
-    background:#3f    display:flex;
+    background:transparent;
+    display:flex;
     align-items:center;
     justify-content:center;
     flex-shrink:0;

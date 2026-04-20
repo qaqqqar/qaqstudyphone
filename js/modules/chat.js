@@ -2102,6 +2102,40 @@ list.querySelectorAll('[data-qaq-voice-idx]').forEach(function (el) {
         list.scrollTop = list.scrollHeight;
     }, 16);
 }
+function showTypingIndicator() {
+    var list = qs('qaq-chat-msg-list');
+    if (!list) return;
+    // 先移除旧的
+    hideTypingIndicator();
+    
+    var c = getActiveContact();
+    var avatar = c ? (c.avatar || getDefaultAvatar()) : getDefaultAvatar();
+    var name = c ? getDisplayName(c) : '对方';
+    var radiusPx = (c && c.uiAvatarRadius != null) ? c.uiAvatarRadius : 10;
+    
+    var div = document.createElement('div');
+    div.id = 'qaq-chat-typing-indicator';
+    div.className = 'qaq-chat-typing-row';
+    div.innerHTML =
+        '<img class="qaq-chat-typing-avatar" src="' + esc(avatar) + '" style="border-radius:' + radiusPx + 'px;">' +
+        '<div class="qaq-chat-typing-bubble">' +
+            '<div class="qaq-chat-typing-dot"></div>' +
+            '<div class="qaq-chat-typing-dot"></div>' +
+            '<div class="qaq-chat-typing-dot"></div>' +
+            '<span class="qaq-chat-typing-text">' + esc(name) + ' 正在输入</span>' +
+        '</div>';
+    list.appendChild(div);
+    
+    // 滚动到底部
+    setTimeout(function () {
+        list.scrollTop = list.scrollHeight;
+    }, 16);
+}
+
+function hideTypingIndicator() {
+    var el = qs('qaq-chat-typing-indicator');
+    if (el) el.remove();
+}
 function renderChatInputArea() {
     var c = getActiveContact();
     if (!c) return;
@@ -2296,14 +2330,14 @@ async function receiveAI() {
     if (!c) return;
 
     if (c.blocked) {
-    toast('该角色已被拉黑');
-    return;
-}
-var latestForDnd = getStore().contacts[activeContactId];
-if (latestForDnd && isInDndRange(latestForDnd)) {
-    toast('当前处于勿扰时间段');
-    return;
-}
+        toast('该角色已被拉黑');
+        return;
+    }
+    var latestForDnd = getStore().contacts[activeContactId];
+    if (latestForDnd && isInDndRange(latestForDnd)) {
+        toast('当前处于勿扰时间段');
+        return;
+    }
 
     var apiUrl = c.apiUrl || (s.globalApi && s.globalApi.url) || '';
     var apiKey = c.apiKey || (s.globalApi && s.globalApi.key) || '';
@@ -2335,31 +2369,30 @@ if (latestForDnd && isInDndRange(latestForDnd)) {
         lines.push('用户昵称：' + (me.nickname || '学生'));
         lines.push('用户人设：' + (me.persona || '正在学习语言的用户'));
         if (c.worldBookId) {
-    try {
-        var allBooks = JSON.parse(localStorage.getItem('qaq-wordbooks') || '[]');
-        var wb = allBooks.find(function (b) { return (b.id || b.bookId) === c.worldBookId; });
-        if (wb) {
-            lines.push('当前绑定世界书：' + (wb.name || wb.title || ''));
-            var entries = wb.words || wb.entries || [];
-            if (entries.length) {
-                lines.push('世界书词条（供角色参考，自然融入对话）：');
-                entries.slice(0, 50).forEach(function (e) {
-                    lines.push('- ' + (e.word || e.key || '') + ': ' + (e.meaning || e.value || e.content || ''));
-                });
-            }
+            try {
+                var allBooks = JSON.parse(localStorage.getItem('qaq-wordbooks') || '[]');
+                var wb = allBooks.find(function (b) { return (b.id || b.bookId) === c.worldBookId; });
+                if (wb) {
+                    lines.push('当前绑定世界书：' + (wb.name || wb.title || ''));
+                    var entries = wb.words || wb.entries || [];
+                    if (entries.length) {
+                        lines.push('世界书词条（供角色参考，自然融入对话）：');
+                        entries.slice(0, 50).forEach(function (e) {
+                            lines.push('- ' + (e.word || e.key || '') + ': ' + (e.meaning || e.value || e.content || ''));
+                        });
+                    }
+                }
+            } catch (e) {}
         }
-    } catch (e) {}
-}
-if (c.bindGroupMemory) lines.push('你可以引用群聊中的共同记忆。');
-if (c.bindVideoMemory) lines.push('你可以引用视频通话中的共同记忆。');
-if (c.bindVoiceMemory) lines.push('你可以引用语音通话中的共同记忆。');
-if (c.bindOfflineMemory) lines.push('你可以引用线下见面的共同记忆。');
-if (c.summaryMemory) lines.push('你会自动总结过往对话要点，保持长期记忆连贯。');
-if (c.allowAutoMessage) lines.push('你可以主动发起话题，不必等用户先说话。');
-if (c.allowAutoDiary) lines.push('你可以在合适时机主动写一篇日记分享给用户，格式为 [diary]日记内容[/diary]。');
-if (c.allowBlockUser) lines.push('如果用户行为恶劣，你有权拉黑用户，在回复末尾加上 [block_user] 标记。');
-if (c.allowDeleteUser) lines.push('如果关系破裂，你有权删除用户，在回复末尾加上 [delete_user] 标记。');
-
+        if (c.bindGroupMemory) lines.push('你可以引用群聊中的共同记忆。');
+        if (c.bindVideoMemory) lines.push('你可以引用视频通话中的共同记忆。');
+        if (c.bindVoiceMemory) lines.push('你可以引用语音通话中的共同记忆。');
+        if (c.bindOfflineMemory) lines.push('你可以引用线下见面的共同记忆。');
+        if (c.summaryMemory) lines.push('你会自动总结过往对话要点，保持长期记忆连贯。');
+        if (c.allowAutoMessage) lines.push('你可以主动发起话题，不必等用户先说话。');
+        if (c.allowAutoDiary) lines.push('你可以在合适时机主动写一篇日记分享给用户，格式为 [diary]日记内容[/diary]。');
+        if (c.allowBlockUser) lines.push('如果用户行为恶劣，你有权拉黑用户，在回复末尾加上 [block_user] 标记。');
+        if (c.allowDeleteUser) lines.push('如果关系破裂，你有权删除用户，在回复末尾加上 [delete_user] 标记。');
         lines.push('要求：');
         lines.push('1. 回复自然，像真实聊天。');
         lines.push('2. 不要自称人工智能、模型、助手。');
@@ -2369,21 +2402,19 @@ if (c.allowDeleteUser) lines.push('如果关系破裂，你有权删除用户，
         } else {
             lines.push('4. 直接输出纯文本，不要 JSON，不要 markdown。');
         }
-        if (c.bindGroupMemory) lines.push('你可以引用群聊中的共同记忆。');
-if (c.bindVideoMemory) lines.push('你可以引用视频通话中的共同记忆。');
-if (c.bindVoiceMemory) lines.push('你可以引用语音通话中的共同记忆。');
-if (c.bindOfflineMemory) lines.push('你可以引用线下见面的共同记忆。');
-if (c.summaryMemory) lines.push('你会自动总结过往对话要点，保持长期记忆连贯。');
-if (c.allowAutoMessage) lines.push('你可以主动发起话题，不必等用户先说话。');
-if (c.allowAutoDiary) lines.push('你可以在合适时机主动写一篇日记分享给用户，格式为 [diary]日记内容[/diary]，日记内容用自然语言书写。');
-if (c.allowBlockUser) lines.push('如果用户行为恶劣，你有权拉黑用户。');
-if (c.allowDeleteUser) lines.push('如果关系破裂，你有权删除用户。');
         return lines.join('\n');
     }
 
-    try {
-        toast('正在接收回复');
+    // ★ 显示正在输入动画
+    showTypingIndicator();
 
+    // ★ 禁用发送和接收按钮
+    var sendBtn = qs('qaq-chat-send-btn');
+    var recvBtn = qs('qaq-chat-recv-ai-btn');
+    if (sendBtn) sendBtn.disabled = true;
+    if (recvBtn) recvBtn.disabled = true;
+
+    try {
         var payload = {
             model: apiModel,
             temperature: 0.8,
@@ -2405,6 +2436,9 @@ if (c.allowDeleteUser) lines.push('如果关系破裂，你有权删除用户。
         var content = ((((data || {}).choices || [])[0] || {}).message || {}).content || '';
         content = String(content || '').trim();
 
+        // ★ 隐藏输入动画
+        hideTypingIndicator();
+
         if (!content) {
             toast('回复为空');
             return;
@@ -2425,15 +2459,15 @@ if (c.allowDeleteUser) lines.push('如果关系破裂，你有权删除用户。
         }
 
         ensureMessageArr(s, activeContactId).push({
-    id: uid('msg'),
-    type: 'text',
-    isMe: false,
-    text: text,
-    translated: translated,
-    time: Date.now()
-});
+            id: uid('msg'),
+            type: 'text',
+            isMe: false,
+            text: text,
+            translated: translated,
+            time: Date.now()
+        });
 
-checkAIActionFromResponse(text, activeContactId);
+        checkAIActionFromResponse(text, activeContactId);
 
         if (window.qaqAddTokens) {
             var tokenGuess = Math.ceil((JSON.stringify(payload).length + content.length) / 4);
@@ -2444,8 +2478,14 @@ checkAIActionFromResponse(text, activeContactId);
         renderChatMessageList();
         renderMainBody();
     } catch (e) {
+        // ★ 出错也隐藏动画
+        hideTypingIndicator();
         console.error('[qaq-chat] AI reply error:', e);
-        toast('请求失败');
+        toast('请求失败: ' + (e.message || '网络错误'));
+    } finally {
+        // ★ 恢复按钮
+        if (sendBtn) sendBtn.disabled = false;
+        if (recvBtn) recvBtn.disabled = false;
     }
 }
     

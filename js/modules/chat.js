@@ -2327,26 +2327,37 @@ if (latestForDnd && isInDndRange(latestForDnd)) {
 async function receiveAI() {
     var s = getStore();
     var c = getActiveContact();
-    if (!c) return;
+    if (!c) { toast('❌ 没有活跃联系人'); return; }
 
-    if (c.blocked) {
-        toast('该角色已被拉黑');
-        return;
-    }
+    if (c.blocked) { toast('该角色已被拉黑'); return; }
     var latestForDnd = getStore().contacts[activeContactId];
-    if (latestForDnd && isInDndRange(latestForDnd)) {
-        toast('当前处于勿扰时间段');
-        return;
-    }
+    if (latestForDnd && isInDndRange(latestForDnd)) { toast('当前处于勿扰时间段'); return; }
 
     var apiUrl = c.apiUrl || (s.globalApi && s.globalApi.url) || '';
     var apiKey = c.apiKey || (s.globalApi && s.globalApi.key) || '';
     var apiModel = c.apiModel || (s.globalApi && s.globalApi.model) || '';
 
+    // ★★★ 调试日志 toast ★★★
+    toast('🔍 URL: ' + (apiUrl || '空'));
+    setTimeout(function () {
+        toast('🔍 Key: ' + (apiKey ? apiKey.slice(0, 8) + '...' : '空'));
+    }, 800);
+    setTimeout(function () {
+        toast('🔍 Model: ' + (apiModel || '空'));
+    }, 1600);
+
     if (!apiUrl || !apiKey || !apiModel) {
-        toast('请先配置专属 API 或全局 API');
+        setTimeout(function () {
+            toast('❌ 缺少配置! URL=' + (apiUrl ? '有' : '无') + ' Key=' + (apiKey ? '有' : '无') + ' Model=' + (apiModel ? '有' : '无'));
+        }, 2400);
         return;
     }
+
+    var fullUrl = normalizeUrl(apiUrl) + '/chat/completions';
+
+    setTimeout(function () {
+        toast('🔍 完整地址: ' + fullUrl);
+    }, 2400);
 
     var cfg = getMergedChatConfig(c);
     var history = getMessages(activeContactId)
@@ -2405,16 +2416,8 @@ async function receiveAI() {
         return lines.join('\n');
     }
 
-    // ★ 调试：看实际请求的地址
-console.log('[receiveAI] apiUrl=', apiUrl);
-console.log('[receiveAI] apiKey=', apiKey ? '有key' : '空');
-console.log('[receiveAI] apiModel=', apiModel);
-console.log('[receiveAI] 完整地址=', normalizeUrl(apiUrl) + '/chat/completions');
+    showTypingIndicator();
 
-// ★ 显示正在输入动画
-showTypingIndicator();
-
-    // ★ 禁用发送和接收按钮
     var sendBtn = qs('qaq-chat-send-btn');
     var recvBtn = qs('qaq-chat-recv-ai-btn');
     if (sendBtn) sendBtn.disabled = true;
@@ -2429,20 +2432,36 @@ showTypingIndicator();
             ].concat(history)
         };
 
-        var resp = await fetch(normalizeUrl(apiUrl) + '/chat/completions', {
+        toast('📡 正在请求: ' + fullUrl);
+
+        var controller = new AbortController();
+        var timer = setTimeout(function () { controller.abort(); }, 30000);
+
+        var resp = await fetch(fullUrl, {
             method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + apiKey,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            signal: controller.signal
         });
+        clearTimeout(timer);
+
+        toast('📡 HTTP状态: ' + resp.status);
+
+        if (!resp.ok) {
+            var errText = '';
+            try { errText = await resp.text(); } catch (e) {}
+            toast('❌ HTTP错误 ' + resp.status + ': ' + (errText || '').slice(0, 100));
+            hideTypingIndicator();
+            return;
+        }
 
         var data = await resp.json();
         var content = ((((data || {}).choices || [])[0] || {}).message || {}).content || '';
         content = String(content || '').trim();
 
-        // ★ 隐藏输入动画
         hideTypingIndicator();
 
         if (!content) {
@@ -2484,15 +2503,18 @@ showTypingIndicator();
         renderChatMessageList();
         renderMainBody();
     } catch (e) {
-    hideTypingIndicator();
-    console.error('[qaq-chat] AI reply error:', e);
-    if (e.name === 'AbortError') {
-        toast('请求超时，请检查网络');
-    } else {
-        toast('请求失败: ' + (e.message || '网络错误'));
-    }
-} finally {
-        // ★ 恢复按钮
+        hideTypingIndicator();
+        // ★★★ 详细错误日志 ★★★
+        var errMsg = '❌ 请求失败!\n';
+        errMsg += '类型: ' + (e.name || '未知') + '\n';
+        errMsg += '信息: ' + (e.message || '无') + '\n';
+        errMsg += '地址: ' + fullUrl;
+        toast(errMsg);
+
+        if (e.name === 'AbortError') {
+            toast('⏰ 请求超时(30秒)，检查网络');
+        }
+    } finally {
         if (sendBtn) sendBtn.disabled = false;
         if (recvBtn) recvBtn.disabled = false;
     }
@@ -3141,13 +3163,11 @@ bindClickSelect('qaq-chs-u-menu-pos', '菜单出现位置', [
             var controller = new AbortController();
 var timer = setTimeout(function () { controller.abort(); }, 60000);
 
-var resp = await fetch(normalizeUrl(apiUrl) + '/chat/completions', {
-    method: 'POST',
+var resp = await fetch(finalUrl, {
+    method: 'GET',
     headers: {
-        'Authorization': 'Bearer ' + apiKey,
-        'Content-Type': 'application/json'
+        'Authorization': 'Bearer ' + key
     },
-    body: JSON.stringify(payload),
     signal: controller.signal
 });
 clearTimeout(timer);

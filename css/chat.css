@@ -1527,3 +1527,80 @@
 .qaq-theme-cool .qaq-chat-win-sign {
     color: #7d8794;
 }
+/* ===== 正在输入中动画 ===== */
+.qaq-chat-typing-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:4px 0;
+}
+
+.qaq-chat-typing-avatar{
+    width:36px;
+    height:36px;
+    min-width:36px;
+    border-radius:10px;
+    object-fit:cover;
+    flex-shrink:0;
+}
+
+.qaq-chat-typing-bubble{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    padding:12px 16px;
+    border-radius:4px 16px 16px 16px;
+    background:var(--chat-oth-bub, #fff);
+    box-shadow:0 1px 4px rgba(0,0,0,0.04);
+}
+
+.qaq-chat-typing-dot{
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:#999;
+    animation:qaqTypingBounce 1.4s ease-in-out infinite;
+}
+
+.qaq-chat-typing-dot:nth-child(2){
+    animation-delay:0.2s;
+}
+
+.qaq-chat-typing-dot:nth-child(3){
+    animation-delay:0.4s;
+}
+
+@keyframes qaqTypingBounce{
+    0%,60%,100%{
+        transform:translateY(0);
+        opacity:0.4;
+    }
+    30%{
+        transform:translateY(-6px);
+        opacity:1;
+    }
+}
+
+.qaq-chat-typing-text{
+    font-size:11px;
+    color:#999;
+    margin-left:4px;
+}
+
+/* 夜幕 */
+.qaq-theme-dark .qaq-chat-typing-dot{
+    background:#777;
+}
+
+.qaq-theme-dark .qaq-chat-typing-text{
+    color:#666;
+}
+
+/* 冷雾 */
+.qaq-theme-cool .qaq-chat-typing-dot{
+    background:#8b97a6;
+}
+
+.qaq-theme-cool .qaq-chat-typing-text{
+    color:#8b97a6;
+}

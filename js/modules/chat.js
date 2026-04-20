@@ -518,7 +518,25 @@ function bindFoldEvents(root) {
         el.onclick = function () {
             var id = this.getAttribute('data-qaq-fold-head');
             var card = qs(id);
-            if (card) card.classList.toggle('qaq-open');
+            if (!card) return;
+            if (card._folding) return;
+            card._folding = true;
+
+            // ★ 懒加载：对方设置第一次打开时才填充
+            if (id === 'qaq-chat-fold-other' && !card._loaded) {
+                var bodyEl = card.querySelector('.qaq-chat-fold-body');
+                if (bodyEl && !bodyEl.innerHTML.trim()) {
+                    bodyEl.innerHTML = window._qaqOtherHtml || '';
+                    card._loaded = true;
+                    // 填充后绑定事件
+                    if (window._qaqBindOtherEvents) window._qaqBindOtherEvents();
+                }
+            }
+
+            requestAnimationFrame(function () {
+                card.classList.toggle('qaq-open');
+                card._folding = false;
+            });
         };
     });
 }
@@ -2590,123 +2608,129 @@ var defaultGlobalCss = c.uiGlobalCss || '.qaq-chat-msg-list {\n  letter-spacing:
 var defaultBubbleCss = c.uiBubbleCss || 'padding: 8px 12px;\nbox-shadow: 0 1px 4px rgba(0,0,0,0.06);\nborder: 1px solid rgba(0,0,0,0.04);';
     var personaPresetStore = getChatSettingPresets();
 
-    var otherHtml =
-        '<div class="qaq-chat-set-grid">' +
-            '<div class="qaq-chat-set-row-wrap">' +
-                '<div class="qaq-chat-set-col" style="flex:1.2;">' +
-                    '<div class="qaq-chat-set-lbl">头像</div>' +
-                    '<div class="qaq-chat-set-row">' +
-                        '<input class="qaq-chat-set-inp" id="qaq-chs-o-avatar" value="' + esc(c.avatar || '') + '" placeholder="头像 URL 或 DataURL">' +
-                        '<button class="qaq-chat-mini-btn" id="qaq-chs-o-avatar-btn">导入</button>' +
-                    '</div>' +
+    var otherBasicHtml =
+    '<div class="qaq-chat-set-grid">' +
+        '<div class="qaq-chat-set-row-wrap">' +
+            '<div class="qaq-chat-set-col" style="flex:1.2;">' +
+                '<div class="qaq-chat-set-lbl">头像</div>' +
+                '<div class="qaq-chat-set-row">' +
+                    '<input class="qaq-chat-set-inp" id="qaq-chs-o-avatar" value="' + esc(c.avatar || '') + '" placeholder="头像 URL或 DataURL">' +
+                    '<button class="qaq-chat-mini-btn" id="qaq-chs-o-avatar-btn">导入</button>' +
                 '</div>' +
             '</div>' +
+        '</div>' +
+        '<div class="qaq-chat-set-row-wrap">' +
+            chatTextInput('qaq-chs-o-name', '昵称', c.nickname || '', '例如 Alice') +
+            chatTextInput('qaq-chs-o-remark', '备注', c.remark || '', '备注优先显示') +
+        '</div>' +
+        '<div class="qaq-chat-set-row-wrap">' +
+            chatTextInput('qaq-chs-o-real', '真实名字', c.realName || '', '可选') +
+            chatClickSelect('qaq-chs-o-worldbook', '绑定世界书', c.worldBookId || '', worldBookOptions) +
+        '</div>' +
+        '<div class="qaq-chat-set-row-wrap">' +
+            chatTextInput('qaq-chs-o-signature', '个性签名', c.signature || '', '') +
+        '</div>' +
+        chatTextarea('qaq-chs-o-persona', '具体人设', c.persona || '', '输入详细角色人设', 92) +
+    '</div>';
 
-            '<div class="qaq-chat-set-row-wrap">' +
-                chatTextInput('qaq-chs-o-name', '昵称', c.nickname || '', '例如 Alice') +
-                chatTextInput('qaq-chs-o-remark', '备注', c.remark || '', '备注优先显示') +
+var otherTransHtml =
+    '<div class="qaq-chat-sub-block">' +
+        chatToggleRow('qaq-chs-o-sticker-row', '是否会主动发表情包', !!c.activeSticker) +
+        chatToggleRow('qaq-chs-o-translate-row', '开启双语翻译', c.translateEnabled !== false) +
+        chatClickSelect('qaq-chs-o-translate-mode', '翻译显示模式', c.translateMode || 'in_bottom', [
+            { value: 'in_top', label: '气泡内上方' },
+            { value: 'in_bottom', label: '气泡内下方' },
+            { value: 'out_top', label: '气泡外上方' },
+            { value: 'out_bottom', label: '气泡外下方' },{ value: 'hide', label: '隐藏翻译' }
+        ]) +
+    '</div>';
+
+var otherMemHtml =
+    '<div class="qaq-chat-sub-block">' +
+        chatNumberInput('qaq-chs-o-mem-max', '最大记忆条数', c.memMax == null ? 20 : c.memMax, 1, 300, 1) +
+        chatToggleRow('qaq-chs-o-bind-group-row', '挂载群聊记忆', !!c.bindGroupMemory) +
+        chatToggleRow('qaq-chs-o-bind-video-row', '挂载视频通话记忆', !!c.bindVideoMemory) +
+        chatToggleRow('qaq-chs-o-bind-voice-row', '挂载语音通话记忆', !!c.bindVoiceMemory) +
+        chatToggleRow('qaq-chs-o-bind-offline-row', '挂载线下记忆', !!c.bindOfflineMemory) +
+        chatToggleRow('qaq-chs-o-summary-memory-row', '总结记忆功能', !!c.summaryMemory) +
+        '<div id="qaq-chs-o-summary-count-block">' +
+            chatNumberInput('qaq-chs-o-summary-count', '总结条数', c.summaryCount == null ? 50 : c.summaryCount, 1, 500, 1) +
+        '</div>' +
+    '</div>';
+
+var otherBehaviorHtml =
+    '<div class="qaq-chat-sub-block">' +
+        chatToggleRow('qaq-chs-o-video-row', '允许主动发起视频通话', !!c.allowVideoCall) +
+        chatToggleRow('qaq-chs-o-voice-row', '允许主动发起语音通话', !!c.allowVoiceCall) +
+        chatToggleRow('qaq-chs-o-auto-message-row', '允许主动发送消息', !!c.allowAutoMessage) +
+        '<div id="qaq-chs-o-auto-message-block">' +
+            chatNumberInput('qaq-chs-o-auto-gap', '主动消息间隔（分钟）', c.autoMessageGap == null ? 60 : c.autoMessageGap, 1, 1440, 1) +
+        '</div>' +
+        chatToggleRow('qaq-chs-o-allow-block-row', '允许角色拉黑用户', !!c.allowBlockUser) +
+        chatToggleRow('qaq-chs-o-allow-delete-row', '允许角色删除用户', !!c.allowDeleteUser) +
+        chatToggleRow('qaq-chs-o-auto-diary-row', '允许角色主动生成日记', !!c.allowAutoDiary) +
+        chatToggleRow('qaq-chs-o-sign-auto-row', '允许角色自行更改个签', !!c.signatureAutoChange) +
+    '</div>';
+
+var otherApiHtml =
+    '<div class="qaq-chat-sub-block">' +
+        '<div class="qaq-chat-set-lbl">聊天专属 API 设置，留空则调用全局 API</div>' +
+        chatTextInput('qaq-chs-o-api-url', 'API URL', c.apiUrl || '', '例如 https://api.example.com/v1') +
+        '<div class="qaq-chat-set-row-wrap">' +
+            chatTextInput('qaq-chs-o-api-key', 'API Key', c.apiKey || '', '专属 API Key') +
+        '</div>' +
+        '<div class="qaq-chat-set-row" style="display:flex;gap:8px;align-items:stretch;">' +
+            '<div class="qaq-chat-set-col" style="flex:1;">' +
+                '<div class="qaq-chat-set-lbl">Model</div>' +
+                '<input class="qaq-chat-set-inp" id="qaq-chs-o-api-model" value="' + esc(c.apiModel || '') + '" placeholder="例如 gpt-4o">' +
             '</div>' +
-
-            '<div class="qaq-chat-set-row-wrap">' +
-    chatTextInput('qaq-chs-o-real', '真实名字', c.realName || '', '可选') +
-    chatClickSelect('qaq-chs-o-worldbook', '绑定世界书', c.worldBookId || '', worldBookOptions) +
-'</div>' +
-
-'<div class="qaq-chat-set-row-wrap">' +
-    chatTextInput('qaq-chs-o-signature', '个性签名', c.signature || '', ) +
-'</div>' +
-
-            chatTextarea('qaq-chs-o-persona', '具体人设', c.persona || '', '输入详细角色人设', 92) +
-
-            '<div class="qaq-chat-sub-block">' +
-                chatToggleRow('qaq-chs-o-sticker-row', '是否会主动发表情包', !!c.activeSticker) +
-                chatToggleRow('qaq-chs-o-translate-row', '开启双语翻译', c.translateEnabled !== false) +
-                chatClickSelect('qaq-chs-o-translate-mode', '翻译显示模式', c.translateMode || 'in_bottom', [
-                    { value: 'in_top', label: '气泡内上方' },
-                    { value: 'in_bottom', label: '气泡内下方' },
-                    { value: 'out_top', label: '气泡外上方' },
-                    { value: 'out_bottom', label: '气泡外下方' },
-                    { value: 'hide', label: '隐藏翻译' }
-                ]) +
+            '<div style="display:flex;flex-direction:column;justify-content:flex-end;">' +
+                '<button class="qaq-chat-mini-btn" id="qaq-chs-o-fetch-models-btn" style="height:38px;">拉取</button>' +
             '</div>' +
+        '</div>' +
+    '</div>';
 
-            '<div class="qaq-chat-sub-block">' +
-                chatNumberInput('qaq-chs-o-mem-max', '最大记忆条数', c.memMax == null ? 20 : c.memMax, 1, 300, 1) +
-                chatToggleRow('qaq-chs-o-bind-group-row', '挂载群聊记忆', !!c.bindGroupMemory) +
-                chatToggleRow('qaq-chs-o-bind-video-row', '挂载视频通话记忆', !!c.bindVideoMemory) +
-                chatToggleRow('qaq-chs-o-bind-voice-row', '挂载语音通话记忆', !!c.bindVoiceMemory) +
-                chatToggleRow('qaq-chs-o-bind-offline-row', '挂载线下记忆', !!c.bindOfflineMemory) +
-                chatToggleRow('qaq-chs-o-summary-memory-row', '总结记忆功能', !!c.summaryMemory) +
-                '<div id="qaq-chs-o-summary-count-block">' +
-                    chatNumberInput('qaq-chs-o-summary-count', '总结条数', c.summaryCount == null ? 50 : c.summaryCount, 1, 500, 1) +
-                '</div>' +
-            '</div>' +
+var otherVoiceHtml =
+    '<div id="qaq-chs-o-mm-voice-block">' +
+        chatClickSelect('qaq-chs-o-voice-url', '服务节点', c.voiceUrl ||'https://api.minimax.chat/v1/t2a_v2', [
+            { value: 'https://api.minimax.chat/v1/t2a_v2', label: '国内节点 api.minimax.chat' },
+            { value: 'https://api.minimaxi.chat/v1/t2a_v2', label: '国际节点 api.minimaxi.chat' },
+            { value: 'https://api.minimax.com/v1/t2a_v2', label: '国际节点 api.minimax.com' }
+        ]) +'<div class="qaq-chat-set-row-wrap">' +
+            chatTextInput('qaq-chs-o-voice-key', '语音 API Key', c.voiceKey || '', '留空则借用聊天 Key') +
+            chatTextInput('qaq-chs-o-voice-model', '语音模型', c.voiceModel ||'speech-02-hd', '如 speech-02-hd') +'</div>' +
+        chatTextInput('qaq-chs-o-voice-group', 'Group ID', c.voiceGroup || '', '旧版账号必填，新版留空') +
+        chatClickSelect('qaq-chs-o-voice-model-sel', '语音模型快选', c.voiceModel || 'speech-02-hd', [
+            { value: 'speech-02-hd', label: 'speech-02-hd (推荐)' },
+            { value: 'speech-02-turbo', label: 'speech-02-turbo' },
+            { value: 'speech-2.8-hd', label: 'speech-2.8-hd' },
+            { value: 'speech-2.8-turbo', label: 'speech-2.8-turbo' },
+            { value: 'speech-01-turbo', label: 'speech-01-turbo' }
+        ]) +
+        chatNumberInput('qaq-chs-o-voice-speed', '语速', c.voiceSpeed == null ? 0.9 : c.voiceSpeed, 0.5, 2, 0.1) +
+    '</div>';
 
-            '<div class="qaq-chat-sub-block">' +
-                chatToggleRow('qaq-chs-o-video-row', '允许主动发起视频通话', !!c.allowVideoCall) +
-                chatToggleRow('qaq-chs-o-voice-row', '允许主动发起语音通话', !!c.allowVoiceCall) +
-                chatToggleRow('qaq-chs-o-auto-message-row', '允许主动发送消息', !!c.allowAutoMessage) +
-                '<div id="qaq-chs-o-auto-message-block">' +
-                    chatNumberInput('qaq-chs-o-auto-gap', '主动消息间隔（分钟）', c.autoMessageGap == null ? 60 : c.autoMessageGap, 1, 1440, 1) +
-                '</div>' +
-                chatToggleRow('qaq-chs-o-allow-block-row', '允许角色拉黑用户', !!c.allowBlockUser) +
-                chatToggleRow('qaq-chs-o-allow-delete-row', '允许角色删除用户', !!c.allowDeleteUser) +
-                chatToggleRow('qaq-chs-o-auto-diary-row', '允许角色主动生成日记', !!c.allowAutoDiary) +
-                chatToggleRow('qaq-chs-o-sign-auto-row', '允许角色自行更改个签', !!c.signatureAutoChange) +
-            '</div>' +
+var otherImageHtml =
+    '<div class="qaq-chat-sub-block">' +
+        '<div class="qaq-chat-set-lbl">生图 API 设置</div>' +
+        chatTextInput('qaq-chs-o-image-url', '生图 API URL', c.imageUrl || '', '例如 https://api.openai.com/v1') +
+        '<div class="qaq-chat-set-row-wrap">' +
+            chatTextInput('qaq-chs-o-image-key', '生图 API Key', c.imageKey || '', '专属生图 Key') +
+            chatTextInput('qaq-chs-o-image-model', '生图模型', c.imageModel || '', '例如 gpt-image-1') +
+        '</div>' +
+        chatTextarea('qaq-chs-o-image-prompt', '默认生图提示词', defaultImagePrompt, '描述画面风格和内容', 78) +
+        chatTextarea('qaq-chs-o-image-negative', '反向提示词', defaultImageNegative, '排除不想要的元素', 70) +
+    '</div>';
 
-            '<div class="qaq-chat-sub-block">' +
-                '<div class="qaq-chat-set-lbl">聊天专属 API 设置，留空则调用全局 API</div>' +
-                chatTextInput('qaq-chs-o-api-url', 'API URL', c.apiUrl || '', '例如 https://api.example.com/v1') +
-                '<div class="qaq-chat-set-row-wrap">' +
-    chatTextInput('qaq-chs-o-api-key', 'API Key', c.apiKey || '', '专属 API Key') +
-'</div>' +
-'<div class="qaq-chat-set-row" style="display:flex;gap:8px;align-items:stretch;">' +
-    '<div class="qaq-chat-set-col" style="flex:1;">' +
-        '<div class="qaq-chat-set-lbl">Model</div>' +
-        '<input class="qaq-chat-set-inp" id="qaq-chs-o-api-model" value="' + esc(c.apiModel || '') + '" placeholder="例如 gpt-4o">' +
-    '</div>' +
-    '<div style="display:flex;flex-direction:column;justify-content:flex-end;">' +
-        '<button class="qaq-chat-mini-btn" id="qaq-chs-o-fetch-models-btn" style="height:38px;">拉取</button>' +
-    '</div>' +
-'</div>' +
-
-            '<div id="qaq-chs-o-mm-voice-block">' +
-    chatClickSelect('qaq-chs-o-voice-url', '服务节点', c.voiceUrl || 'https://api.minimax.chat/v1/t2a_v2', [
-        { value: 'https://api.minimax.chat/v1/t2a_v2', label: '国内节点 api.minimax.chat' },
-        { value: 'https://api.minimaxi.chat/v1/t2a_v2', label: '国际节点 api.minimaxi.chat' },
-        { value: 'https://api.minimax.com/v1/t2a_v2', label: '国际节点 api.minimax.com' }
-    ]) +
-    '<div class="qaq-chat-set-row-wrap">' +
-        chatTextInput('qaq-chs-o-voice-key', '语音 API Key', c.voiceKey || '', '留空则借用聊天 Key') +
-        chatTextInput('qaq-chs-o-voice-model', '语音模型', c.voiceModel || 'speech-02-hd', '如 speech-02-hd') +
-    '</div>' +
-    chatTextInput('qaq-chs-o-voice-group', 'Group ID', c.voiceGroup || '', '旧版账号必填，新版留空') +
-    chatClickSelect('qaq-chs-o-voice-model-sel', '语音模型快选', c.voiceModel || 'speech-02-hd', [
-        { value: 'speech-02-hd', label: 'speech-02-hd (推荐)' },
-        { value: 'speech-02-turbo', label: 'speech-02-turbo' },
-        { value: 'speech-2.8-hd', label: 'speech-2.8-hd' },
-        { value: 'speech-2.8-turbo', label: 'speech-2.8-turbo' },
-        { value: 'speech-01-turbo', label: 'speech-01-turbo' }
-    ]) +
-    chatNumberInput('qaq-chs-o-voice-speed', '语速', c.voiceSpeed == null ? 0.9 : c.voiceSpeed, 0.5, 2, 0.1) +
-'</div>' +
-
-            '<div class="qaq-chat-sub-block">' +
-                '<div class="qaq-chat-set-lbl">生图 API 设置，可接入 OpenAI 生图模型</div>' +
-                chatTextInput('qaq-chs-o-image-url', '生图 API URL', c.imageUrl || '', '例如 https://api.openai.com/v1') +
-                '<div class="qaq-chat-set-row-wrap">' +
-                    chatTextInput('qaq-chs-o-image-key', '生图 API Key', c.imageKey || '', '专属生图 Key') +
-                    chatTextInput('qaq-chs-o-image-model', '生图模型', c.imageModel || '', '例如 gpt-image-1') +
-                '</div>' +
-                '<div style="display:flex;flex-direction:column;justify-content:flex-end;">' +
-        '<button class="qaq-chat-mini-btn" id="qaq-chs-o-fetch-models-btn" style="height:38px;">拉取</button>' +
-    '</div>' +
-'</div>' +
-                chatTextarea('qaq-chs-o-image-prompt', '默认生图提示词', defaultImagePrompt, '描述画面风格和内容', 78) +
-chatTextarea('qaq-chs-o-image-negative', '反向提示词', defaultImageNegative, '排除不想要的元素', 70) +
-            '</div>' +
-        '</div>';
+var otherHtml = '<div class="qaq-chat-set-grid">' +
+    otherBasicHtml +
+    otherTransHtml +
+    otherMemHtml +
+    otherBehaviorHtml +
+    otherApiHtml +
+    otherVoiceHtml +
+    otherImageHtml +
+    '</div>';
 
     var myHtml =
         '<div class="qaq-chat-set-grid">' +
@@ -2855,7 +2879,7 @@ var otherOpsHtml =
     '</div>';
 
     body.innerHTML =
-    chatFoldCard('qaq-chat-fold-other', '对方设置', '角色信息与行为控制', 'user', otherHtml, false) +
+    chatFoldCard('qaq-chat-fold-other', '对方设置', '角色信息与行为控制', 'user', '', false) +
     chatFoldCard('qaq-chat-fold-me', '我方设置', '我的身份信息与人设', 'credit-card', myHtml, false) +
     chatFoldCard('qaq-chat-fold-ui', '美化设置', '气泡、主题、字体、样式', 'feather', uiHtml, false) +
     chatFoldCard('qaq-chat-fold-history', '聊天记录', '导入、导出、清理', 'clock', historyHtml, false) +
@@ -2865,24 +2889,11 @@ var otherOpsHtml =
     window.lucide && window.lucide.createIcons && window.lucide.createIcons();
     bindFoldEvents(body);
 
-    qs('qaq-chs-o-avatar-btn').onclick = function () { chooseImage('qaq-chs-o-avatar'); };
+    
     qs('qaq-chs-m-avatar-btn').onclick = function () { chooseImage('qaq-chs-m-avatar'); };
     qs('qaq-chs-u-font-btn').onclick = function () { chooseFont('qaq-chs-u-font-url'); };
 
-    setToggleValue('qaq-chs-o-sticker-row', !!c.activeSticker);
-    setToggleValue('qaq-chs-o-translate-row', c.translateEnabled !== false);
-    setToggleValue('qaq-chs-o-bind-group-row', !!c.bindGroupMemory);
-    setToggleValue('qaq-chs-o-bind-video-row', !!c.bindVideoMemory);
-    setToggleValue('qaq-chs-o-bind-voice-row', !!c.bindVoiceMemory);
-    setToggleValue('qaq-chs-o-bind-offline-row', !!c.bindOfflineMemory);
-    setToggleValue('qaq-chs-o-summary-memory-row', !!c.summaryMemory);
-    setToggleValue('qaq-chs-o-video-row', !!c.allowVideoCall);
-    setToggleValue('qaq-chs-o-voice-row', !!c.allowVoiceCall);
-    setToggleValue('qaq-chs-o-auto-message-row', !!c.allowAutoMessage);
-    setToggleValue('qaq-chs-o-allow-block-row', !!c.allowBlockUser);
-    setToggleValue('qaq-chs-o-allow-delete-row', !!c.allowDeleteUser);
-    setToggleValue('qaq-chs-o-auto-diary-row', !!c.allowAutoDiary);
-    setToggleValue('qaq-chs-o-mm-voice-row', !!c.voiceUrl);
+    
 
     setToggleValue('qaq-chs-u-show-time-row', !!c.uiShowTime);
     setToggleValue('qaq-chs-u-hide-reply-row', !!c.uiHideReplyBtn);
@@ -2890,20 +2901,7 @@ var otherOpsHtml =
 
     setToggleValue('qaq-chs-x-dnd-row', !!c.dnd);
 
-    bindToggleRowById('qaq-chs-o-sticker-row', 'qaq-chs-o-sticker-row', syncConditionalBlocks);
-    bindToggleRowById('qaq-chs-o-translate-row', 'qaq-chs-o-translate-row', syncConditionalBlocks);
-    bindToggleRowById('qaq-chs-o-bind-group-row', 'qaq-chs-o-bind-group-row', syncConditionalBlocks);
-    bindToggleRowById('qaq-chs-o-bind-video-row', 'qaq-chs-o-bind-video-row', syncConditionalBlocks);
-    bindToggleRowById('qaq-chs-o-bind-voice-row', 'qaq-chs-o-bind-voice-row', syncConditionalBlocks);
-    bindToggleRowById('qaq-chs-o-bind-offline-row', 'qaq-chs-o-bind-offline-row', syncConditionalBlocks);
-    bindToggleRowById('qaq-chs-o-summary-memory-row', 'qaq-chs-o-summary-memory-row', syncConditionalBlocks);
-    bindToggleRowById('qaq-chs-o-video-row', 'qaq-chs-o-video-row', syncConditionalBlocks);
-    bindToggleRowById('qaq-chs-o-voice-row', 'qaq-chs-o-voice-row', syncConditionalBlocks);
-    bindToggleRowById('qaq-chs-o-auto-message-row', 'qaq-chs-o-auto-message-row', syncConditionalBlocks);
-    bindToggleRowById('qaq-chs-o-allow-block-row', 'qaq-chs-o-allow-block-row', syncConditionalBlocks);
-    bindToggleRowById('qaq-chs-o-allow-delete-row', 'qaq-chs-o-allow-delete-row', syncConditionalBlocks);
-    bindToggleRowById('qaq-chs-o-auto-diary-row', 'qaq-chs-o-auto-diary-row', syncConditionalBlocks);
-    bindToggleRowById('qaq-chs-o-mm-voice-row', 'qaq-chs-o-mm-voice-row', syncConditionalBlocks);
+
 
     bindToggleRowById('qaq-chs-u-show-time-row', 'qaq-chs-u-show-time-row', syncConditionalBlocks);
     bindToggleRowById('qaq-chs-u-hide-reply-row', 'qaq-chs-u-hide-reply-row', syncConditionalBlocks);
@@ -3000,19 +2998,7 @@ var otherOpsHtml =
 
     qs('qaq-chat-settings-save-all').onclick = saveSettingsAll;
     
-    bindClickSelect('qaq-chs-o-worldbook', '绑定世界书', worldBookOptions);
-bindClickSelect('qaq-chs-o-translate-mode', '翻译显示模式', [
-    { value: 'in_top', label: '气泡内上方' },
-    { value: 'in_bottom', label: '气泡内下方' },
-    { value: 'out_top', label: '气泡外上方' },
-    { value: 'out_bottom', label: '气泡外下方' },
-    { value: 'hide', label: '隐藏翻译' }
-]);
-bindClickSelect('qaq-chs-o-voice-url', '服务节点', [
-    { value: 'https://api.minimax.chat/v1/t2a_v2', label: '国内节点 api.minimax.chat' },
-    { value: 'https://api.minimaxi.chat/v1/t2a_v2', label: '国际节点 api.minimaxi.chat' },
-    { value: 'https://api.minimax.com/v1/t2a_v2', label: '国际节点 api.minimax.com' }
-]);
+    
 bindClickSelect('qaq-chs-u-theme', '主题颜色', [
     { value: 'default', label: '暖阳' },
     { value: 'cool', label: '冷雾' },
@@ -3043,62 +3029,87 @@ bindClickSelect('qaq-chs-u-menu-pos', '菜单出现位置', [
     { value: 'bottom', label: '输入底栏下方' },
     { value: 'inside', label: '收在菜单栏里' }
 ]);
-bindClickSelect('qaq-chs-o-voice-model-sel', 'MiniMax 语音模型', [
-    { value: 'speech-02-hd', label: 'speech-02-hd (推荐)' },
-    { value: 'speech-02-turbo', label: 'speech-02-turbo' },
-    { value: 'speech-2.8-hd', label: 'speech-2.8-hd' },
-    { value: 'speech-2.8-turbo', label: 'speech-2.8-turbo' },
-    { value: 'speech-01-turbo', label: 'speech-01-turbo' }
-]);
+    //★ 存储对方设置的HTML和绑定函数，等懒加载时用
+    window._qaqOtherHtml = otherHtml;
+    window._qaqBindOtherEvents = function () {
+        qs('qaq-chs-o-avatar-btn').onclick = function () { chooseImage('qaq-chs-o-avatar'); };
 
-qs('qaq-chs-o-fetch-models-btn').onclick = async function () {
-    var url = (qs('qaq-chs-o-api-url').value || '').trim();
-    var key = (qs('qaq-chs-o-api-key').value || '').trim();
-    if (!url) {
-        var g = JSON.parse(localStorage.getItem('qaq-api-config') || '{}');
-        url = g.url || '';
-        key = key || g.key || '';
-    }
-    if (!url || !key) {
-        toast('请先填写 API URL 和 Key');
-        return;
-    }
-    toast('正在拉取模型列表');
-    try {
-        var resp = await fetch(normalizeUrl(url) + '/models', {
-            headers: { 'Authorization': 'Bearer ' + key }
-        });
-        var data = await resp.json();
-        var models = (data.data || []).map(function (m) {
-            return { value: m.id, label: m.id };
-        });
-        if (!models.length) {
-            toast('未获取到模型');
-            return;
-        }
-        openModal('选择模型',
-            '<div class="qaq-custom-select-list" style="max-height:50vh;overflow-y:auto;">' +
-            models.map(function (m) {
-                return '<div class="qaq-custom-select-option" data-qaq-model-pick="' + esc(m.value) + '"><span>' + esc(m.label) + '</span></div>';
-            }).join('') +
-            '</div>',
-            {
-                hideBtns: true,
-                afterRender: function () {
-                    document.querySelectorAll('[data-qaq-model-pick]').forEach(function (el) {
-                        el.onclick = function () {
-                            qs('qaq-chs-o-api-model').value = this.getAttribute('data-qaq-model-pick');
-                            window.qaqCloseModal && window.qaqCloseModal();
-                            toast('已选择模型');
-                        };
-                    });
+        bindToggleRowById('qaq-chs-o-sticker-row', 'qaq-chs-o-sticker-row', syncConditionalBlocks);
+        bindToggleRowById('qaq-chs-o-translate-row', 'qaq-chs-o-translate-row', syncConditionalBlocks);
+        bindToggleRowById('qaq-chs-o-bind-group-row', 'qaq-chs-o-bind-group-row', syncConditionalBlocks);
+        bindToggleRowById('qaq-chs-o-bind-video-row', 'qaq-chs-o-bind-video-row', syncConditionalBlocks);
+        bindToggleRowById('qaq-chs-o-bind-voice-row', 'qaq-chs-o-bind-voice-row', syncConditionalBlocks);
+        bindToggleRowById('qaq-chs-o-bind-offline-row', 'qaq-chs-o-bind-offline-row', syncConditionalBlocks);
+        bindToggleRowById('qaq-chs-o-summary-memory-row', 'qaq-chs-o-summary-memory-row', syncConditionalBlocks);
+        bindToggleRowById('qaq-chs-o-video-row', 'qaq-chs-o-video-row', syncConditionalBlocks);
+        bindToggleRowById('qaq-chs-o-voice-row', 'qaq-chs-o-voice-row', syncConditionalBlocks);
+        bindToggleRowById('qaq-chs-o-auto-message-row', 'qaq-chs-o-auto-message-row', syncConditionalBlocks);
+        bindToggleRowById('qaq-chs-o-allow-block-row', 'qaq-chs-o-allow-block-row', syncConditionalBlocks);
+        bindToggleRowById('qaq-chs-o-allow-delete-row', 'qaq-chs-o-allow-delete-row', syncConditionalBlocks);
+        bindToggleRowById('qaq-chs-o-auto-diary-row', 'qaq-chs-o-auto-diary-row', syncConditionalBlocks);
+
+        bindClickSelect('qaq-chs-o-worldbook', '绑定世界书', getWorldBookOptions());
+        bindClickSelect('qaq-chs-o-translate-mode', '翻译显示模式', [
+            { value: 'in_top', label: '气泡内上方' },
+            { value: 'in_bottom', label: '气泡内下方' },
+            { value: 'out_top', label: '气泡外上方' },
+            { value: 'out_bottom', label: '气泡外下方' },
+            { value: 'hide', label: '隐藏翻译' }
+        ]);
+        bindClickSelect('qaq-chs-o-voice-url', '服务节点', [
+            { value: 'https://api.minimax.chat/v1/t2a_v2', label: '国内节点 api.minimax.chat' },
+            { value: 'https://api.minimaxi.chat/v1/t2a_v2', label: '国际节点 api.minimaxi.chat' },
+            { value: 'https://api.minimax.com/v1/t2a_v2', label: '国际节点 api.minimax.com' }
+        ]);
+        bindClickSelect('qaq-chs-o-voice-model-sel', 'MiniMax 语音模型', [
+            { value: 'speech-02-hd', label: 'speech-02-hd (推荐)' },
+            { value: 'speech-02-turbo', label: 'speech-02-turbo' },
+            { value: 'speech-2.8-hd', label: 'speech-2.8-hd' },
+            { value: 'speech-2.8-turbo', label: 'speech-2.8-turbo' },
+            { value: 'speech-01-turbo', label: 'speech-01-turbo' }
+        ]);
+
+        if (qs('qaq-chs-o-fetch-models-btn')) {
+            qs('qaq-chs-o-fetch-models-btn').onclick = async function () {
+                var url = (qs('qaq-chs-o-api-url').value || '').trim();
+                var key = (qs('qaq-chs-o-api-key').value || '').trim();
+                if (!url) {
+                    var g = JSON.parse(localStorage.getItem('qaq-api-config') || '{}');
+                    url = g.url || '';
+                    key = key || g.key || '';
                 }
-            }
-        );
-    } catch (e) {
-        toast('拉取失败: ' + (e.message || '网络错误'));
-    }
-};
+                if (!url || !key) { toast('请先填写 API URL 和 Key'); return; }
+                toast('正在拉取模型列表');
+                try {
+                    var resp = await fetch(normalizeUrl(url) + '/models', {
+                        headers: { 'Authorization': 'Bearer ' + key }
+                    });
+                    var data = await resp.json();
+                    var models = (data.data || []).map(function (m) { return { value: m.id, label: m.id }; });
+                    if (!models.length) { toast('未获取到模型'); return; }
+                    openModal('选择模型',
+                        '<div class="qaq-custom-select-list" style="max-height:50vh;overflow-y:auto;">' +
+                        models.map(function (m) {
+                            return '<div class="qaq-custom-select-option" data-qaq-model-pick="' + esc(m.value) + '"><span>' + esc(m.label) + '</span></div>';
+                        }).join('') + '</div>',
+                        { hideBtns: true, afterRender: function () {
+                            document.querySelectorAll('[data-qaq-model-pick]').forEach(function (el) {
+                                el.onclick = function () {
+                                    qs('qaq-chs-o-api-model').value = this.getAttribute('data-qaq-model-pick');
+                                    window.qaqCloseModal && window.qaqCloseModal();
+                                    toast('已选择模型');
+                                };
+                            });
+                        }}
+                    );
+                } catch (e) { toast('拉取失败: ' + (e.message || '网络错误')); }
+            };
+        }
+
+        syncConditionalBlocks();
+        applyChatSettingsTheme();
+    };
+
     syncConditionalBlocks();
     renderBubbleCssPreview();
     applyChatSettingsTheme();

@@ -1917,17 +1917,17 @@ function renderChatWindow() {
 
         // ★ 修复：状态图标
         if (statusIconEl) {
-            statusIconEl.innerHTML = c.blocked
-                ? icon('shield-x', 18)
-                : (isInDndRange(c)
-                    ? icon('moon-star', 18)
-                    : icon('circle-dot', 18));
-        }
+    statusIconEl.innerHTML = c.blocked
+        ? icon('shield-off', 18)
+        : (isInDndRange(c)
+            ? icon('moon', 18)
+            : icon('disc', 18));
+}
 
-        // ★ 修复：设置图标
-        if (setIconEl) {
-            setIconEl.innerHTML = icon('settings', 18);
-        }
+        //★ 设置图标改回汉堡菜单
+if (setIconEl) {
+    setIconEl.innerHTML = icon('menu', 20);
+}
 
         renderChatFriendTip();
         renderChatMessageList();
@@ -1936,13 +1936,14 @@ function renderChatWindow() {
         renderChatExtMenu();
         
         // ★ 修复：底部输入栏图标
-        var menuIcon = qs('qaq-chat-toggle-menu-icon');
-        var recvIcon = qs('qaq-chat-recv-icon');
-        var sendIcon = qs('qaq-chat-send-icon');
+        // ★ 底部输入栏图标 - 用feather/lucide 都有的名字
+var menuIcon = qs('qaq-chat-toggle-menu-icon');
+var recvIcon = qs('qaq-chat-recv-icon');
+var sendIcon = qs('qaq-chat-send-icon');
 
-        if (menuIcon) menuIcon.innerHTML = icon('plus', 18);
-        if (recvIcon) recvIcon.innerHTML = icon('sparkles', 18);
-        if (sendIcon) sendIcon.innerHTML = icon('send-horizontal', 18);
+if (menuIcon) menuIcon.innerHTML = icon('plus', 18);
+if (recvIcon) recvIcon.innerHTML = icon('zap', 18);
+if (sendIcon) sendIcon.innerHTML = icon('send', 18);
         
         // ★ 刷新 lucide 图标
         if (window.lucide && window.lucide.createIcons) {
@@ -2118,17 +2119,17 @@ function renderChatExtMenu() {
     var ext = qs('qaq-chat-ext-menu');
     if (!ext) return;
     var items = [
-    { id: 'sticker', text: '表情', icon: 'smile-plus' },
+    { id: 'sticker', text: '表情', icon: 'smile' },
     { id: 'voice', text: '语音', icon: 'mic' },
-    { id: 'photo', text: '图片', icon: 'image-plus' },
-    { id: 'transfer', text: '转账', icon: 'wallet-cards' },
+    { id: 'photo', text: '图片', icon: 'image' },
+    { id: 'transfer', text: '转账', icon: 'credit-card' },
     { id: 'delivery', text: '快递', icon: 'package' },
-    { id: 'offline', text: '线下', icon: 'handshake' },
-    { id: 'theater', text: '剧场', icon: 'clapperboard' },
+    { id: 'offline', text: '线下', icon: 'heart' },
+    { id: 'theater', text: '剧场', icon: 'film' },
     { id: 'video', text: '视频', icon: 'video' },
-    { id: 'voicecall', text: '通话', icon: 'phone-call' },
-    { id: 'location', text: '位置', icon: 'map-pinned' },
-    { id: 'diary', text: '日记', icon: 'notebook-pen' }
+    { id: 'voicecall', text: '通话', icon: 'phone' },
+    { id: 'location', text: '位置', icon: 'map-pin' },
+    { id: 'diary', text: '日记', icon: 'book' }
 ];
     ext.innerHTML = items.map(function (x) {
         return '<div class="qaq-ext-item" data-qaq-ext="' + x.id + '">' +
@@ -2859,11 +2860,11 @@ var otherOpsHtml =
     '</div>';
 
     body.innerHTML =
-        chatFoldCard('qaq-chat-fold-other', '对方设置', '角色信息与行为控制', 'user-round', otherHtml, true) +
-        chatFoldCard('qaq-chat-fold-me', '我方设置', '我的身份信息与人设', 'id-card', myHtml, false) +
-        chatFoldCard('qaq-chat-fold-ui', '美化设置', '气泡、主题、字体、样式', 'palette', uiHtml, false) +
-        chatFoldCard('qaq-chat-fold-history', '聊天记录', '导入、导出、清理', 'history', historyHtml, false) +
-        chatFoldCard('qaq-chat-fold-other-op', '其他', '勿扰、拉黑、删除、恢复', 'settings-2', otherOpsHtml, false) +
+        chatFoldCard('qaq-chat-fold-other', '对方设置', '角色信息与行为控制', 'user', otherHtml, true) +
+chatFoldCard('qaq-chat-fold-me', '我方设置', '我的身份信息与人设', 'credit-card', myHtml, false) +
+chatFoldCard('qaq-chat-fold-ui', '美化设置', '气泡、主题、字体、样式', 'feather', uiHtml, false) +
+chatFoldCard('qaq-chat-fold-history', '聊天记录', '导入、导出、清理', 'clock', historyHtml, false) +
+chatFoldCard('qaq-chat-fold-other-op', '其他', '勿扰、拉黑、删除、恢复', 'sliders', otherOpsHtml, false) +
         '<button class="qaq-chat-set-save" id="qaq-chat-settings-save-all">保存全部设置</button>';
 
     window.lucide && window.lucide.createIcons && window.lucide.createIcons();

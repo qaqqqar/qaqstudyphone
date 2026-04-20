@@ -3122,50 +3122,86 @@ function saveSettingsAll() {
     if (!c) return;
     var me = s.myProfile || {};
 
-    c.avatar = (qs('qaq-chs-o-avatar').value || '').trim();
-    c.nickname = (qs('qaq-chs-o-name').value || '').trim() || '未命名联系人';
-    c.remark = (qs('qaq-chs-o-remark').value || '').trim();
-    c.realName = (qs('qaq-chs-o-real').value || '').trim();
-    c.persona = (qs('qaq-chs-o-persona').value || '').trim();
-    c.signature = (qs('qaq-chs-o-signature').value || '').trim().slice(0, 20);
-c.signatureAutoChange = getToggleValue('qaq-chs-o-sign-auto-row');
+    //★ 对方设置：只在元素存在时才读取（懒加载可能还没渲染）
+    var el;
+    el = qs('qaq-chs-o-avatar');
+    if (el) c.avatar = (el.value || '').trim();
+    
+    el = qs('qaq-chs-o-name');
+    if (el) c.nickname = (el.value || '').trim() || '未命名联系人';
+    
+    el = qs('qaq-chs-o-remark');
+    if (el) c.remark = (el.value || '').trim();
+    
+    el = qs('qaq-chs-o-real');
+    if (el) c.realName = (el.value || '').trim();
+    
+    el = qs('qaq-chs-o-persona');
+    if (el) c.persona = (el.value || '').trim();
+    
+    el = qs('qaq-chs-o-signature');
+    if (el) c.signature = (el.value || '').trim().slice(0, 20);
+    
+    if (qs('qaq-chs-o-sign-auto-row')) {
+        c.signatureAutoChange = getToggleValue('qaq-chs-o-sign-auto-row');
+    }
 
-    c.worldBookId = getClickSelectValue('qaq-chs-o-worldbook') || '';
-    c.worldBookName = '';
-    var wb = getWorldBookOptions().find(function (x) { return x.value === c.worldBookId; });
-    if (wb) c.worldBookName = wb.label === '不绑定世界书' ? '' : wb.label;
+    if (qs('qaq-chs-o-worldbook')) {
+        c.worldBookId = getClickSelectValue('qaq-chs-o-worldbook') || '';
+        c.worldBookName = '';var wb = getWorldBookOptions().find(function (x) { return x.value === c.worldBookId; });
+        if (wb) c.worldBookName = wb.label === '不绑定世界书' ? '' : wb.label;
+    }
 
-    c.activeSticker = getToggleValue('qaq-chs-o-sticker-row');
-    c.translateEnabled = getToggleValue('qaq-chs-o-translate-row');
-    c.translateMode = getClickSelectValue('qaq-chs-o-translate-mode') || 'in_bottom';
+    if (qs('qaq-chs-o-sticker-row')) {
+        c.activeSticker = getToggleValue('qaq-chs-o-sticker-row');
+    }
+    if (qs('qaq-chs-o-translate-row')) {
+        c.translateEnabled = getToggleValue('qaq-chs-o-translate-row');
+    }
+    if (qs('qaq-chs-o-translate-mode')) {
+        c.translateMode = getClickSelectValue('qaq-chs-o-translate-mode') || 'in_bottom';
+    }
 
-    c.memMax = parseInt(qs('qaq-chs-o-mem-max').value || '20', 10) || 20;
-    c.bindGroupMemory = getToggleValue('qaq-chs-o-bind-group-row');
-    c.bindVideoMemory = getToggleValue('qaq-chs-o-bind-video-row');
-    c.bindVoiceMemory = getToggleValue('qaq-chs-o-bind-voice-row');
-    c.bindOfflineMemory = getToggleValue('qaq-chs-o-bind-offline-row');
-    c.summaryMemory = getToggleValue('qaq-chs-o-summary-memory-row');
-    c.summaryCount = parseInt(qs('qaq-chs-o-summary-count').value || '50', 10) || 50;
+    el = qs('qaq-chs-o-mem-max');
+    if (el) c.memMax = parseInt(el.value || '20', 10) || 20;
+    
+    if (qs('qaq-chs-o-bind-group-row')) c.bindGroupMemory = getToggleValue('qaq-chs-o-bind-group-row');
+    if (qs('qaq-chs-o-bind-video-row')) c.bindVideoMemory = getToggleValue('qaq-chs-o-bind-video-row');
+    if (qs('qaq-chs-o-bind-voice-row')) c.bindVoiceMemory = getToggleValue('qaq-chs-o-bind-voice-row');
+    if (qs('qaq-chs-o-bind-offline-row')) c.bindOfflineMemory = getToggleValue('qaq-chs-o-bind-offline-row');
+    if (qs('qaq-chs-o-summary-memory-row')) c.summaryMemory = getToggleValue('qaq-chs-o-summary-memory-row');
+    
+    el = qs('qaq-chs-o-summary-count');
+    if (el) c.summaryCount = parseInt(el.value || '50', 10) || 50;
 
-    c.allowVideoCall = getToggleValue('qaq-chs-o-video-row');
-    c.allowVoiceCall = getToggleValue('qaq-chs-o-voice-row');
-    c.allowAutoMessage = getToggleValue('qaq-chs-o-auto-message-row');
-    c.autoMessageGap = parseInt(qs('qaq-chs-o-auto-gap').value || '60', 10) || 60;
-    c.allowBlockUser = getToggleValue('qaq-chs-o-allow-block-row');
-    c.allowDeleteUser = getToggleValue('qaq-chs-o-allow-delete-row');
-    c.allowAutoDiary = getToggleValue('qaq-chs-o-auto-diary-row');
+    if (qs('qaq-chs-o-video-row')) c.allowVideoCall = getToggleValue('qaq-chs-o-video-row');
+    if (qs('qaq-chs-o-voice-row')) c.allowVoiceCall = getToggleValue('qaq-chs-o-voice-row');
+    if (qs('qaq-chs-o-auto-message-row')) c.allowAutoMessage = getToggleValue('qaq-chs-o-auto-message-row');
+    
+    el = qs('qaq-chs-o-auto-gap');
+    if (el) c.autoMessageGap = parseInt(el.value || '60', 10) || 60;
+    
+    if (qs('qaq-chs-o-allow-block-row')) c.allowBlockUser = getToggleValue('qaq-chs-o-allow-block-row');
+    if (qs('qaq-chs-o-allow-delete-row')) c.allowDeleteUser = getToggleValue('qaq-chs-o-allow-delete-row');
+    if (qs('qaq-chs-o-auto-diary-row')) c.allowAutoDiary = getToggleValue('qaq-chs-o-auto-diary-row');
 
-    c.apiUrl = (qs('qaq-chs-o-api-url').value || '').trim();
-    c.apiKey = (qs('qaq-chs-o-api-key').value || '').trim();
-    c.apiModel = (qs('qaq-chs-o-api-model').value || '').trim();
+    el = qs('qaq-chs-o-api-url');
+    if (el) c.apiUrl = (el.value || '').trim();
+    el = qs('qaq-chs-o-api-key');
+    if (el) c.apiKey = (el.value || '').trim();
+    el = qs('qaq-chs-o-api-model');
+    if (el) c.apiModel = (el.value || '').trim();
 
-    if (getToggleValue('qaq-chs-o-mm-voice-row')) {
-    c.voiceUrl = getClickSelectValue('qaq-chs-o-voice-url') || '';
-    c.voiceModel = getClickSelectValue('qaq-chs-o-voice-model-sel') || (qs('qaq-chs-o-voice-model').value || 'speech-02-hd').trim();
-        c.voiceKey = (qs('qaq-chs-o-voice-key').value || '').trim();
-        c.voiceSpeed = safeNumber(qs('qaq-chs-o-voice-speed').value, 0.9);
-        c.voiceGroup = (qs('qaq-chs-o-voice-group').value || '').trim();
-    } else {
+    if (qs('qaq-chs-o-mm-voice-row') && getToggleValue('qaq-chs-o-mm-voice-row')) {
+        c.voiceUrl = getClickSelectValue('qaq-chs-o-voice-url') || '';
+        c.voiceModel = getClickSelectValue('qaq-chs-o-voice-model-sel') || (qs('qaq-chs-o-voice-model') && qs('qaq-chs-o-voice-model').value || 'speech-02-hd').trim();
+        el = qs('qaq-chs-o-voice-key');
+        if (el) c.voiceKey = (el.value || '').trim();
+        el = qs('qaq-chs-o-voice-speed');
+        if (el) c.voiceSpeed = safeNumber(el.value, 0.9);
+        el = qs('qaq-chs-o-voice-group');
+        if (el) c.voiceGroup = (el.value || '').trim();
+    } else if (qs('qaq-chs-o-mm-voice-row')) {
         c.voiceUrl = '';
         c.voiceKey = '';
         c.voiceModel = 'speech-02-hd';
@@ -3173,12 +3209,18 @@ c.signatureAutoChange = getToggleValue('qaq-chs-o-sign-auto-row');
         c.voiceGroup = '';
     }
 
-    c.imageUrl = (qs('qaq-chs-o-image-url').value || '').trim();
-    c.imageKey = (qs('qaq-chs-o-image-key').value || '').trim();
-    c.imageModel = (qs('qaq-chs-o-image-model').value || '').trim();
-    c.imagePrompt = (qs('qaq-chs-o-image-prompt').value || '').trim();
-    c.imageNegative = (qs('qaq-chs-o-image-negative').value || '').trim();
+    el = qs('qaq-chs-o-image-url');
+    if (el) c.imageUrl = (el.value || '').trim();
+    el = qs('qaq-chs-o-image-key');
+    if (el) c.imageKey = (el.value || '').trim();
+    el = qs('qaq-chs-o-image-model');
+    if (el) c.imageModel = (el.value || '').trim();
+    el = qs('qaq-chs-o-image-prompt');
+    if (el) c.imagePrompt = (el.value || '').trim();
+    el = qs('qaq-chs-o-image-negative');
+    if (el) c.imageNegative = (el.value || '').trim();
 
+    // ★ 以下是我方设置、美化设置、其他设置，保持原样不变
     me.avatar = (qs('qaq-chs-m-avatar').value || '').trim();
     me.nickname = (qs('qaq-chs-m-name').value || '').trim() || '学生';
     me.realName = (qs('qaq-chs-m-real').value || '').trim();
@@ -3187,10 +3229,10 @@ c.signatureAutoChange = getToggleValue('qaq-chs-o-sign-auto-row');
     c.uiTheme = getClickSelectValue('qaq-chs-u-theme') || getGlobalTheme();
     c.uiBubbleMy = (qs('qaq-chs-u-bubble-my').value || getBubbleThemeDefaults(c.uiTheme).my).trim();
     c.uiBubbleOther = (qs('qaq-chs-u-bubble-other').value || getBubbleThemeDefaults(c.uiTheme).other).trim();
-    c.uiAvatarShow = getClickSelectValue('qaq-chs-u-avatar-show') || 'all';
+    c.uiAvatarShow = getClickSelectValue('qaq-chs-u-avatar-show') ||'all';
     c.uiShowTime = getToggleValue('qaq-chs-u-show-time-row');
     c.uiTimePos = getClickSelectValue('qaq-chs-u-time-pos') || 'top';
-c.uiTimeFmt = getClickSelectValue('qaq-chs-u-time-fmt') || 'HH:mm';
+    c.uiTimeFmt = getClickSelectValue('qaq-chs-u-time-fmt') || 'HH:mm';
     c.uiHideReplyBtn = getToggleValue('qaq-chs-u-hide-reply-row');
     c.uiHideMenuBtn = getToggleValue('qaq-chs-u-hide-menu-row');
     c.uiMenuPos = getClickSelectValue('qaq-chs-u-menu-pos') || 'top';
@@ -3208,7 +3250,8 @@ c.uiTimeFmt = getClickSelectValue('qaq-chs-u-time-fmt') || 'HH:mm';
     s.myProfile = me;
     setStore(s);
 
-    applyPageThemeClass(c.uiTheme || getGlobalTheme());
+    _chatCurrentTheme = c.uiTheme || getGlobalTheme();
+    applyPageThemeClass(_chatCurrentTheme);
     applyRuntimeStyle(c);
     renderMainBody();
     renderChatWindow();

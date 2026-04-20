@@ -2478,11 +2478,14 @@ async function receiveAI() {
         renderChatMessageList();
         renderMainBody();
     } catch (e) {
-        // ★ 出错也隐藏动画
-        hideTypingIndicator();
-        console.error('[qaq-chat] AI reply error:', e);
+    hideTypingIndicator();
+    console.error('[qaq-chat] AI reply error:', e);
+    if (e.name === 'AbortError') {
+        toast('请求超时，请检查网络');
+    } else {
         toast('请求失败: ' + (e.message || '网络错误'));
-    } finally {
+    }
+} finally {
         // ★ 恢复按钮
         if (sendBtn) sendBtn.disabled = false;
         if (recvBtn) recvBtn.disabled = false;
@@ -3111,41 +3114,77 @@ bindClickSelect('qaq-chs-u-menu-pos', '菜单出现位置', [
         ]);
 
         if (qs('qaq-chs-o-fetch-models-btn')) {
-            qs('qaq-chs-o-fetch-models-btn').onclick = async function () {
-                var url = (qs('qaq-chs-o-api-url').value || '').trim();
-                var key = (qs('qaq-chs-o-api-key').value || '').trim();
-                if (!url) {
-                    var g = JSON.parse(localStorage.getItem('qaq-api-config') || '{}');
-                    url = g.url || '';
-                    key = key || g.key || '';
-                }
-                if (!url || !key) { toast('请先填写 API URL 和 Key'); return; }
-                toast('正在拉取模型列表');
-                try {
-                    var resp = await fetch(normalizeUrl(url) + '/models', {
-                        headers: { 'Authorization': 'Bearer ' + key }
-                    });
-                    var data = await resp.json();
-                    var models = (data.data || []).map(function (m) { return { value: m.id, label: m.id }; });
-                    if (!models.length) { toast('未获取到模型'); return; }
-                    openModal('选择模型',
-                        '<div class="qaq-custom-select-list" style="max-height:50vh;overflow-y:auto;">' +
-                        models.map(function (m) {
-                            return '<div class="qaq-custom-select-option" data-qaq-model-pick="' + esc(m.value) + '"><span>' + esc(m.label) + '</span></div>';
-                        }).join('') + '</div>',
-                        { hideBtns: true, afterRender: function () {
-                            document.querySelectorAll('[data-qaq-model-pick]').forEach(function (el) {
-                                el.onclick = function () {
-                                    qs('qaq-chs-o-api-model').value = this.getAttribute('data-qaq-model-pick');
-                                    window.qaqCloseModal && window.qaqCloseModal();
-                                    toast('已选择模型');
-                                };
-                            });
-                        }}
-                    );
-                } catch (e) { toast('拉取失败: ' + (e.message || '网络错误')); }
-            };
+    qs('qaq-chs-o-fetch-models-btn').onclick = async function () {
+        var url = (qs('qaq-chs-o-api-url').value || '').trim();
+        var key = (qs('qaq-chs-o-api-key').value || '').trim();
+        if (!url) {
+            var g = JSON.parse(localStorage.getItem('qaq-api-config') || '{}');
+            url = g.url || '';
+            key = key || g.key || '';
         }
+        if (!url || !key) {
+            toast('请先填写 API URL 和 Key');
+            return;
+        }
+
+        var finalUrl = normalizeUrl(url) + '/models';
+        toast('正在拉取: ' + finalUrl);
+
+        try {
+            var controller = new AbortController();
+var timer = setTimeout(function () { controller.abort(); }, 60000);
+
+var resp = await fetch(normalizeUrl(apiUrl) + '/chat/completions', {
+    method: 'POST',
+    headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload),
+    signal: controller.signal
+});
+clearTimeout(timer);
+
+            if (!resp.ok) {
+                toast('拉取失败: HTTP ' + resp.status);
+                return;
+            }
+
+            var data = await resp.json();
+            var models = (data.data || []).map(function (m) {
+                return { value: m.id, label: m.id };
+            });
+            if (!models.length) {
+                toast('未获取到模型');
+                return;
+            }
+            openModal('选择模型',
+                '<div class="qaq-custom-select-list" style="max-height:50vh;overflow-y:auto;">' +
+                models.map(function (m) {
+                    return '<div class="qaq-custom-select-option" data-qaq-model-pick="' + esc(m.value) + '"><span>' + esc(m.label) + '</span></div>';
+                }).join('') + '</div>',
+                {
+                    hideBtns: true,
+                    afterRender: function () {
+                        document.querySelectorAll('[data-qaq-model-pick]').forEach(function (el) {
+                            el.onclick = function () {
+                                qs('qaq-chs-o-api-model').value = this.getAttribute('data-qaq-model-pick');
+                                window.qaqCloseModal && window.qaqCloseModal();
+                                toast('已选择模型');
+                            };
+                        });
+                    }
+                }
+            );
+        } catch (e) {
+            if (e.name === 'AbortError') {
+                toast('拉取超时，请检查网络和 URL');
+            } else {
+                toast('拉取失败: ' + (e.message || '网络错误') + '，可能是跨域限制');
+            }
+        }
+    };
+}
 
         syncConditionalBlocks();
         applyChatSettingsTheme();

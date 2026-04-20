@@ -2562,16 +2562,11 @@ signatureAutoChange: true,
 function openChatSettings() {
     if (!activeContactId) return;
     var c = getActiveContact();
-    if (c) {
-        _chatCurrentTheme = c.uiTheme || getGlobalTheme();
-applyPageThemeClass(_chatCurrentTheme);
-applyRuntimeStyle(c);
-renderMainBody();
-renderChatWindow();
-toast('设置已保存');
-    }
+    if (!c) return;
+    _chatCurrentTheme = c.uiTheme || getGlobalTheme();
     renderSettingsPage();
     showOnlyChatPage('qaq-chat-settings-page');
+    applyPageThemeClass(_chatCurrentTheme);
 }
 
 function renderSettingsPage() {
@@ -2860,12 +2855,12 @@ var otherOpsHtml =
     '</div>';
 
     body.innerHTML =
-        chatFoldCard('qaq-chat-fold-other', '对方设置', '角色信息与行为控制', 'user', otherHtml, true) +
-chatFoldCard('qaq-chat-fold-me', '我方设置', '我的身份信息与人设', 'credit-card', myHtml, false) +
-chatFoldCard('qaq-chat-fold-ui', '美化设置', '气泡、主题、字体、样式', 'feather', uiHtml, false) +
-chatFoldCard('qaq-chat-fold-history', '聊天记录', '导入、导出、清理', 'clock', historyHtml, false) +
-chatFoldCard('qaq-chat-fold-other-op', '其他', '勿扰、拉黑、删除、恢复', 'sliders', otherOpsHtml, false) +
-        '<button class="qaq-chat-set-save" id="qaq-chat-settings-save-all">保存全部设置</button>';
+    chatFoldCard('qaq-chat-fold-other', '对方设置', '角色信息与行为控制', 'user', otherHtml, false) +
+    chatFoldCard('qaq-chat-fold-me', '我方设置', '我的身份信息与人设', 'credit-card', myHtml, false) +
+    chatFoldCard('qaq-chat-fold-ui', '美化设置', '气泡、主题、字体、样式', 'feather', uiHtml, false) +
+    chatFoldCard('qaq-chat-fold-history', '聊天记录', '导入、导出、清理', 'clock', historyHtml, false) +
+    chatFoldCard('qaq-chat-fold-other-op', '其他', '勿扰、拉黑、删除、恢复', 'sliders', otherOpsHtml, false) +
+    '<button class="qaq-chat-set-save" id="qaq-chat-settings-save-all">保存全部设置</button>';
 
     window.lucide && window.lucide.createIcons && window.lucide.createIcons();
     bindFoldEvents(body);
